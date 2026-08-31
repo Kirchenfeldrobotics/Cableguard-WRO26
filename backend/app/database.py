@@ -5,6 +5,10 @@ from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from app.config import settings
 
+def init_db() -> None:
+    import app.models  # noqa: F401 — registers tables on Base.metadata
+    Base.metadata.create_all(bind=engine)
+
 engine = create_engine(
     settings.DATABASE_URL,
     connect_args={"check_same_thread": False},
