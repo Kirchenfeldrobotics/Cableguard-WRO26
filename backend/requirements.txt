@@ -1,0 +1,8 @@
+fastapi
+sqlalchemy
+pydantic
+pydantic-settings
+click
+h11
+uvicorn
+

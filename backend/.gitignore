@@ -1,3 +1,10 @@
 data/*.db
 data/*.db-wal
 data/*.db-shm
+
+
+.env
+
+.venv
+
+app/__pycache__
