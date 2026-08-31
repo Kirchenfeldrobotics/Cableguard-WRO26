@@ -23,6 +23,6 @@ if settings.CORS_ORIGINS:
     )
 
 
-@app.get("/health", tags=["meta"])
+@app.get("/api/health", tags=["meta"])
 def health():
     return {"status": "ok"}
