@@ -11,7 +11,7 @@ async def lifespan(app: FastAPI):
     init_db()
     yield
 
-app = FastAPI(title=settings.PROJECT_NAME)
+app = FastAPI(title=settings.PROJECT_NAME, lifespan=lifespan)
 
 if settings.CORS_ORIGINS:
     app.add_middleware(
