@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 
 from app.config import settings
 from app.database import init_db
+from app.routers.ws import router as ws_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -26,3 +27,6 @@ if settings.CORS_ORIGINS:
 @app.get("/api/health", tags=["meta"])
 def health():
     return {"status": "ok"}
+
+# routers 
+app.include_router(ws_router)
