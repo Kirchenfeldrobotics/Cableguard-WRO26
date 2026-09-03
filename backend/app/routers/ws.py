@@ -4,8 +4,8 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect, status
 from pydantic import ValidationError, TypeAdapter
 
 from app.ws.hub import hub 
-from app.ws.protocols import MotionTelemetry, PositionTelemetry, SpeedCmd, StopCmd
-
+from shared.comm_protocols.messages import MotionTelemetry, PositionTelemetry, SpeedCmd, StopCmd
+ 
 ROBOT_TOKEN = os.environ("CABLEGUARD_ROBOT_TOKEN")
 
 log = logging.getLogger(__name__)
@@ -39,6 +39,8 @@ async def robot_link(sock):
                 log.warning("bad robot message: %s", raw[:200])
                 continue 
 
+            # TODO store in db
+            
             await hub.broadcast(msg.model_dump())
 
     except WebSocketDisconnect: 
