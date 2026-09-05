@@ -4,6 +4,8 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect, status
 from pydantic import ValidationError, TypeAdapter
 
 from app.ws.hub import hub 
+from app.database import session_scope
+from app.repository.ingest import store
 from shared.comm_protocols.messages import MotionTelemetry, PositionTelemetry, SpeedCmd, StopCmd
  
 ROBOT_TOKEN = os.environ("CABLEGUARD_ROBOT_TOKEN")
@@ -22,7 +24,7 @@ async def authenticate_robot(sock: WebSocket):
         return False 
     return True
 
-# Route where robot can subscribe to socket and send messages to ui clients
+# Route where robot can subscribe to socket ans send messages to, which are broadcasted to ui clients or persisted (or both)
 @router.websocket("/robot")
 async def robot_link(sock): 
     if not await authenticate_robot(sock): 
@@ -39,9 +41,15 @@ async def robot_link(sock):
                 log.warning("bad robot message: %s", raw[:200])
                 continue 
 
-            # TODO store in db
+            if msg.persist: 
+                try: 
+                    with session_scope() as db: 
+                        store(db, msg)
+                except Exception: 
+                    log.exception("failed to store: %s", msg.type)
             
-            await hub.broadcast(msg.model_dump())
+            if msg.live: 
+                await hub.broadcast(msg.model_dump())
 
     except WebSocketDisconnect: 
         pass
