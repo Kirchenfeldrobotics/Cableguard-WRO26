@@ -1,0 +1,5 @@
+-e ../shared
+
+pigpio
+websockets
+pydantic
