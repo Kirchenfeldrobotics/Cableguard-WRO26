@@ -37,14 +37,14 @@ class Hub:
     async def broadcast(self, msg): 
         async with self._lock: 
             targets = list(self._uis)
-        deads = []
+        dead = []
         for ui in targets: 
             try: 
                 await ui.send_json(msg)
             except Exception: 
-                await dead.append(ui)
+                dead.append(ui)
 
-        for dead in deads: 
+        for ui in dead: 
             await self.remove_ui(ui)
 
     # send message to robot
