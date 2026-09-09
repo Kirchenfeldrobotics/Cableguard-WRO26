@@ -7,7 +7,7 @@ from app.ws.hub import hub
 from app.database import session_scope
 from app.repository.ingest import store
 from app.auth import authenticate_robot
-from shared.comm_protocols.messages import MotionTelemetry, PositionTelemetry, SpeedCmd, StopCmd
+from comm_protocols.messages import MotionTelemetry, PositionTelemetry, SpeedCmd, StopCmd
  
 ROBOT_TOKEN = os.environ["CABLEGUARD_ROBOT_TOKEN"]
 
