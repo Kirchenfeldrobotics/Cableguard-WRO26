@@ -22,7 +22,7 @@ class Rope(Base):
         back_populates="rope", cascade="all, delete-orphan"
     )
 
-# During a run anchors and defects are detected
+# During a run defects are detected
 class Run(Base): 
     __tablename__ = "runs"
 
@@ -32,24 +32,8 @@ class Run(Base):
     finished_at: Mapped[datetime | None] = mapped_column(default=None)
 
     rope: Mapped[Rope] = relationship(back_populates="runs")
-    anchors: Mapped[list["Anchor"]] = relationship(
-        back_populates="run", cascade="all, delete-orphan"
-    )
     defects: Mapped[list["Defect"]] = relationship(
         back_populates="run", cascade="all, delete-orphan"
-    )
-
-# A anchor is known point on the rope, pos of defects are expressed relativ to one 
-class Anchor(Base): 
-    __tablename__ = "anchors"
-
-    id: Mapped[str]                     = mapped_column(primary_key=True)
-    run_id: Mapped[str]                 = mapped_column(ForeignKey("runs.id", ondelete="CASCADE"), index=True)
-    name: Mapped[str]                   = mapped_column(String(36))
-    distance_to_origin_m: Mapped[float] = mapped_column()
-
-    defects: Mapped[list["Defect"]] = relationship(
-        back_populates="anchor", cascade="all, delete-orphan"
     )
 
 # A rope defect 
@@ -59,9 +43,9 @@ class Defect(Base):
     id: Mapped[str]                     = mapped_column(primary_key=True)
     run_id: Mapped[str]                 = mapped_column(ForeignKey("runs.id", ondelete="CASCADE"), index=True)
     kind: Mapped[str]                   = mapped_column(String(8))
-    anchor_id: Mapped[str]              = mapped_column(ForeignKey("anchors.id", ondelete="CASCADE"), index=True)
-    distance_to_anchor_m: Mapped[float] = mapped_column()
+    distance_to_start_m: Mapped[float] = mapped_column()
 
+    run: Mapped["Run"] = relationship(back_populates="defects")
 class AppState(Base): 
     __tablename__ = "app_state"
 

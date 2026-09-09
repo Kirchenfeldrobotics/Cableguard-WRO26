@@ -45,7 +45,6 @@ class DefectOut(BaseModel):
 
     kind: Literal["lf", "lma"]
 
-    anchor_id: str 
-    pos_to_anchor: float
+    pos_to_start: float
 
     created_at: datetime

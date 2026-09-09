@@ -13,13 +13,12 @@ log = logging.getLogger(__name__)
 def _store_defect(db, msg): 
     current_ids = get_current(db)
 
-    # TODO: map anchorch id, distance to anchor logic 
+    # TODO: distance to start
     db.add(Defect(
         id=str(uuid.uuid4()), 
         run_id=current_ids["current_run_id"], 
         kind=msg.kind, 
-        anchor_id="", 
-        distance_to_anchor_m=0.0
+        distance_to_start_m=0.0
     ))
 
 # Mapping from message type to handler 
