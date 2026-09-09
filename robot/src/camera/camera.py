@@ -2,16 +2,24 @@ from picamera2 import Picamera2
 import time
 
 class CameraPair: 
-    def __init__(self, size=(640, 640), fps=15): 
+    def __init__(self, main_size=(640, 640), lores_size=(480, 480), fps=15): 
         self._cams: list[Picamera2] = []
         for i in range(2): 
             cam = Picamera2(camera_num=i)
 
             # configure camera for video
             cam.configure(cam.create_video_configuration(
-                main={"size": size, "format": "RGB888"}, 
+                main={"size": main_size, "format": "RGB888"}, 
+                lores={"size": lores_size, "format": "YUV420"}, 
                 buffer_count=4, 
-                controls={"FrameRate": fps}
+                controls={
+                    "FrameRate": fps,
+                    "AeEnable": False,
+                    "ExposureTime": 8000,
+                    "AnalogueGain": 2.0,
+                    "AwbEnable": False,
+                    "ColourGains": (1.5, 1.5)
+                }
             ))
 
             self._cams.append(cam)
@@ -23,10 +31,14 @@ class CameraPair:
         time.sleep(1.0)
         return self
 
-    # capture a frame from each camera 
+    # capture a frame from each camera (main stream)
     def capture(self): 
         return [(i, cam.capture_array("main")) for i, cam in enumerate(self._cams)]
 
+    # capture a frame from each camera (lores stream)
+    def caputre_lores(self): 
+        return [(i, cam.capture_array("lores")) for i, cam in enumerate(self._cams)]
+    
     # close both cameras
     def close(self): 
         for cam in self._cams: 

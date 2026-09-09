@@ -4,7 +4,7 @@ import uuid
 
 from sqlalchemy.orm import Session
 
-from shared.comm_protocols.messages import Defect as DefectMsg
+from comm_protocols.messages import Defect as DefectMsg
 
 from app.models import Defect 
 from app.repository.state import get_current

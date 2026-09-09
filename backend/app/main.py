@@ -10,6 +10,7 @@ from app.routers.ropes import router as ropes_router
 from app.routers.runs import router as runs_router
 from app.routers.current import router as current_router
 from app.routers.defects import router as defects_router
+from app.routers.video import router as video_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -38,3 +39,4 @@ app.include_router(ropes_router)
 app.include_router(runs_router)
 app.include_router(current_router)
 app.include_router(defects_router)
+app.include_router(video_router)
