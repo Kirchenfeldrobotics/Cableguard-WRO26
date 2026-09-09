@@ -12,7 +12,7 @@ from comm_protocols.messages import MotionTelemetry, SpeedCmd, StopCmd
 ROBOT_TOKEN = os.environ["CABLEGUARD_ROBOT_TOKEN"]
 
 log = logging.getLogger(__name__)
-router = APIRouter("/api/ws")
+router = APIRouter(prefix="/api/ws")
 
 FromRobot = TypeAdapter(MotionTelemetry)
 FromUi   = TypeAdapter(SpeedCmd | StopCmd)
