@@ -7,14 +7,14 @@ from app.ws.hub import hub
 from app.database import session_scope
 from app.repository.ingest import store
 from app.auth import authenticate_robot
-from comm_protocols.messages import MotionTelemetry, PositionTelemetry, SpeedCmd, StopCmd
+from comm_protocols.messages import MotionTelemetry, SpeedCmd, StopCmd
  
 ROBOT_TOKEN = os.environ["CABLEGUARD_ROBOT_TOKEN"]
 
 log = logging.getLogger(__name__)
 router = APIRouter("/api/ws")
 
-FromRobot = TypeAdapter(MotionTelemetry | PositionTelemetry)
+FromRobot = TypeAdapter(MotionTelemetry)
 FromUi   = TypeAdapter(SpeedCmd | StopCmd)
 
 # Route where robot can subscribe to socket ans send messages to, which are broadcasted to ui clients or persisted (or both)
