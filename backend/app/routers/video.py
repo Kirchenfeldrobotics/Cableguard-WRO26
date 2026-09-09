@@ -9,7 +9,7 @@ log = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/ws/video", tags=["video"])
 
 @router.websocket("/robot")
-async def video_in(sock): 
+async def video_in(sock: WebSocket): 
     if not await authenticate_robot(sock): 
         return 
 
@@ -27,7 +27,7 @@ async def video_in(sock):
         log.info("video link down")
 
 @router.websocket("/ui")
-async def video_out(sock): 
+async def video_out(sock: WebSocket): 
     await sock.accept()
     await video_hub.add_viewer(sock)
     log.info("video viewer connected (%d total)", video_hub.viewer_count)

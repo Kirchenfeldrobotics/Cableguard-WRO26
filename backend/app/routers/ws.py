@@ -19,7 +19,7 @@ FromUi   = TypeAdapter(SpeedCmd | StopCmd)
 
 # Route where robot can subscribe to socket ans send messages to, which are broadcasted to ui clients or persisted (or both)
 @router.websocket("/robot")
-async def robot_link(sock): 
+async def robot_link(sock: WebSocket): 
     if not await authenticate_robot(sock): 
         return 
 
@@ -51,7 +51,7 @@ async def robot_link(sock):
 
 # Route where ui client can subscribe to soket and send messages to robot 
 @router.websocket("/ui")
-async def ui_link(sock): 
+async def ui_link(sock: WebSocket): 
     await sock.accept()
     await hub.add_ui(sock)
     try:
