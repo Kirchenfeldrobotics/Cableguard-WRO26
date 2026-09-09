@@ -7,7 +7,7 @@ import websockets
 from pydantic import TypeAdapter, ValidationError
 
 from .outbox import Outbox
-from shared.comm_protocols.messages import SpeedCmd, StopCmd
+from comm_protocols.messages import SpeedCmd, StopCmd
 
 log = logging.getLogger(__name__)
 
