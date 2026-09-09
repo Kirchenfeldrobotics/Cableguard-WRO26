@@ -11,8 +11,8 @@ from comm_protocols.messages import SpeedCmd, StopCmd
 
 log = logging.getLogger(__name__)
 
-URL   = os.environ("CABLEGUARD_WS_URL")
-TOKEN = os.environ("CABLEGUARD_ROBOT_TOKEN")
+URL   = os.environ["CABLEGUARD_WS_URL"]
+TOKEN = os.environ["CABLEGUARD_ROBOT_TOKEN"]
 
 FromServer = TypeAdapter(SpeedCmd | StopCmd)
 

@@ -1,7 +1,7 @@
 import hmac, os 
 from fastapi import status
 
-ROBOT_TOKEN = os.environ("CABLEGUARD_ROBOT_TOKEN")
+ROBOT_TOKEN = os.environ["CABLEGUARD_ROBOT_TOKEN"]
 
 async def authenticate_robot(sock): 
     header = sock.headers.get("authorization", "")

@@ -9,7 +9,7 @@ from app.repository.ingest import store
 from app.auth import authenticate_robot
 from shared.comm_protocols.messages import MotionTelemetry, PositionTelemetry, SpeedCmd, StopCmd
  
-ROBOT_TOKEN = os.environ("CABLEGUARD_ROBOT_TOKEN")
+ROBOT_TOKEN = os.environ["CABLEGUARD_ROBOT_TOKEN"]
 
 log = logging.getLogger(__name__)
 router = APIRouter("/api/ws")

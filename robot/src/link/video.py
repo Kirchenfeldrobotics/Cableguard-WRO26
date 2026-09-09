@@ -5,8 +5,8 @@ import os
 
 log = logging.getLogger(__name__)
 
-URL   = os.environ("CABLEGUARD_VID_WS_URL")
-TOKEN = os.environ("CABLEGUARD_ROBOT_TOKEN")
+URL   = os.environ["CABLEGUARD_VID_WS_URL"]
+TOKEN = os.environ["CABLEGUARD_ROBOT_TOKEN"]
 
 # always holds the latest frame, discards old one
 class LatestFrame: 
