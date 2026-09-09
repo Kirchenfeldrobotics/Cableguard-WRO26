@@ -1,13 +1,16 @@
-import asyncio, websockets
+import asyncio, sys, websockets
 
-# specify url format (local for server only)
+# either remote or local for server only (d: local)
+TARGET = sys.argv[1] if len(sys.argv) > 1 else "local"
+
 URL = {
-    "local": "ws://localhost:8021/api/ws/ui", 
-    "remote": "wss://cableguard-interface.kirchenfeldrobotics.ch/api/ws/ui"
-}["remote"]
+    "local": "ws://localhost:8021/api/ws/ui",
+    "remote": "wss://cableguard-interface.kirchenfeldrobotics.ch/api/ws/ui",
+}[TARGET]
 
-# test socket
+# test ui websocket
 async def ui_ws_test():
+    print(f"connecting to {URL}")
     async with websockets.connect(URL) as s:
         print("connected")
         print(await s.recv())
