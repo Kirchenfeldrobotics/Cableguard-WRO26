@@ -15,6 +15,6 @@ git reset --hard origin/main
 cd "$APP_DIR"
 npm ci
 npm run build
-pm2 reload cableguard-webapp --update-env
+pm2 reload cableguard-interface --update-env
  
 echo "===== Deploy finished at $(date) ====="
