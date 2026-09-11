@@ -28,6 +28,7 @@ if IS_SQLITE:
 
 SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 
+
 class Base(DeclarativeBase):
     pass
 
@@ -63,6 +64,7 @@ def init_db() -> None:
     import app.models  
 
     Base.metadata.create_all(bind=engine)
+
 
     if IS_SQLITE:
         with engine.begin() as conn:
