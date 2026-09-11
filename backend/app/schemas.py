@@ -20,13 +20,15 @@ class RopeOut(BaseModel):
 
 # Schema for run creation
 class RunCreate(BaseModel): 
+    name: str
     rope_id: str 
 
 # Schema for run output
 class RunOut(BaseModel): 
     model_config = ConfigDict(from_attributes=True)
 
-    id: int 
+    id: str 
+    name: str 
     rope_id: str 
     started_at: datetime
     finished_at: datetime | None 
