@@ -4,6 +4,7 @@ fastapi
 sqlalchemy
 pydantic
 pydantic-settings
+pyjwt
 click
 h11
 uvicorn

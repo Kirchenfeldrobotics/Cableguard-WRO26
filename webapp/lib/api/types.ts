@@ -7,6 +7,19 @@
 
 export type DefectKind = "lf" | "lma";
 
+export interface AuthUser {
+  id: string;
+  username: string;
+}
+
+export interface LoginResult {
+  access_token: string;
+  token_type: "bearer";
+  /** Lifetime of the token in seconds. */
+  expires_in: number;
+  user: AuthUser;
+}
+
 export interface Rope {
   id: string;
   name: string;

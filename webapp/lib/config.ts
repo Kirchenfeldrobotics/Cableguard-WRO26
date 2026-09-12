@@ -1,3 +1,5 @@
+import { getToken } from "@/lib/auth/session";
+
 /**
  * Base URL of the FastAPI backend.
  *
@@ -12,10 +14,17 @@ export function apiUrl(path: string): string {
   return `${API_BASE_URL}${path}`;
 }
 
-/** WebSocket URL for an API path such as `/api/ws/ui`. Browser only. */
+/**
+ * WebSocket URL for an API path such as `/api/ws/ui`. Browser only.
+ *
+ * A WebSocket cannot carry an Authorization header, so the access token goes
+ * in the query string; `authenticate_ui` in backend/app/auth.py reads it there.
+ */
 export function wsUrl(path: string): string {
   const base = API_BASE_URL || window.location.origin;
-  return `${base.replace(/^http/, "ws")}${path}`;
+  const url = `${base.replace(/^http/, "ws")}${path}`;
+  const token = getToken();
+  return token ? `${url}?token=${encodeURIComponent(token)}` : url;
 }
 
 /** Human-readable name of the server, shown on the settings screen. */

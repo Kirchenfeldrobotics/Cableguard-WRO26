@@ -5,6 +5,28 @@ from pydantic import BaseModel, ConfigDict
 
 # TODO: Create schemas for data that is persisted
 
+# Credentials sent by the webapp login form
+class LoginRequest(BaseModel): 
+    username: str 
+    password: str 
+
+# Schema for the signed-in operator
+class UserOut(BaseModel): 
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str 
+    username: str 
+
+# Schema for the JWT handed to the webapp after a successful login
+class TokenOut(BaseModel): 
+    access_token: str 
+    token_type: Literal["bearer"] = "bearer"
+
+    # Seconds until the token expires
+    expires_in: int 
+
+    user: UserOut
+
 # Schema for the rope creation
 class RopeCreate(BaseModel): 
     name: str 

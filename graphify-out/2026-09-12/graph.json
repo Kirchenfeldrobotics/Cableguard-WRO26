@@ -3995,6 +3995,30 @@
       "source_location": "L1"
     },
     {
+      "id": "claude_git_authorship",
+      "label": "Git authorship",
+      "_origin": "ast",
+      "community": 18,
+      "community_name": "CLAUDE.md",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "git authorship",
+      "source_file": "CLAUDE.md",
+      "source_location": "L11"
+    },
+    {
+      "id": "claude_git_safety",
+      "label": "Git safety",
+      "_origin": "ast",
+      "community": 18,
+      "community_name": "CLAUDE.md",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "git safety",
+      "source_file": "CLAUDE.md",
+      "source_location": "L19"
+    },
+    {
       "id": "claude_graphify",
       "label": "graphify",
       "_origin": "ast",
@@ -13681,6 +13705,28 @@
       "weight": 1.0
     },
     {
+      "source": "claude",
+      "target": "claude_git_authorship",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "CLAUDE.md",
+      "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "claude",
+      "target": "claude_git_safety",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "CLAUDE.md",
+      "source_location": "L19",
+      "weight": 1.0
+    },
+    {
       "source": "readme",
       "target": "readme_cableguard_wro26",
       "relation": "contains",
@@ -17205,5 +17251,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "6ff85228eb6617767ca254299dfb057d197b32f3"
+  "built_at_commit": "351949ef664fdf3877b25a6aef0689d9f30ffe80"
 }

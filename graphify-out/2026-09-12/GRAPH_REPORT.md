@@ -1,16 +1,16 @@
 # Graph Report - Cableguard-WRO26  (2026-09-12)
 
 ## Corpus Check
-- 92 files · ~15,154 words
+- 92 files · ~15,245 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 455 nodes · 1017 edges · 30 communities (11 shown, 9 thin omitted)
+- 457 nodes · 1019 edges · 30 communities (12 shown, 8 thin omitted)
 - Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 14 edges (avg confidence: 0.93)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `4b656fbe`
+- Built from commit: `351949ef`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -63,7 +63,7 @@
 ## Import Cycles
 - None detected.
 
-## Communities (30 total, 9 thin omitted)
+## Communities (30 total, 8 thin omitted)
 
 ### Community 0 - "live-view.tsx"
 Cohesion: 0.09
@@ -109,10 +109,14 @@ Nodes (5): Cableguard-WRO26, Electronic Components, Goal with Tech-Stack:, Knowl
 Cohesion: 0.60
 Nodes (4): info(), PATH, setup-graphify.sh script, warn()
 
+### Community 18 - "CLAUDE.md"
+Cohesion: 0.50
+Nodes (3): Git authorship, Git safety, graphify
+
 ## Knowledge Gaps
-- **93 isolated node(s):** `Cableguard-WRO26`, `Goal with Tech-Stack:`, `Electronic Components`, `Knowledge graph (graphify)`, `PATH` (+88 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 176 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **9 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **95 isolated node(s):** `graphify`, `Git authorship`, `Git safety`, `Cableguard-WRO26`, `Goal with Tech-Stack:` (+90 more)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 177 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **8 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
@@ -123,8 +127,8 @@ _Questions this graph is uniquely positioned to answer:_
   _High betweenness centrality (0.022) - this node is a cross-community bridge._
 - **Why does `cn()` connect `live-view.tsx` to `settings-view.tsx`?**
   _High betweenness centrality (0.018) - this node is a cross-community bridge._
-- **What connects `Cableguard-WRO26`, `Goal with Tech-Stack:`, `Electronic Components` to the rest of the system?**
-  _93 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **What connects `graphify`, `Git authorship`, `Git safety` to the rest of the system?**
+  _95 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `live-view.tsx` be split into smaller, more focused modules?**
   _Cohesion score 0.09313358302122347 - nodes in this community are weakly interconnected._
 - **Should `ws.py` be split into smaller, more focused modules?**

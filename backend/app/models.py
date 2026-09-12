@@ -1,3 +1,4 @@
+import uuid
 from datetime import datetime, timezone
 from typing import Literal
 
@@ -8,6 +9,18 @@ from app.database import Base
 
 def utcnow(): 
     return datetime.now(timezone.utc)
+
+def new_id(): 
+    return uuid.uuid4().hex
+
+# Operator account that may sign in to the webapp
+class User(Base): 
+    __tablename__ = "users"
+
+    id: Mapped[str]              = mapped_column(primary_key=True, default=new_id)
+    username: Mapped[str]        = mapped_column(String(64), unique=True, index=True)
+    password_hash: Mapped[str]   = mapped_column(String(255))
+    created_at: Mapped[datetime] = mapped_column(default=utcnow)
 
 # Runs can be performed on a rope
 class Rope(Base): 
