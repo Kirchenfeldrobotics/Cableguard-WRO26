@@ -1,5 +1,6 @@
+import { clearToken, getToken } from "@/lib/auth/session";
 import { apiUrl } from "@/lib/config";
-import type { CurrentSelection, Defect, Rope, Run } from "./types";
+import type { AuthUser, CurrentSelection, Defect, LoginResult, Rope, Run } from "./types";
 
 export class ApiError extends Error {
   constructor(
@@ -11,12 +12,25 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+/** `anonymous` skips the access token, for the login call itself. */
+async function request<T>(
+  path: string,
+  init?: RequestInit,
+  { anonymous = false }: { anonymous?: boolean } = {},
+): Promise<T> {
+  const token = anonymous ? null : getToken();
   const res = await fetch(apiUrl(path), {
     ...init,
-    headers: { "Content-Type": "application/json", ...init?.headers },
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...init?.headers,
+    },
     cache: "no-store",
   });
+
+  // The token expired or the account is gone: back to the login screen.
+  if (res.status === 401 && !anonymous) clearToken();
 
   if (!res.ok) {
     let detail = res.statusText;
@@ -38,6 +52,15 @@ const query = (params: Record<string, string>) => `?${new URLSearchParams(params
 
 /** Typed access to every REST endpoint in backend/app/routers. */
 export const api = {
+  auth: {
+    login: (username: string, password: string) =>
+      request<LoginResult>(
+        "/api/auth/login",
+        { method: "POST", body: json({ username, password }) },
+        { anonymous: true },
+      ),
+    me: () => request<AuthUser>("/api/auth/me"),
+  },
   ropes: {
     list: () => request<Rope[]>("/api/ropes"),
     create: (name: string) => request<Rope>("/api/ropes", { method: "POST", body: json({ name }) }),

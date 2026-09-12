@@ -1,15 +1,23 @@
 import Image from "next/image";
 
-/** CableGuard wordmark for dark backgrounds (design asset `Logo_black_big.png`). */
+/**
+ * CableGuard wordmark (design asset `public/Logo_white_big.svg`).
+ *
+ * The file is a black wordmark on an opaque white plate, so on the ink
+ * backgrounds it is used on (sidebar, login) it is inverted to a white
+ * wordmark and the plate is blended away with `screen`. `unoptimized` keeps
+ * the SVG out of the image optimiser, which refuses SVGs by default.
+ */
 export function Logo() {
   return (
     <Image
-      src="/brand/cableguard-logo.png"
+      src="/Logo_white_big.svg"
       alt="CableGuard"
-      width={1280}
+      width={1272}
       height={460}
       priority
-      className="mx-1.5 block h-auto w-[150px]"
+      unoptimized
+      className="mx-1.5 block h-auto w-[150px] invert mix-blend-screen"
     />
   );
 }

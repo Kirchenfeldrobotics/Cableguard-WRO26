@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { IBM_Plex_Mono, Poppins } from "next/font/google";
 
-import { Sidebar } from "@/components/layout/sidebar";
-import { RobotLinkProvider } from "@/lib/robot/robot-link";
+import { AppShell } from "@/components/layout/app-shell";
+import { AuthProvider } from "@/lib/auth/auth-context";
 import "./globals.css";
 
 const poppins = Poppins({
@@ -26,14 +26,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${poppins.variable} ${plexMono.variable} antialiased`}>
       <body className="font-sans">
-        <RobotLinkProvider>
-          <div className="flex min-h-screen flex-col gap-3 bg-canvas p-3 lg:flex-row lg:gap-0">
-            <Sidebar />
-            <main className="min-w-0 flex-auto px-4 pt-[22px] pb-[60px] lg:max-w-[1280px] lg:px-[30px]">
-              {children}
-            </main>
-          </div>
-        </RobotLinkProvider>
+        <AuthProvider>
+          <AppShell>{children}</AppShell>
+        </AuthProvider>
       </body>
     </html>
   );

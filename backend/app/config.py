@@ -15,6 +15,17 @@ class Settings(BaseSettings):
     DATABASE_URL: str = f"sqlite:///{BASE_DIR / 'data' / 'cableguard.db'}"
     CORS_ORIGINS: Annotated[list[str], NoDecode] = []
 
+    # Signing key for the webapp access tokens. Leave empty only in development:
+    # app.auth then falls back to a random per-process secret, so every restart
+    # logs the operator out.
+    JWT_SECRET: str = ""
+    JWT_ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 12 * 60
+
+    # The single operator account, created on first start if it does not exist.
+    DEFAULT_USERNAME: str = "user1"
+    DEFAULT_PASSWORD: str = "#wro"
+
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
     def _parse_cors_origins(cls, v: object) -> object:

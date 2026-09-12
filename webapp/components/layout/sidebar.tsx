@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { Logo } from "@/components/brand/logo";
+import { useAuth } from "@/lib/auth/auth-context";
 import { cn } from "@/lib/cn";
 import { formatAgo } from "@/lib/format";
 import { useNow } from "@/lib/hooks/use-now";
@@ -53,8 +54,30 @@ export function Sidebar() {
       <div className="mt-auto flex flex-col gap-2.5">
         <div className="h-px bg-ink-soft" />
         <LinkStatus />
+        <div className="h-px bg-ink-soft" />
+        <Operator />
       </div>
     </aside>
+  );
+}
+
+/** Who is signed in, with the way out. */
+function Operator() {
+  const { user, signOut } = useAuth();
+
+  return (
+    <div className="flex items-center justify-between gap-2 px-1">
+      <span className="truncate text-[13px] leading-none font-semibold text-white">
+        {user?.username ?? "—"}
+      </span>
+      <button
+        type="button"
+        onClick={signOut}
+        className="rounded-control px-2 py-1.5 text-[12px] leading-none font-semibold text-text-inverse-muted transition-colors hover:bg-ink-soft hover:text-white"
+      >
+        Sign out
+      </button>
+    </div>
   );
 }
 

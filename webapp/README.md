@@ -52,7 +52,7 @@ lib/
   robot/                  WebSocket connections (robot link, video)
   hooks/                  useApi, useRopeHistory, useCurrentSelection, useNow
   defects.ts format.ts routes.ts config.ts cn.ts
-public/brand/             Logo
+public/                   Logo
 ```
 
 Conventions:

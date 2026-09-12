@@ -657,8 +657,41 @@
       "why": "inferred connection - not explicitly stated in source"
     }
   ],
-  "tokens": {
-    "input": 0,
-    "output": 0
-  }
+  "questions": [
+    {
+      "type": "bridge_node",
+      "question": "Why does `react` connect `settings-view.tsx` to `live-view.tsx`, `Frontend Build Dependencies`?",
+      "why": "High betweenness centrality (0.044) - this node is a cross-community bridge."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `next` connect `next` to `settings-view.tsx`, `Frontend Build Dependencies`?",
+      "why": "High betweenness centrality (0.022) - this node is a cross-community bridge."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `cn()` connect `live-view.tsx` to `settings-view.tsx`?",
+      "why": "High betweenness centrality (0.018) - this node is a cross-community bridge."
+    },
+    {
+      "type": "isolated_nodes",
+      "question": "What connects `Size`, `StyleProps`, `Variant` to the rest of the system?",
+      "why": "93 weakly-connected nodes found - possible documentation gaps or missing edges."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `live-view.tsx` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.09313358302122347 - nodes in this community are weakly interconnected."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `ws.py` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.052393857271906055 - nodes in this community are weakly interconnected."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `settings-view.tsx` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.06077694235588972 - nodes in this community are weakly interconnected."
+    }
+  ]
 }

@@ -8,6 +8,8 @@ from pydantic import Field, ValidationError, TypeAdapter
 from app.ws.hub import hub 
 from app.database import session_scope
 from app.repository.ingest import store
+from app.auth import authenticate_robot, authenticate_ui
+from comm_protocols.messages import MotionTelemetry, SpeedCmd, StopCmd
 from app.auth import authenticate_robot
 from comm_protocols.messages import Alive, Defect as DefectMsg, MotionTelemetry, SpeedCmd, StopCmd
  
@@ -58,6 +60,9 @@ async def robot_link(sock: WebSocket):
 # Route where ui client can subscribe to soket and send messages to robot 
 @router.websocket("/ui")
 async def ui_link(sock: WebSocket): 
+    if not await authenticate_ui(sock): 
+        return 
+
     await sock.accept()
     await hub.add_ui(sock)
     try:

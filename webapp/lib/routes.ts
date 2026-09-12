@@ -3,6 +3,7 @@ const seg = encodeURIComponent;
 /** Every app URL is built here so links never drift from the folder structure. */
 export const routes = {
   dashboard: "/",
+  login: "/login",
   live: "/live",
   ropes: "/ropes",
   settings: "/settings",
