@@ -1,3 +1,4 @@
+import uuid
 from datetime import datetime, timezone
 from typing import Literal
 
@@ -9,11 +10,15 @@ from app.database import Base
 def utcnow(): 
     return datetime.now(timezone.utc)
 
+# Primary keys are generated here: the *Create schemas never carry an id
+def new_id(): 
+    return str(uuid.uuid4())
+
 # Runs can be performed on a rope
 class Rope(Base): 
     __tablename__ = "ropes"
 
-    id: Mapped[str]                = mapped_column(primary_key=True)
+    id: Mapped[str]                = mapped_column(primary_key=True, default=new_id)
     name: Mapped[str]              = mapped_column(String(120), unique=True)
     length_m: Mapped[float | None] = mapped_column(default=None)
     created_at: Mapped[datetime]   = mapped_column(default=utcnow)
@@ -26,7 +31,8 @@ class Rope(Base):
 class Run(Base): 
     __tablename__ = "runs"
 
-    id: Mapped[str]                      = mapped_column(primary_key=True)
+    id: Mapped[str]                      = mapped_column(primary_key=True, default=new_id)
+    name: Mapped[str]                    = mapped_column(String(120))
     rope_id: Mapped[str]                 = mapped_column(ForeignKey("ropes.id", ondelete="CASCADE"), index=True)
     started_at: Mapped[datetime]         = mapped_column(default=utcnow)
     finished_at: Mapped[datetime | None] = mapped_column(default=None)
@@ -40,12 +46,14 @@ class Run(Base):
 class Defect(Base): 
     __tablename__ = "defects"
 
-    id: Mapped[str]                     = mapped_column(primary_key=True)
+    id: Mapped[str]                     = mapped_column(primary_key=True, default=new_id)
     run_id: Mapped[str]                 = mapped_column(ForeignKey("runs.id", ondelete="CASCADE"), index=True)
     kind: Mapped[str]                   = mapped_column(String(8))
-    distance_to_start_m: Mapped[float] = mapped_column()
+    pos_to_start: Mapped[float]         = mapped_column()
+    created_at: Mapped[datetime]        = mapped_column(default=utcnow)
 
     run: Mapped["Run"] = relationship(back_populates="defects")
+
 class AppState(Base): 
     __tablename__ = "app_state"
 

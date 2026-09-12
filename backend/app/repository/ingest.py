@@ -12,13 +12,19 @@ log = logging.getLogger(__name__)
 
 def _store_defect(db, msg): 
     current_ids = get_current(db)
+    run_id      = current_ids["current_run_id"]
 
-    # TODO: distance to start
+    # Defects belong to a run: with nothing selected there is nowhere to put
+    # them, so drop the message instead of failing the NOT NULL constraint.
+    if run_id is None: 
+        log.warning("dropping %s: no run is selected", msg.type)
+        return 
+
     db.add(Defect(
         id=str(uuid.uuid4()), 
-        run_id=current_ids["current_run_id"], 
+        run_id=run_id, 
         kind=msg.kind, 
-        distance_to_start_m=0.0
+        pos_to_start=msg.distance_from_origin
     ))
 
 # Mapping from message type to handler 

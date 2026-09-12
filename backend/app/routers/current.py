@@ -11,14 +11,14 @@ router = APIRouter(prefix="/api/current", tags=["current"])
 
 # Read the current rope/run 
 @router.get("", response_model=CurrentSelection)
-def get_current(db=Depends(get_db)): 
+def get_current(db: Session = Depends(get_db)): 
     state = state_repo.get_state(db)
     db.commit()
     return CurrentSelection(rope_id=state.current_rope_id, run_id=state.current_run_id)
 
 # Set current rope/run 
 @router.post("", response_model=CurrentSelection)
-async def set_current(payload, db=Depends(get_db)): 
+async def set_current(payload: CurrentSelection, db: Session = Depends(get_db)): 
     if payload.run_id is not None: 
         run = db.get(Run, payload.run_id)
         if run is None: 
@@ -32,8 +32,8 @@ async def set_current(payload, db=Depends(get_db)):
 
     await hub.broadcast({
         "type": "current_changed", 
-        "run_id": payload.rope_id, 
-        "rope_id": payload.run_id
+        "rope_id": payload.rope_id, 
+        "run_id": payload.run_id
     })
 
     return payload

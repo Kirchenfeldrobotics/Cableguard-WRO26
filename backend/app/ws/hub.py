@@ -54,7 +54,7 @@ class Hub:
         if robot is None: 
             return False 
         try: 
-            robot.send_json(msg)
+            await robot.send_json(msg)
             return True
         except Exception: 
             return False

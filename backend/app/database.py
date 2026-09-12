@@ -1,7 +1,7 @@
 from collections.abc import Generator
 from contextlib import contextmanager
 
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine, event, inspect, text
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from app.config import settings
@@ -33,10 +33,42 @@ class Base(DeclarativeBase):
     pass
 
 
+def _migrate_sqlite(conn) -> None:
+    inspector = inspect(conn)
+    tables = set(inspector.get_table_names())
+    columns = {t: {c["name"] for c in inspector.get_columns(t)} for t in tables}
+
+    if "runs" in tables and "name" not in columns["runs"]: 
+        conn.execute(text("ALTER TABLE runs ADD COLUMN name VARCHAR(120) NOT NULL DEFAULT ''"))
+        # Runs recorded before the column get the label the UI already shows
+        conn.execute(text("UPDATE runs SET name = 'Run ' || substr(id, 1, 8) WHERE name = ''"))
+
+    if "defects" in tables: 
+        if "pos_to_start" not in columns["defects"] and "distance_to_start_m" in columns["defects"]: 
+            conn.execute(text("ALTER TABLE defects RENAME COLUMN distance_to_start_m TO pos_to_start"))
+
+        if "created_at" not in columns["defects"]: 
+            conn.execute(text(
+                "ALTER TABLE defects ADD COLUMN created_at DATETIME NOT NULL "
+                "DEFAULT '1970-01-01 00:00:00'"
+            ))
+            # Best available timestamp for older defects: when their run started
+            conn.execute(text(
+                "UPDATE defects SET created_at = "
+                "(SELECT started_at FROM runs WHERE runs.id = defects.run_id) "
+                "WHERE created_at = '1970-01-01 00:00:00' AND run_id IN (SELECT id FROM runs)"
+            ))
+
+
 def init_db() -> None:
-    import app.models  # noqa: F401 — registers tables on Base.metadata
+    import app.models  
 
     Base.metadata.create_all(bind=engine)
+
+
+    if IS_SQLITE:
+        with engine.begin() as conn:
+            _migrate_sqlite(conn)
 
 
 def get_db() -> Generator[Session, None, None]:

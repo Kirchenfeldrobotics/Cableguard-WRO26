@@ -46,11 +46,17 @@ export const api = {
   },
   runs: {
     list: (ropeId: string) => request<Run[]>(`/api/runs${query({ rope_id: ropeId })}`),
+    create: (ropeId: string, name: string) =>
+      request<Run>("/api/runs", { method: "POST", body: json({ name, rope_id: ropeId }) }),
+    remove: (runId: string) =>
+      request<void>(`/api/runs/${encodeURIComponent(runId)}`, { method: "DELETE" }),
   },
   defects: {
     list: (runId: string) => request<Defect[]>(`/api/defects${query({ run_id: runId })}`),
   },
   current: {
     get: () => request<CurrentSelection>("/api/current"),
+    set: (selection: CurrentSelection) =>
+      request<CurrentSelection>("/api/current", { method: "POST", body: json(selection) }),
   },
 };

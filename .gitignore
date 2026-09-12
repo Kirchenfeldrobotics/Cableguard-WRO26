@@ -1,2 +1,4 @@
 # graphify: per-run cost accounting, local only
 graphify-out/cost.json
+deploy-webapp.sh
+*.log

@@ -88,6 +88,7 @@ between cards, 12px outer padding around the app.
 | --- | --- | --- |
 | `PageHeader`, `SectionTitle`, `HeadingMeta` | `components/ui/heading.tsx` | Title row with badges and actions |
 | `Button`, `ButtonLink`, `RingIcon` | `components/ui/button.tsx` | `primary`, `secondary`, `danger`; `md` or `lg` (58px action bar) |
+| `Dropdown` | `components/ui/dropdown.tsx` | Listbox in the control shape; a native `<select>` cannot be styled to the tokens |
 | `Pill` | `components/ui/pill.tsx` | `status` variant for headers, `tag` inside tables |
 | `StatCard`, `FactCard`, `Panel`, `CardGrid` | `components/ui/card.tsx` | Stat cards carry a 46px status circle |
 | `Table`, `Th`, `Td`, `LinkRow` | `components/ui/table.tsx` | Rows navigate on click and Enter |
@@ -102,8 +103,8 @@ between cards, 12px outer padding around the app.
 ## Patterns
 
 - **Status circle meanings** (`StatCard` `indicator`): `success` connected, `danger`
-  link lost, `alert` needs review, `warning` detections, `ring` current run, `solid`
-  motion, `muted` neutral or unavailable.
+  link lost, `alert` needs review, `warning` detections, `ring` current selection
+  (rope, position), `solid` motion, `muted` neutral or unavailable.
 - **Rope strip**: red marks for broken wires, amber for corrosion. In comparisons, marks
   also found in the reference run are thin and grey, new ones are wider. The black
   vertical line is the robot position (only drawn when a position is known).

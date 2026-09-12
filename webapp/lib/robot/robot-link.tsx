@@ -65,6 +65,9 @@ export function RobotLinkProvider({ children }: { children: React.ReactNode }) {
           case "robot_status":
             setRobotOnline(event.online);
             break;
+          case "alive":
+            // Heartbeat: lastMessageAt above is the whole point of it.
+            break;
           case "motion_telemetry":
             setTelemetry(event);
             break;
