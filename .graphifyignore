@@ -1,0 +1,116 @@
+# graphifyignore - same syntax as .gitignore
+# .gitignore is respected automatically and merged with this file.
+# Goal: keep only our own source code and docs in the knowledge graph.
+
+# --- Dependencies / vendored third-party code ---
+node_modules/
+.pnp/
+.yarn/
+**/site-packages/
+**/vendor/
+.venv/
+venv/
+env/
+
+# --- Lockfiles and dependency manifests (generated, huge, no structure) ---
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+uv.lock
+poetry.lock
+
+# --- Build artifacts / compiler output ---
+.next/
+out/
+build/
+dist/
+*.egg-info/
+__pycache__/
+*.py[cod]
+*.so
+*.pyd
+*.tsbuildinfo
+next-env.d.ts
+.turbo/
+.vercel/
+
+# --- Tooling caches ---
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+coverage/
+.cache/
+
+# --- Firmware blobs / ML model weights ---
+*.pt
+*.pth
+*.onnx
+*.engine
+*.tflite
+*.pb
+*.bin
+*.hex
+*.uf2
+*.elf
+*.blob
+
+# --- Type stubs (generated, not our code) ---
+robot/stubs/
+
+# --- Measurement data / datasets / databases ---
+datasets/
+runs/
+backend/data/
+*.db
+*.db-wal
+*.db-shm
+*.csv
+*.parquet
+*.npy
+*.npz
+*.h5
+
+# --- Logs ---
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# --- Images / videos from test runs and static assets ---
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.bmp
+*.tiff
+*.webp
+*.svg
+*.ico
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.webm
+
+# --- Notebooks: mostly serialized output cells, not readable source ---
+*.ipynb
+
+# --- Secrets / local env ---
+.env
+.env.*
+!.env.example
+
+# --- Editor / OS noise ---
+.vscode/
+.idea/
+.DS_Store
+
+# --- graphify's own output (never feed the graph back into itself) ---
+graphify-out/
+graph.json
+
+# --- Vendored assistant tooling (graphify skill docs, not our code) ---
+.claude/
