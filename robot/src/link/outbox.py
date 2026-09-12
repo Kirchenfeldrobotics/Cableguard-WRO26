@@ -7,7 +7,7 @@ class Outbox:
         self._path  = Path(path)
         self._sent = 0
 
-    def add_msg(self, msg): 
+    def add_msg(self, msg: dict): 
         with open (self._path, "a") as f: 
             f.write(json.dumps(msg) + "\n")
             f.flush()
@@ -19,5 +19,5 @@ class Outbox:
         lines = self._path.read_text().splitlines()
         return [json.loads(l) for l in lines[self._sent:]]
 
-    def mark_sent(self, count): 
+    def mark_sent(self, count: int): 
         self._sent += count

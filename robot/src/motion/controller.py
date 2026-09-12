@@ -1,8 +1,9 @@
 import queue 
 import threading 
+from motion.stepper import Stepper
 
 class MotionController: 
-    def __init__(self, motor): 
+    def __init__(self, motor: Stepper): 
         self.motor = motor 
         self._cmds = queue.Queue()
         self._stop = threading.Event()
@@ -23,7 +24,7 @@ class MotionController:
                 self.motor.stop()
 
     # put cmd in queue
-    def request(self, cmd, arg=None): 
+    def request(self, cmd: str, arg=None): 
         self._cmds.put((cmd, arg))
 
     # stop motor regardless of queue

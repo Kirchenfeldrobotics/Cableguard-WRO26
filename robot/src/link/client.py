@@ -29,7 +29,7 @@ class RobotLink:
         self._on_command = handler
 
     # queue a message 
-    def send(self, msg): 
+    def send(self, msg: dict): 
         self.outbox.add_msg(msg)
 
     # return whether or not the link is connected 
