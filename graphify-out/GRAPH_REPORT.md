@@ -1,7 +1,7 @@
 # Graph Report - Cableguard-WRO26  (2026-09-12)
 
 ## Corpus Check
-- 101 files · ~17,450 words
+- 101 files · ~17,507 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -10,7 +10,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `351949ef`
+- Built from commit: `9086a47b`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 

@@ -1936,7 +1936,7 @@
       "file_type": "code",
       "norm_label": "logo()",
       "source_file": "webapp/components/brand/logo.tsx",
-      "source_location": "L4"
+      "source_location": "L11"
     },
     {
       "id": "webapp_components_layout_app_shell_appshell",
@@ -16745,7 +16745,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "webapp/components/brand/logo.tsx",
-      "source_location": "L4",
+      "source_location": "L11",
       "weight": 1.0
     },
     {
@@ -20536,5 +20536,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "351949ef664fdf3877b25a6aef0689d9f30ffe80"
+  "built_at_commit": "9086a47b6d7ef9d0e66766e2214ded324ed764fb"
 }

@@ -270,10 +270,10 @@
     "semantic_hash": "84e6819e4b97567907ef504dec9a66c7"
   },
   "webapp/components/brand/logo.tsx": {
-    "mtime": 1789119381.858534,
-    "seen": 1789206587.04169,
-    "ast_hash": "a6a3c30341ab0fdcdc3e8d1182793c75",
-    "semantic_hash": "a6a3c30341ab0fdcdc3e8d1182793c75"
+    "mtime": 1789209864.8387485,
+    "seen": 1789210079.5322733,
+    "ast_hash": "fa8dae6da6d1c4c387eb7075cbf6e01c",
+    "semantic_hash": ""
   },
   "webapp/components/camera/camera-feed.tsx": {
     "mtime": 1789119363.420833,
@@ -552,9 +552,9 @@
     "semantic_hash": ""
   },
   "webapp/README.md": {
-    "mtime": 1789119815.7982335,
-    "seen": 1789206737.0218468,
-    "ast_hash": "b4a63ae87ea1de11426885a8b5b905c5",
+    "mtime": 1789209866.2093406,
+    "seen": 1789210079.5325017,
+    "ast_hash": "287079f7560ff95006669d8a4bc9ca43",
     "semantic_hash": ""
   },
   "wirerope-training/How-to-Use.md": {
