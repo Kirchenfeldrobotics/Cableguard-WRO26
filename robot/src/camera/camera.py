@@ -1,5 +1,15 @@
 from picamera2 import Picamera2 
 import time
+import simplejpeg
+
+# encode frame as JPEG
+def encode(frame, quality=60): 
+    h = frame.shape[0] * 2 // 3
+    w = frame.shape[1]
+    y = frame[:h]
+    u = frame[h:h + h // 4].reshape(h // 2, w // 2)
+    v = frame[h + h // 4:].reshape(h // 2, w // 2)
+    return simplejpeg.encode_jpeg_yuv_planes(y, u, v, quality=quality)
 
 class CameraPair: 
     def __init__(self, main_size=(640, 640), lores_size=(480, 480), fps=15): 
@@ -36,8 +46,8 @@ class CameraPair:
         return [(i, cam.capture_array("main")) for i, cam in enumerate(self._cams)]
 
     # capture a frame from each camera (lores stream)
-    def caputre_lores(self): 
-        return [(i, cam.capture_array("lores")) for i, cam in enumerate(self._cams)]
+    def capture_lores(self):
+        return [(i, cam.capture_array("lores", wait=1.0)) for i, cam in enumerate(self._cams)]
     
     # close both cameras
     def close(self): 

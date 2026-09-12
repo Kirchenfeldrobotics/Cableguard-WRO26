@@ -4,8 +4,19 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 
 import type { MotionTelemetryEvent, RobotCommand, ServerEvent } from "@/lib/api/types";
 import { wsUrl } from "@/lib/config";
+import { useNow } from "@/lib/hooks/use-now";
 
 export type SocketState = "connecting" | "open" | "closed";
+
+/**
+ * The robot sends a heartbeat every 5 s (robot/src/link/client.py). After two missed
+ * heartbeats the robot counts as lost, even while the server still reports it online:
+ * the server only notices a dead robot link when its pings time out.
+ */
+export const ROBOT_SILENT_MS = 12_000;
+
+/** The robot sends motion telemetry every 0.5 s (robot/src/app/main.py). */
+export const TELEMETRY_STALE_MS = 2_000;
 
 export interface RobotLinkValue {
   /** Browser <-> server socket. */
@@ -13,6 +24,10 @@ export interface RobotLinkValue {
   /** Server <-> robot link, as reported by the server. */
   robotOnline: boolean;
   telemetry: MotionTelemetryEvent | null;
+  /** Epoch ms when `telemetry` arrived. */
+  telemetryAt: number | null;
+  /** Epoch ms of the last sign of life from the robot: online status, heartbeat or telemetry. */
+  robotSeenAt: number | null;
   /** Epoch ms of the last message received from the server. */
   lastMessageAt: number | null;
   /** Last error reported by the server, e.g. "robot offline". */
@@ -33,6 +48,8 @@ export function RobotLinkProvider({ children }: { children: React.ReactNode }) {
   const [socket, setSocket] = useState<SocketState>("connecting");
   const [robotOnline, setRobotOnline] = useState(false);
   const [telemetry, setTelemetry] = useState<MotionTelemetryEvent | null>(null);
+  const [telemetryAt, setTelemetryAt] = useState<number | null>(null);
+  const [robotSeenAt, setRobotSeenAt] = useState<number | null>(null);
   const [lastMessageAt, setLastMessageAt] = useState<number | null>(null);
   const [lastError, setLastError] = useState<string | null>(null);
   const [currentVersion, setCurrentVersion] = useState(0);
@@ -54,7 +71,8 @@ export function RobotLinkProvider({ children }: { children: React.ReactNode }) {
       };
 
       ws.onmessage = (e) => {
-        setLastMessageAt(Date.now());
+        const now = Date.now();
+        setLastMessageAt(now);
         let event: ServerEvent;
         try {
           event = JSON.parse(e.data);
@@ -64,12 +82,15 @@ export function RobotLinkProvider({ children }: { children: React.ReactNode }) {
         switch (event.type) {
           case "robot_status":
             setRobotOnline(event.online);
+            if (event.online) setRobotSeenAt(now);
             break;
           case "alive":
-            // Heartbeat: lastMessageAt above is the whole point of it.
+            setRobotSeenAt(now);
             break;
           case "motion_telemetry":
             setTelemetry(event);
+            setTelemetryAt(now);
+            setRobotSeenAt(now);
             break;
           case "current_changed":
             setCurrentVersion((v) => v + 1);
@@ -81,9 +102,9 @@ export function RobotLinkProvider({ children }: { children: React.ReactNode }) {
       };
 
       ws.onclose = () => {
-        sockRef.current = null;
-        setRobotOnline(false);
+        if (sockRef.current === ws) sockRef.current = null;
         if (disposed) return;
+        setRobotOnline(false);
         setSocket("closed");
         retryTimer = setTimeout(connect, retryMs);
         retryMs = Math.min(retryMs * 2, RETRY_MAX_MS);
@@ -109,7 +130,17 @@ export function RobotLinkProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <RobotLinkContext.Provider
-      value={{ socket, robotOnline, telemetry, lastMessageAt, lastError, currentVersion, send }}
+      value={{
+        socket,
+        robotOnline,
+        telemetry,
+        telemetryAt,
+        robotSeenAt,
+        lastMessageAt,
+        lastError,
+        currentVersion,
+        send,
+      }}
     >
       {children}
     </RobotLinkContext.Provider>
@@ -122,8 +153,22 @@ export function useRobotLink(): RobotLinkValue {
   return value;
 }
 
-/** True when the browser reaches the server and the server reaches the robot. */
+/**
+ * True when the browser reaches the server, the server reports the robot online and the
+ * robot has been heard from within ROBOT_SILENT_MS.
+ */
 export function useRobotConnected(): boolean {
-  const { socket, robotOnline } = useRobotLink();
-  return socket === "open" && robotOnline;
+  const { socket, robotOnline, robotSeenAt } = useRobotLink();
+  const now = useNow();
+  const silent = now !== null && robotSeenAt !== null && now - robotSeenAt > ROBOT_SILENT_MS;
+  return socket === "open" && robotOnline && !silent;
+}
+
+/** The latest telemetry while it is fresh and the robot is connected, otherwise null. */
+export function useFreshTelemetry(): MotionTelemetryEvent | null {
+  const { telemetry, telemetryAt } = useRobotLink();
+  const connected = useRobotConnected();
+  const now = useNow(500);
+  if (!connected || telemetry === null || telemetryAt === null || now === null) return null;
+  return now - telemetryAt <= TELEMETRY_STALE_MS ? telemetry : null;
 }

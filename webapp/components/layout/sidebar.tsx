@@ -8,7 +8,7 @@ import { useAuth } from "@/lib/auth/auth-context";
 import { cn } from "@/lib/cn";
 import { formatAgo } from "@/lib/format";
 import { useNow } from "@/lib/hooks/use-now";
-import { useRobotLink } from "@/lib/robot/robot-link";
+import { useRobotConnected, useRobotLink } from "@/lib/robot/robot-link";
 
 const NAV_ITEMS = [
   { href: "/", label: "Dashboard" },
@@ -82,11 +82,11 @@ function Operator() {
 }
 
 function LinkStatus() {
-  const { socket, robotOnline, lastMessageAt } = useRobotLink();
+  const { socket, lastMessageAt } = useRobotLink();
+  const connected = useRobotConnected();
   const now = useNow();
 
   const serverUp = socket === "open";
-  const connected = serverUp && robotOnline;
   const label = connected ? "Connected" : serverUp ? "Link lost" : "Server offline";
   const detail = !serverUp
     ? socket === "connecting"

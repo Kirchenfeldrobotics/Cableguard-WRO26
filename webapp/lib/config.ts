@@ -31,3 +31,12 @@ export function wsUrl(path: string): string {
 export function serverLabel(): string {
   return API_BASE_URL || (typeof window === "undefined" ? "same origin" : window.location.host);
 }
+
+/**
+ * Drive limits in microsteps per second, mirrored from the robot so the controls can show
+ * what it will actually do. The robot clamps every speed command to MAX_SPEED
+ * (robot/src/app/main.py) and treats anything below start_speed
+ * (robot/src/motion/stepper.py) as a stop.
+ */
+export const MAX_DRIVE_SPEED = 2_000;
+export const MIN_DRIVE_SPEED = 200;
