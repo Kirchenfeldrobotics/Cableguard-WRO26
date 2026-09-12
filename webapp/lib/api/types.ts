@@ -29,6 +29,7 @@ export interface Rope {
 
 export interface Run {
   id: string;
+  name: string;
   rope_id: string;
   started_at: string;
   finished_at: string | null;
@@ -55,6 +56,11 @@ export interface RobotStatusEvent {
   online: boolean;
 }
 
+/** Heartbeat relayed from the robot; carries no payload beyond its arrival time. */
+export interface AliveEvent {
+  type: "alive";
+}
+
 export interface MotionTelemetryEvent {
   type: "motion_telemetry";
   /** Drive speed in microsteps per second (see robot/src/motion/stepper.py). */
@@ -74,7 +80,12 @@ export interface ErrorEvent {
   detail: string;
 }
 
-export type ServerEvent = RobotStatusEvent | MotionTelemetryEvent | CurrentChangedEvent | ErrorEvent;
+export type ServerEvent =
+  | RobotStatusEvent
+  | AliveEvent
+  | MotionTelemetryEvent
+  | CurrentChangedEvent
+  | ErrorEvent;
 
 // UI -> Server over /api/ws/ui (forwarded to the robot)
 

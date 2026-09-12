@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 
 import { RunStatePill } from "@/components/inspection/run-state-pill";
@@ -8,9 +9,12 @@ import { defectMarks } from "@/components/rope/defect-marks";
 import { RopeStrip } from "@/components/rope/rope-strip";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { CardGrid, Panel, StatCard } from "@/components/ui/card";
+import { Dropdown } from "@/components/ui/dropdown";
 import { StatusMessage } from "@/components/ui/feedback";
 import { HeadingMeta, PageHeader, SectionTitle } from "@/components/ui/heading";
+import { api } from "@/lib/api/client";
 import { NOT_AVAILABLE, formatDate, isRunActive, shortId } from "@/lib/format";
+import { useApi } from "@/lib/hooks/use-api";
 import { lastFinishedRun, useCurrentSelection, useRopeHistory } from "@/lib/hooks/use-inspection";
 import { useRobotConnected } from "@/lib/robot/robot-link";
 import { routes } from "@/lib/routes";
@@ -18,8 +22,12 @@ import { routes } from "@/lib/routes";
 export function DashboardView() {
   const connected = useRobotConnected();
   const current = useCurrentSelection();
+  const ropes = useApi("ropes", api.ropes.list);
   const ropeId = current.data?.rope_id ?? null;
   const history = useRopeHistory(ropeId);
+
+  const [selecting, setSelecting] = useState(false);
+  const [selectError, setSelectError] = useState<string | null>(null);
 
   const rope = history.data?.rope;
   const runs = history.data?.runs ?? [];
@@ -30,6 +38,20 @@ export function DashboardView() {
   const lastRunLabel = lastRun
     ? `${shortId(lastRun.id)} · ${formatDate(lastRun.started_at)}`
     : "no finished run";
+
+  const selectRope = async (nextRopeId: string) => {
+    setSelectError(null);
+    setSelecting(true);
+    try {
+      // A run belongs to exactly one rope, so changing rope clears the run.
+      await api.current.set({ rope_id: nextRopeId, run_id: null });
+      current.reload();
+    } catch (err) {
+      setSelectError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setSelecting(false);
+    }
+  };
 
   return (
     <>
@@ -49,11 +71,7 @@ export function DashboardView() {
           indicator="muted"
           title="Defect review is not available yet"
         />
-        <StatCard
-          value={currentRun ? shortId(currentRun.id) : NOT_AVAILABLE}
-          label={running ? "Run in progress" : "Selected run"}
-          indicator="ring"
-        />
+        <StatCard value={rope?.name ?? NOT_AVAILABLE} label="Selected rope" indicator="ring" />
         <StatCard
           value={formatDate(lastRun?.finished_at)}
           label="Last inspection"
@@ -65,9 +83,7 @@ export function DashboardView() {
         <SectionTitle className="m-0">Rope</SectionTitle>
         {rope && (
           <>
-            <HeadingMeta>
-              {rope.name} · {lastRunLabel}
-            </HeadingMeta>
+            <HeadingMeta>{lastRunLabel}</HeadingMeta>
             <Link
               href={routes.rope(rope.id)}
               className="ml-auto text-[13px] leading-none font-semibold hover:text-danger-strong"
@@ -78,17 +94,41 @@ export function DashboardView() {
         )}
       </div>
 
+      <div className="mt-[18px] flex flex-wrap items-center gap-3">
+        <Dropdown
+          label="Selected rope"
+          className="min-w-[240px] flex-[0_1_320px]"
+          options={(ropes.data ?? []).map((r) => ({ value: r.id, label: r.name }))}
+          value={ropeId}
+          onChange={selectRope}
+          disabled={selecting}
+          placeholder={
+            ropes.loading ? "Loading ropes…" : ropes.data?.length ? "Select a rope" : "No ropes yet"
+          }
+        />
+        {selecting && <HeadingMeta>Saving…</HeadingMeta>}
+      </div>
+      {(selectError || ropes.error) && (
+        <StatusMessage tone="error">{selectError ?? "Could not load the rope list."}</StatusMessage>
+      )}
+
       {current.error || history.error ? (
         <StatusMessage tone="error">Could not load data from the server.</StatusMessage>
       ) : current.loading || history.loading ? (
         <StatusMessage>Loading…</StatusMessage>
       ) : !rope ? (
         <StatusMessage>
-          No rope is selected on the server yet. Open{" "}
-          <Link href={routes.ropes} className="underline">
-            Ropes
-          </Link>{" "}
-          to see all ropes.
+          {ropes.data?.length === 0 ? (
+            <>
+              No ropes yet. Add the first one on{" "}
+              <Link href={routes.ropes} className="underline">
+                Ropes
+              </Link>
+              .
+            </>
+          ) : (
+            "No rope is selected yet. Choose one from the dropdown above."
+          )}
         </StatusMessage>
       ) : (
         <>
@@ -109,14 +149,6 @@ export function DashboardView() {
             Open live view
           </Button>
         )}
-        <Button
-          variant="secondary"
-          disabled
-          title="Session planning is not available yet"
-          className="flex-[0_1_260px] py-[15px] text-[15px]"
-        >
-          Plan new session
-        </Button>
       </div>
     </>
   );
