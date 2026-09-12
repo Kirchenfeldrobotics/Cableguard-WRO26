@@ -18,3 +18,31 @@ Cableguard is an automated rope inspection robot. This project is part of the Wo
 * Nema 23 Stepper Motors$
 * Adafruit BNO055
 
+
+# Setup
+
+## Knowledge graph (graphify)
+
+This repository ships a graphify knowledge graph so AI coding assistants can
+navigate the codebase by structure instead of reading files one by one.
+
+The graph itself (`graphify-out/graph.json`), the report and the assistant
+skill are committed. **Git hooks live in `.git/hooks` and cannot be committed,
+so every developer has to run the setup script once after cloning:**
+
+```bash
+./scripts/setup-graphify.sh
+```
+
+It installs `uv` if missing, installs the `graphifyy` CLI, registers the
+post-commit / post-checkout hooks plus the merge driver for `graph.json`, and
+builds the graph.
+
+After every `git pull`, refresh the graph once:
+
+```bash
+graphify update .
+```
+
+This runs locally on tree-sitter only, costs no API tokens, and sends nothing
+off your machine.
