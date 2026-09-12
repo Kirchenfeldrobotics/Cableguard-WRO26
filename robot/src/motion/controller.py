@@ -1,6 +1,9 @@
-import queue 
-import threading 
+import logging
+import queue
+import threading
 from motion.stepper import Stepper
+
+log = logging.getLogger(__name__)
 
 class MotionController: 
     def __init__(self, motor: Stepper): 
@@ -16,22 +19,31 @@ class MotionController:
             try: 
                 cmd, arg = self._cmds.get(timeout=0.1)
             except queue.Empty: 
-                continue 
-            try: 
-                if cmd == "speed": 
+                continue
+            while not self._cmds.empty():
+                cmd, arg = self._cmds.get_nowait()
+            try:
+                if cmd == "speed":
                     self.motor.ramp_to(arg)
-            except Exception: 
-                self.motor.stop()
+                elif cmd == "stop":
+                    self.motor.stop()
+            except Exception:
+                log.exception("motion command failed: %s", cmd)
+                try:
+                    self.motor.stop()
+                except Exception:
+                    log.exception("stop after failed command failed")
 
     # put cmd in queue
     def request(self, cmd: str, arg=None): 
+        if cmd == "speed":
+            self.motor.abort.clear()
         self._cmds.put((cmd, arg))
 
     # stop motor regardless of queue
-    def emergency_stop(self): 
-        while not self._cmds.empty(): 
-            self._cmds.get_nowait()
-        self.motor.stop()
+    def emergency_stop(self):
+        self._cmds.put(("stop", None))
+        self.motor.abort.set()
 
     # set stop event, terminate thread and close motor driver
     def shutdown(self): 

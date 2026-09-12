@@ -6,7 +6,7 @@ import { PageHeader, SectionTitle } from "@/components/ui/heading";
 import { serverLabel } from "@/lib/config";
 import { NOT_AVAILABLE, formatAgo, formatNumber } from "@/lib/format";
 import { useNow } from "@/lib/hooks/use-now";
-import { useRobotConnected, useRobotLink } from "@/lib/robot/robot-link";
+import { TELEMETRY_STALE_MS, useRobotConnected, useRobotLink } from "@/lib/robot/robot-link";
 
 /*
  * The protocol has no command to read or write drive parameters or the
@@ -22,9 +22,10 @@ const DRIVE_PARAMS = [
 const NOT_CONFIGURABLE = "Not configurable from the webapp yet";
 
 export function SettingsView() {
-  const { telemetry, lastMessageAt } = useRobotLink();
+  const { telemetry, telemetryAt, lastMessageAt } = useRobotLink();
   const connected = useRobotConnected();
   const now = useNow();
+  const telemetryAge = telemetryAt !== null && now !== null ? Math.max(0, now - telemetryAt) : null;
 
   return (
     <div className="max-w-[660px]">
@@ -94,6 +95,11 @@ export function SettingsView() {
             label: "Last packet",
             value: lastMessageAt && now ? formatAgo(Math.max(0, now - lastMessageAt)) : NOT_AVAILABLE,
             tone: connected ? "muted" : "danger",
+          },
+          {
+            label: "Last telemetry",
+            value: telemetryAge !== null ? formatAgo(telemetryAge) : NOT_AVAILABLE,
+            tone: telemetryAge !== null && telemetryAge <= TELEMETRY_STALE_MS ? "muted" : "danger",
           },
           {
             label: "Telemetry sequence",

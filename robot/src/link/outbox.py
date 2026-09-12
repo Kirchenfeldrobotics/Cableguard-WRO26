@@ -14,7 +14,7 @@ class Outbox:
             os.fsync(f.fileno())
 
     def pending(self): 
-        if not self.path.exists(): 
+        if not self._path.exists(): 
             return []
         lines = self._path.read_text().splitlines()
         return [json.loads(l) for l in lines[self._sent:]]

@@ -96,7 +96,7 @@ between cards, 12px outer padding around the app.
 | `FactList` | `components/ui/fact-list.tsx` | Label and value rows on a panel |
 | `Notice`, `StatusMessage`, `BackLink` | `components/ui/feedback.tsx` | Alerts, loading, empty and error states |
 | `RopeStrip`, `defectMarks`, `DefectLegend` | `components/rope/` | Unrolled rope with metre scale and defect marks |
-| `CameraFeed` | `components/camera/camera-feed.tsx` | Live JPEG stream or striped placeholder |
+| `CameraFeed` | `components/camera/camera-feed.tsx` | Live JPEG stream, dimmed with a "Not live" badge when frames stop, or striped placeholder |
 | `RunStatePill` | `components/inspection/run-state-pill.tsx` | Link lost, Live or Idle |
 | `Sidebar` | `components/layout/sidebar.tsx` | Navigation and link status |
 
@@ -113,3 +113,8 @@ between cards, 12px outer padding around the app.
 - **Destructive actions** need a second click (`Remove` becomes `Confirm remove`).
 - **Emergency stop** is never disabled while the server socket is open, even if the
   robot is reported offline. The server answers with an error if it cannot forward it.
+- **Drive controls** (Drive, Resume) are disabled while the robot is not reachable, and
+  moving the speed slider sends nothing. A command is reported as carried out only when
+  telemetry shows it, never because the socket accepted it.
+- **Stale live data** is never shown as current: telemetry older than 2 s shows `—`, and a
+  camera tile without a new frame for 2 s dims its image and shows a "Not live" badge.

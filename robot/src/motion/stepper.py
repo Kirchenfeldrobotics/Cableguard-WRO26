@@ -1,4 +1,4 @@
-import pigpio, math, time 
+import pigpio, math, threading, time
 
 class Stepper(): 
     def __init__(self, 
@@ -65,8 +65,9 @@ class Stepper():
         self._speed      = 0.0
         self._forward    = True
         self._active_wid = None
+        self.abort       = threading.Event()
 
-        # position 
+        # position
         self._counter = self.pi.callback(self.pul_pin, pigpio.RISING_EDGE)
         self._accum   = 0 
 
@@ -96,7 +97,7 @@ class Stepper():
     @property
     def microsteps_done(self): 
         n = self._counter.tally()
-        return self._accum + (n if self.self._forward else -n)
+        return self._accum + (n if self._forward else -n)
 
     # number of steps since last reset
     @property
@@ -199,21 +200,28 @@ class Stepper():
         # if a wave is active: finish it and stop it afterwards
         # transmit chunks without gaps
         # if cruise != None: repeate cruise wave, else finish last chunk if there was one 
-    def _stream(self, chunks, cruise=None): 
+    def _stream(self, chunks, cruise=None, abortable=False):
         prev       = self._active_wid
         queued_any = False
 
         # transmit chunks
-        for chunk in chunks: 
+        for chunk in chunks:
+            if abortable and self.abort.is_set():
+                return False
             wid = self._build_wave(chunk)
             self.pi.wave_send_using_mode(wid, pigpio.WAVE_MODE_ONE_SHOT_SYNC)
             queued_any = True 
             if prev is not None: 
                 self._wait_past(prev)
                 self.pi.wave_delete(prev)
-            prev = wid 
+            prev = wid
+            self._active_wid = wid
+            self._speed = 1.0 / chunk[-1]
 
-        # transmit repeated cruise wave 
+        if abortable and self.abort.is_set():
+            return False
+
+        # transmit repeated cruise wave
         if cruise is not None: 
             wid = self._build_wave(cruise)
             self.pi.wave_send_using_mode(wid, pigpio.WAVE_MODE_REPEAT_SYNC)
@@ -228,7 +236,10 @@ class Stepper():
                 time.sleep(0.001)
             if prev is not None: 
                 self.pi.wave_delete(prev)
-            self._active_wid = None 
+            self._active_wid = None
+            self._speed = 0.0
+
+        return True
 
     # ramp to speed and cruise there (if cruise flag is set)
     def ramp_to(self, speed, cruise=True): 
@@ -247,10 +258,8 @@ class Stepper():
             self._forward = forward 
 
         delays = self.ramp_delays(self._speed, target)
-        self._stream(self.chunk_delays(delays), cruise=self.cruise_delays(target) if cruise else None)
-        if cruise is None: 
-            self.stop()
-        else: 
+        completed = self._stream(self.chunk_delays(delays), cruise=self.cruise_delays(target) if cruise else None, abortable=True)
+        if completed and cruise:
             self._speed = target
 
     # ramp stepper to 0.0 

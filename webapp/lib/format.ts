@@ -17,6 +17,12 @@ export function formatNumber(value: number | null | undefined, digits = 0): stri
   return value.toLocaleString("en-US", { maximumFractionDigits: digits });
 }
 
+/** `1,200 steps/s forward`. The sign of `value` is the drive direction. */
+export function formatDriveSpeed(value: number): string {
+  const direction = value > 0 ? " forward" : value < 0 ? " reverse" : "";
+  return `${formatNumber(Math.abs(value))} steps/s${direction}`;
+}
+
 const pad = (n: number) => String(n).padStart(2, "0");
 
 /** `2026-09-04` */

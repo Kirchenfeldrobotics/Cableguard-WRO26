@@ -1,11 +1,10 @@
 from __future__ import annotations 
 
 import asyncio
-import logging 
-import os 
-import signal 
+import logging
+import signal
 
-from comm_protocols.messages import SpeedCmd, StopCmd
+from comm_protocols.messages import MotionTelemetry, SpeedCmd, StopCmd
 
 from camera.camera import CameraPair, encode
 from link.client import RobotLink
@@ -27,10 +26,8 @@ ACCEL = 4000.0
 STEAM_FPS = 8.0
 CAMERA_FPS = 15.0
 
-VIDEO_URL = os.environ["VIDEO_WS_URL"]
-TOKEN = os.environ["CABLEGUARD_ROBOT_TOKEN"]
-
 GUARD_PERIOD = 0.5
+TELEMETRY_PERIOD = 0.5
 
 # creates function that turns messages into roboter commands
 def make_command_handler(motion: MotionController): 
@@ -49,15 +46,17 @@ def make_command_handler(motion: MotionController):
 
 # capture frames (streaming res.), encode, hand them to the video link 
 async def frame_producer(cams: CameraPair, video: VideoLink, fps: float): 
-    period = 1.0 / fps 
+    period = 1.0 / fps
+    loop = asyncio.get_running_loop()
 
-    while True: 
-        try: 
-            for idx, lores in cams.capture_lores(): 
+    while True:
+        deadline = loop.time() + period
+        try:
+            for idx, lores in await asyncio.to_thread(cams.capture_lores):
                 video.submit(idx, encode(lores))
-        except Exception: 
-            log.exception("log capture failed")
-        await asyncio.sleep(period)
+        except Exception:
+            log.exception("capture failed")
+        await asyncio.sleep(max(0.0, deadline - loop.time()))
 
 # stop robot when the control link is down
 async def link_guard(link: RobotLink, motion: MotionController):
@@ -67,18 +66,26 @@ async def link_guard(link: RobotLink, motion: MotionController):
             motion.emergency_stop()
         await asyncio.sleep(GUARD_PERIOD)
 
-# throw exception when script is killed/interrupted by signal
-async def _wait_for_signal(stop: asyncio.Event): 
-    await stop.wait()
-    raise asyncio.CancelledError("shutdown requested")
+# send motion telemetry
+async def telemetry_sender(link: RobotLink, motor: Stepper, period: float):
+    seq = 0
+    while True:
+        if link.connected:
+            seq += 1
+            try:
+                msg = MotionTelemetry(speed=motor.speed, microsteps=motor.microsteps_done, seq=seq)
+                await link.send_live(msg.model_dump())
+            except Exception:
+                log.exception("telemetry failed")
+        await asyncio.sleep(period)
 
-async def main(): 
+async def main():
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 
-    stop = asyncio.Event()
+    task = asyncio.current_task()
     loop = asyncio.get_running_loop()
-    for sig in (signal.SIGTERM, signal.SIGINT): 
-        loop.add_signal_handler(sig, stop.set)
+    for sig in (signal.SIGTERM, signal.SIGINT):
+        loop.add_signal_handler(sig, task.cancel)
 
     # configure stepper
     motor = Stepper(
@@ -93,8 +100,8 @@ async def main():
     # Configure link to api 
     outbox = Outbox("outbox.jsonl")
     link = RobotLink(outbox)
-    video = VideoLink(fps=STEAM_FPS)
-    cams = CameraPair(fps=CAMERA_FPS)
+    video = VideoLink()
+    cams = CameraPair(fps=CAMERA_FPS).start()
 
     link.on_command(make_command_handler(motion))
 
@@ -107,7 +114,7 @@ async def main():
             tg.create_task(video.run(), name="video-link")
             tg.create_task(frame_producer(cams, video, STEAM_FPS), name="frame-stream")
             tg.create_task(link_guard(link, motion), name="guard")
-            tg.create_task(_wait_for_signal(stop), name="signal")
+            tg.create_task(telemetry_sender(link, motor, TELEMETRY_PERIOD), name="telemetry")
     except* asyncio.CancelledError:
         log.info("shutting down")
     finally: 

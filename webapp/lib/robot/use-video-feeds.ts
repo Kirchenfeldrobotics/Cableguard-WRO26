@@ -7,8 +7,14 @@ import { wsUrl } from "@/lib/config";
 export interface VideoFeed {
   /** Object URL of the latest JPEG frame, or null before the first frame. */
   src: string | null;
+  /** Frame rate measured when the latest frame arrived. */
   fps: number;
+  /** Epoch ms when the latest frame arrived, or null before the first frame. */
+  lastFrameAt: number | null;
 }
+
+/** A tile that receives no frame for this long marks its image stale. The robot streams at 8 fps. */
+export const VIDEO_STALE_MS = 2_000;
 
 const FPS_WINDOW_MS = 2_000;
 const RETRY_MS = 3_000;
@@ -16,22 +22,18 @@ const RETRY_MS = 3_000;
 /**
  * Splits a binary message from /api/ws/video/ui into camera index and JPEG.
  * The robot prefixes each JPEG with one byte for the camera index
- * (robot/src/link/video.py). A frame that starts directly with the JPEG
- * marker FF D8 has no prefix and is treated as camera 0.
+ * (robot/src/link/video.py).
  */
 function parseFrame(buffer: ArrayBuffer): { camera: number; jpeg: Blob } | null {
   const bytes = new Uint8Array(buffer);
-  if (bytes.length < 3) return null;
-  if (bytes[0] === 0xff && bytes[1] === 0xd8) {
-    return { camera: 0, jpeg: new Blob([bytes], { type: "image/jpeg" }) };
-  }
+  if (bytes.length < 3 || bytes[1] !== 0xff || bytes[2] !== 0xd8) return null;
   return { camera: bytes[0], jpeg: new Blob([bytes.subarray(1)], { type: "image/jpeg" }) };
 }
 
 /** Live JPEG streams of the robot cameras. Only connects while mounted. */
 export function useVideoFeeds(cameraCount: number): VideoFeed[] {
   const [feeds, setFeeds] = useState<VideoFeed[]>(() =>
-    Array.from({ length: cameraCount }, () => ({ src: null, fps: 0 })),
+    Array.from({ length: cameraCount }, () => ({ src: null, fps: 0, lastFrameAt: null })),
   );
 
   useEffect(() => {
@@ -61,7 +63,9 @@ export function useVideoFeeds(cameraCount: number): VideoFeed[] {
 
         setFeeds((current) =>
           current.map((feed, i) =>
-            i === frame.camera ? { src, fps: times.length / (FPS_WINDOW_MS / 1000) } : feed,
+            i === frame.camera
+              ? { src, fps: times.length / (FPS_WINDOW_MS / 1000), lastFrameAt: now }
+              : feed,
           ),
         );
         if (previous) URL.revokeObjectURL(previous);

@@ -21,7 +21,7 @@ router = APIRouter(prefix="/api/ws")
 FromRobot = TypeAdapter(
     Annotated[Alive | MotionTelemetry | DefectMsg, Field(discriminator="type")]
 )
-FromUi   = TypeAdapter(SpeedCmd | StopCmd)
+FromUi   = TypeAdapter(Annotated[SpeedCmd | StopCmd, Field(discriminator="type")])
 
 # Route where robot can subscribe to socket ans send messages to, which are broadcasted to ui clients or persisted (or both)
 @router.websocket("/robot")
@@ -59,8 +59,8 @@ async def robot_link(sock: WebSocket):
 @router.websocket("/ui")
 async def ui_link(sock: WebSocket): 
     await sock.accept()
-    await hub.add_ui(sock)
     try:
+        await hub.add_ui(sock)
         async for raw in sock.iter_text():
             try: 
                 cmd = FromUi.validate_json(raw)
@@ -69,7 +69,7 @@ async def ui_link(sock: WebSocket):
                 continue 
 
             if not await hub.to_robot(cmd.model_dump()): 
-                await sock.send_json({"type": "error", "detail": "robot offline "})
+                await sock.send_json({"type": "error", "detail": "robot offline"})
 
     except WebSocketDisconnect: 
         pass

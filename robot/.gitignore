@@ -1,1 +1,3 @@
 stubs/
+src/camera/__pycache__/
+src/motion/__pycache__/

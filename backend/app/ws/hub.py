@@ -1,7 +1,9 @@
 import asyncio 
 from fastapi import WebSocket
 
-class Hub: 
+SEND_TIMEOUT = 1.0
+
+class Hub:
     def __init__(self): 
         self._robot = None   # Robot Websocket
         self._uis   = set()  # Browser Websockets
@@ -11,15 +13,19 @@ class Hub:
     async def attach_robot(self, sock): 
         async with self._lock: 
             if self._robot is not None: 
-                await self._robot.close(code=1012)
+                try:
+                    await asyncio.wait_for(self._robot.close(code=1012), timeout=SEND_TIMEOUT)
+                except Exception:
+                    pass
             self._robot = sock 
         await self.broadcast({"type": "robot_status", "online": True})
 
     # remove websocket from _robot
     async def detach_robot(self, sock): 
         async with self._lock: 
-            if self._robot is sock: 
-                self._robot = None 
+            if self._robot is not sock:
+                return
+            self._robot = None
         await self.broadcast({"type": "robot_status", "online": False})
 
     # add a ui client to the set 
@@ -40,12 +46,16 @@ class Hub:
         dead = []
         for ui in targets: 
             try: 
-                await ui.send_json(msg)
-            except Exception: 
+                await asyncio.wait_for(ui.send_json(msg), timeout=SEND_TIMEOUT)
+            except Exception:
                 dead.append(ui)
 
-        for ui in dead: 
+        for ui in dead:
             await self.remove_ui(ui)
+            try:
+                await asyncio.wait_for(ui.close(), timeout=SEND_TIMEOUT)
+            except Exception:
+                pass
 
     # send message to robot
     async def to_robot(self, msg): 

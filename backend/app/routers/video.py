@@ -14,7 +14,6 @@ async def video_in(sock: WebSocket):
         return 
 
     await sock.accept()
-    await video_hub.set_robot(True)
     log.info("video link up")
 
     try: 
@@ -23,7 +22,6 @@ async def video_in(sock: WebSocket):
     except WebSocketDisconnect:
         pass 
     finally: 
-        await video_hub.set_robot(False)
         log.info("video link down")
 
 @router.websocket("/ui")

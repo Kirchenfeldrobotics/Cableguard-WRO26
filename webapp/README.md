@@ -70,18 +70,29 @@ Conventions:
 | REST | `GET /api/runs?rope_id=` | Run history per rope |
 | REST | `GET /api/defects?run_id=` | Defects per run (live view polls every 5 s) |
 | REST | `GET /api/current` | Rope and run selected on the server |
-| WebSocket | `/api/ws/ui` | `robot_status`, `motion_telemetry`, `current_changed`, `error`; sends `stop` |
+| WebSocket | `/api/ws/ui` | `robot_status`, `alive`, `motion_telemetry`, `current_changed`, `error`; sends `speed` and `stop` |
 | WebSocket | `/api/ws/video/ui` | JPEG frames of two cameras, first byte is the camera index |
 
 `RobotLinkProvider` (in the root layout) keeps one UI socket open for the whole app and
-reconnects with backoff. The video socket is only opened while the live view is mounted.
+reconnects with backoff. The robot counts as connected only while the server reports it
+online and it has been heard from (heartbeat or telemetry) in the last 12 s, because the
+server itself only notices a dead robot link when its pings time out. Telemetry older than
+2 s is not shown as current.
+
+The video socket is only opened while the live view is mounted. A camera tile that receives
+no frame for 2 s dims its last image and marks it as not live.
+
+Neither the server nor the robot acknowledges commands. The live view therefore treats a
+command as carried out only once telemetry reports the expected speed, and warns the operator
+if that has not happened 5 s after sending. The drive limits in `lib/config.ts` mirror the
+robot's own clamping and must be kept in sync with it.
 
 ## Feature status
 
 Connected to real data:
 
-- Robot link state, last packet time, telemetry sequence and drive speed
-- Emergency stop (`{"type": "stop"}` over the UI socket)
+- Robot link state, last packet and telemetry age, telemetry sequence, microsteps and drive speed
+- Drive control: target speed and direction, Drive, Resume after a stop, Emergency stop
 - Camera A and B live streams
 - Ropes list with add and remove, rope detail, run history, defect trend
 - Run detail, defect detail with change since the previous run
@@ -96,5 +107,3 @@ disabled or as `—`:
 - Session planning, run report export
 - Drive parameters and confidence threshold on the settings screen
 - Stored camera frame for a defect
-
-`SpeedCmd` exists in the protocol but has no control in the design, so it is not exposed.

@@ -24,8 +24,7 @@ class LatestFrame:
         return self._frame
 
 class VideoLink: 
-    def __init__(self, fps=8): 
-        self._period = 1.0/fps
+    def __init__(self):
         self.buffers = {0: LatestFrame(), 1: LatestFrame()}
 
     # add jpeg to the buffer 
@@ -46,5 +45,4 @@ class VideoLink:
     async def _pump(self, sock, idx): 
         while True: 
             jpeg = await self.buffers[idx].get()
-            await sock.send(bytes(idx) + jpeg)
-            await asyncio.sleep(self._period)
+            await sock.send(bytes([idx]) + jpeg)
