@@ -183,7 +183,7 @@ export function LiveView() {
       <SectionTitle>Cameras</SectionTitle>
       <div className="flex flex-wrap gap-3.5">
         {CAMERAS.map((camera, i) => (
-          <CameraFeed key={camera.code} code={camera.code} caption={camera.caption} feed={feeds[i]} />
+          <CameraFeed key={camera.code} caption={camera.caption} feed={feeds[i]} />
         ))}
       </div>
 
