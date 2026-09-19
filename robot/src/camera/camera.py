@@ -2,7 +2,7 @@ from picamera2 import Picamera2
 import time
 import simplejpeg
 
-def encode(frame, quality=85):
+def encode(frame, quality=95):
     return simplejpeg.encode_jpeg(frame, quality=quality, colorspace="BGR")
 
 class CameraPair: 
