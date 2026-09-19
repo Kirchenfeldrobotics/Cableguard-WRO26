@@ -147,6 +147,32 @@
       "source_location": "L3"
     },
     {
+      "id": "robot_src_link_video_latestframe",
+      "label": "LatestFrame",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 10,
+      "community_name": "VideoLink",
+      "file_type": "code",
+      "norm_label": "latestframe",
+      "source_file": "robot/src/link/video.py",
+      "source_location": "L12"
+    },
+    {
+      "id": "robot_src_link_video_videolink",
+      "label": "VideoLink",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 10,
+      "community_name": "VideoLink",
+      "file_type": "code",
+      "norm_label": "videolink",
+      "source_file": "robot/src/link/video.py",
+      "source_location": "L26"
+    },
+    {
       "id": "backend_app_ws_hub_hub",
       "label": "Hub",
       "_callable": true,
@@ -158,6 +184,19 @@
       "norm_label": "hub",
       "source_file": "backend/app/ws/hub.py",
       "source_location": "L6"
+    },
+    {
+      "id": "robot_src_camera_camera_camerapair",
+      "label": "CameraPair",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 12,
+      "community_name": "CameraPair",
+      "file_type": "code",
+      "norm_label": "camerapair",
+      "source_file": "robot/src/camera/camera.py",
+      "source_location": "L8"
     },
     {
       "id": "backend_app_ws_video_hub_videohub",
@@ -238,32 +277,6 @@
       "source_location": "L92"
     },
     {
-      "id": "webapp_lib_hooks_use_api_apistate",
-      "label": "ApiState",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "robot-link.tsx",
-      "file_type": "code",
-      "norm_label": "apistate",
-      "source_file": "webapp/lib/hooks/use-api.ts",
-      "source_location": "L5"
-    },
-    {
-      "id": "webapp_lib_hooks_use_api_result",
-      "label": "Result",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "robot-link.tsx",
-      "file_type": "code",
-      "norm_label": "result",
-      "source_file": "webapp/lib/hooks/use-api.ts",
-      "source_location": "L13"
-    },
-    {
       "id": "webapp_lib_robot_robot_link_robotlinkvalue",
       "label": "RobotLinkValue",
       "_callable": true,
@@ -301,6 +314,19 @@
       "norm_label": "videofeed",
       "source_file": "webapp/lib/robot/use-video-feeds.ts",
       "source_location": "L7"
+    },
+    {
+      "id": "robot_src_link_outbox_outbox",
+      "label": "Outbox",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 25,
+      "community_name": "src/app/main.py",
+      "file_type": "code",
+      "norm_label": "outbox",
+      "source_file": "robot/src/link/outbox.py",
+      "source_location": "L5"
     },
     {
       "id": "backend_app_models_rope",
@@ -433,6 +459,84 @@
       "source_location": "L17"
     },
     {
+      "id": "shared_comm_protocols_messages_alive",
+      "label": "Alive",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 32,
+      "community_name": "messages.py",
+      "file_type": "code",
+      "norm_label": "alive",
+      "source_file": "shared/comm_protocols/messages.py",
+      "source_location": "L14"
+    },
+    {
+      "id": "shared_comm_protocols_messages_defect",
+      "label": "Defect",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 32,
+      "community_name": "messages.py",
+      "file_type": "code",
+      "norm_label": "defect",
+      "source_file": "shared/comm_protocols/messages.py",
+      "source_location": "L27"
+    },
+    {
+      "id": "shared_comm_protocols_messages_motiontelemetry",
+      "label": "MotionTelemetry",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 32,
+      "community_name": "messages.py",
+      "file_type": "code",
+      "norm_label": "motiontelemetry",
+      "source_file": "shared/comm_protocols/messages.py",
+      "source_location": "L19"
+    },
+    {
+      "id": "shared_comm_protocols_messages_robotmessage",
+      "label": "RobotMessage",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 32,
+      "community_name": "messages.py",
+      "file_type": "code",
+      "norm_label": "robotmessage",
+      "source_file": "shared/comm_protocols/messages.py",
+      "source_location": "L9"
+    },
+    {
+      "id": "shared_comm_protocols_messages_speedcmd",
+      "label": "SpeedCmd",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 32,
+      "community_name": "messages.py",
+      "file_type": "code",
+      "norm_label": "speedcmd",
+      "source_file": "shared/comm_protocols/messages.py",
+      "source_location": "L37"
+    },
+    {
+      "id": "shared_comm_protocols_messages_stopcmd",
+      "label": "StopCmd",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 32,
+      "community_name": "messages.py",
+      "file_type": "code",
+      "norm_label": "stopcmd",
+      "source_file": "shared/comm_protocols/messages.py",
+      "source_location": "L41"
+    },
+    {
       "id": "backend_app_database_base",
       "label": "Base",
       "_callable": true,
@@ -509,6 +613,19 @@
       "norm_label": "settings",
       "source_file": "backend/app/config.py",
       "source_location": "L11"
+    },
+    {
+      "id": "robot_src_motion_controller_motioncontroller",
+      "label": "MotionController",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 38,
+      "community_name": "MotionController",
+      "file_type": "code",
+      "norm_label": "motioncontroller",
+      "source_file": "robot/src/motion/controller.py",
+      "source_location": "L8"
     },
     {
       "id": "webapp_lib_api_client_apierror",
@@ -706,6 +823,32 @@
       "source_location": "L20"
     },
     {
+      "id": "webapp_lib_hooks_use_api_apistate",
+      "label": "ApiState",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 4,
+      "community_name": "types.ts",
+      "file_type": "code",
+      "norm_label": "apistate",
+      "source_file": "webapp/lib/hooks/use-api.ts",
+      "source_location": "L5"
+    },
+    {
+      "id": "webapp_lib_hooks_use_api_result",
+      "label": "Result",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 4,
+      "community_name": "types.ts",
+      "file_type": "code",
+      "norm_label": "result",
+      "source_file": "webapp/lib/hooks/use-api.ts",
+      "source_location": "L13"
+    },
+    {
       "id": "webapp_lib_hooks_use_inspection_ropehistory",
       "label": "RopeHistory",
       "_callable": true,
@@ -732,160 +875,17 @@
       "source_location": "L3"
     },
     {
-      "id": "robot_src_camera_camera_camerapair",
-      "label": "CameraPair",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 6,
-      "community_name": "src/app/main.py",
-      "file_type": "code",
-      "norm_label": "camerapair",
-      "source_file": "robot/src/camera/camera.py",
-      "source_location": "L8"
-    },
-    {
       "id": "robot_src_link_client_robotlink",
       "label": "RobotLink",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
       "community": 6,
-      "community_name": "src/app/main.py",
+      "community_name": "RobotLink",
       "file_type": "code",
       "norm_label": "robotlink",
       "source_file": "robot/src/link/client.py",
       "source_location": "L20"
-    },
-    {
-      "id": "robot_src_link_outbox_outbox",
-      "label": "Outbox",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 6,
-      "community_name": "src/app/main.py",
-      "file_type": "code",
-      "norm_label": "outbox",
-      "source_file": "robot/src/link/outbox.py",
-      "source_location": "L5"
-    },
-    {
-      "id": "robot_src_link_video_latestframe",
-      "label": "LatestFrame",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 6,
-      "community_name": "src/app/main.py",
-      "file_type": "code",
-      "norm_label": "latestframe",
-      "source_file": "robot/src/link/video.py",
-      "source_location": "L12"
-    },
-    {
-      "id": "robot_src_link_video_videolink",
-      "label": "VideoLink",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 6,
-      "community_name": "src/app/main.py",
-      "file_type": "code",
-      "norm_label": "videolink",
-      "source_file": "robot/src/link/video.py",
-      "source_location": "L26"
-    },
-    {
-      "id": "robot_src_motion_controller_motioncontroller",
-      "label": "MotionController",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 6,
-      "community_name": "src/app/main.py",
-      "file_type": "code",
-      "norm_label": "motioncontroller",
-      "source_file": "robot/src/motion/controller.py",
-      "source_location": "L8"
-    },
-    {
-      "id": "shared_comm_protocols_messages_alive",
-      "label": "Alive",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 6,
-      "community_name": "src/app/main.py",
-      "file_type": "code",
-      "norm_label": "alive",
-      "source_file": "shared/comm_protocols/messages.py",
-      "source_location": "L14"
-    },
-    {
-      "id": "shared_comm_protocols_messages_defect",
-      "label": "Defect",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 6,
-      "community_name": "src/app/main.py",
-      "file_type": "code",
-      "norm_label": "defect",
-      "source_file": "shared/comm_protocols/messages.py",
-      "source_location": "L27"
-    },
-    {
-      "id": "shared_comm_protocols_messages_motiontelemetry",
-      "label": "MotionTelemetry",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 6,
-      "community_name": "src/app/main.py",
-      "file_type": "code",
-      "norm_label": "motiontelemetry",
-      "source_file": "shared/comm_protocols/messages.py",
-      "source_location": "L19"
-    },
-    {
-      "id": "shared_comm_protocols_messages_robotmessage",
-      "label": "RobotMessage",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 6,
-      "community_name": "src/app/main.py",
-      "file_type": "code",
-      "norm_label": "robotmessage",
-      "source_file": "shared/comm_protocols/messages.py",
-      "source_location": "L9"
-    },
-    {
-      "id": "shared_comm_protocols_messages_speedcmd",
-      "label": "SpeedCmd",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 6,
-      "community_name": "src/app/main.py",
-      "file_type": "code",
-      "norm_label": "speedcmd",
-      "source_file": "shared/comm_protocols/messages.py",
-      "source_location": "L37"
-    },
-    {
-      "id": "shared_comm_protocols_messages_stopcmd",
-      "label": "StopCmd",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 6,
-      "community_name": "src/app/main.py",
-      "file_type": "code",
-      "norm_label": "stopcmd",
-      "source_file": "shared/comm_protocols/messages.py",
-      "source_location": "L41"
     },
     {
       "id": "webapp_app_error_error",
@@ -1740,6 +1740,90 @@
       "source_location": "L62"
     },
     {
+      "id": "robot_src_link_video_latestframe_get",
+      "label": ".get()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 10,
+      "community_name": "VideoLink",
+      "file_type": "code",
+      "norm_label": ".get()",
+      "source_file": "robot/src/link/video.py",
+      "source_location": "L21"
+    },
+    {
+      "id": "robot_src_link_video_latestframe_init",
+      "label": ".__init__()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 10,
+      "community_name": "VideoLink",
+      "file_type": "code",
+      "norm_label": ".__init__()",
+      "source_file": "robot/src/link/video.py",
+      "source_location": "L13"
+    },
+    {
+      "id": "robot_src_link_video_latestframe_put",
+      "label": ".put()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 10,
+      "community_name": "VideoLink",
+      "file_type": "code",
+      "norm_label": ".put()",
+      "source_file": "robot/src/link/video.py",
+      "source_location": "L17"
+    },
+    {
+      "id": "robot_src_link_video_videolink_init",
+      "label": ".__init__()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 10,
+      "community_name": "VideoLink",
+      "file_type": "code",
+      "norm_label": ".__init__()",
+      "source_file": "robot/src/link/video.py",
+      "source_location": "L27"
+    },
+    {
+      "id": "robot_src_link_video_videolink_pump",
+      "label": "._pump()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 10,
+      "community_name": "VideoLink",
+      "file_type": "code",
+      "norm_label": "._pump()",
+      "source_file": "robot/src/link/video.py",
+      "source_location": "L46"
+    },
+    {
+      "id": "robot_src_link_video_videolink_run",
+      "label": ".run()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 10,
+      "community_name": "VideoLink",
+      "file_type": "code",
+      "norm_label": ".run()",
+      "source_file": "robot/src/link/video.py",
+      "source_location": "L36"
+    },
+    {
+      "id": "robot_src_link_video_videolink_submit",
+      "label": ".submit()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 10,
+      "community_name": "VideoLink",
+      "file_type": "code",
+      "norm_label": ".submit()",
+      "source_file": "robot/src/link/video.py",
+      "source_location": "L32"
+    },
+    {
       "id": "backend_app_ws_hub_hub_add_ui",
       "label": ".add_ui()",
       "_callable": true,
@@ -1822,6 +1906,114 @@
       "norm_label": ".to_robot()",
       "source_file": "backend/app/ws/hub.py",
       "source_location": "L61"
+    },
+    {
+      "id": "robot_src_app_main_frame_producer",
+      "label": "frame_producer()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 12,
+      "community_name": "CameraPair",
+      "file_type": "code",
+      "norm_label": "frame_producer()",
+      "source_file": "robot/src/app/main.py",
+      "source_location": "L48"
+    },
+    {
+      "id": "robot_src_camera_camera_camerapair_capture",
+      "label": ".capture()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 12,
+      "community_name": "CameraPair",
+      "file_type": "code",
+      "norm_label": ".capture()",
+      "source_file": "robot/src/camera/camera.py",
+      "source_location": "L41"
+    },
+    {
+      "id": "robot_src_camera_camera_camerapair_capture_lores",
+      "label": ".capture_lores()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 12,
+      "community_name": "CameraPair",
+      "file_type": "code",
+      "norm_label": ".capture_lores()",
+      "source_file": "robot/src/camera/camera.py",
+      "source_location": "L45"
+    },
+    {
+      "id": "robot_src_camera_camera_camerapair_close",
+      "label": ".close()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 12,
+      "community_name": "CameraPair",
+      "file_type": "code",
+      "norm_label": ".close()",
+      "source_file": "robot/src/camera/camera.py",
+      "source_location": "L50"
+    },
+    {
+      "id": "robot_src_camera_camera_camerapair_enter",
+      "label": ".__enter__()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 12,
+      "community_name": "CameraPair",
+      "file_type": "code",
+      "norm_label": ".__enter__()",
+      "source_file": "robot/src/camera/camera.py",
+      "source_location": "L55"
+    },
+    {
+      "id": "robot_src_camera_camera_camerapair_exit",
+      "label": ".__exit__()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 12,
+      "community_name": "CameraPair",
+      "file_type": "code",
+      "norm_label": ".__exit__()",
+      "source_file": "robot/src/camera/camera.py",
+      "source_location": "L58"
+    },
+    {
+      "id": "robot_src_camera_camera_camerapair_init",
+      "label": ".__init__()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 12,
+      "community_name": "CameraPair",
+      "file_type": "code",
+      "norm_label": ".__init__()",
+      "source_file": "robot/src/camera/camera.py",
+      "source_location": "L9"
+    },
+    {
+      "id": "robot_src_camera_camera_camerapair_start",
+      "label": ".start()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 12,
+      "community_name": "CameraPair",
+      "file_type": "code",
+      "norm_label": ".start()",
+      "source_file": "robot/src/camera/camera.py",
+      "source_location": "L34"
+    },
+    {
+      "id": "robot_src_camera_camera_encode",
+      "label": "encode()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 12,
+      "community_name": "CameraPair",
+      "file_type": "code",
+      "norm_label": "encode()",
+      "source_file": "robot/src/camera/camera.py",
+      "source_location": "L5"
     },
     {
       "id": "backend_app_ws_video_hub_videohub_add_viewer",
@@ -1953,7 +2145,7 @@
       "file_type": "code",
       "norm_label": "camerafeed()",
       "source_file": "webapp/components/camera/camera-feed.tsx",
-      "source_location": "L18"
+      "source_location": "L15"
     },
     {
       "id": "webapp_components_inspection_run_state_pill_runstatepill",
@@ -2277,7 +2469,7 @@
       "file_type": "code",
       "norm_label": "parseframe()",
       "source_file": "webapp/lib/robot/use-video-feeds.ts",
-      "source_location": "L24"
+      "source_location": "L27"
     },
     {
       "id": "webapp_lib_robot_use_video_feeds_usevideofeeds",
@@ -2289,7 +2481,55 @@
       "file_type": "code",
       "norm_label": "usevideofeeds()",
       "source_file": "webapp/lib/robot/use-video-feeds.ts",
-      "source_location": "L31"
+      "source_location": "L34"
+    },
+    {
+      "id": "robot_src_link_outbox_outbox_add_msg",
+      "label": ".add_msg()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 25,
+      "community_name": "src/app/main.py",
+      "file_type": "code",
+      "norm_label": ".add_msg()",
+      "source_file": "robot/src/link/outbox.py",
+      "source_location": "L10"
+    },
+    {
+      "id": "robot_src_link_outbox_outbox_init",
+      "label": ".__init__()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 25,
+      "community_name": "src/app/main.py",
+      "file_type": "code",
+      "norm_label": ".__init__()",
+      "source_file": "robot/src/link/outbox.py",
+      "source_location": "L6"
+    },
+    {
+      "id": "robot_src_link_outbox_outbox_mark_sent",
+      "label": ".mark_sent()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 25,
+      "community_name": "src/app/main.py",
+      "file_type": "code",
+      "norm_label": ".mark_sent()",
+      "source_file": "robot/src/link/outbox.py",
+      "source_location": "L22"
+    },
+    {
+      "id": "robot_src_link_outbox_outbox_pending",
+      "label": ".pending()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 25,
+      "community_name": "src/app/main.py",
+      "file_type": "code",
+      "norm_label": ".pending()",
+      "source_file": "robot/src/link/outbox.py",
+      "source_location": "L16"
     },
     {
       "id": "backend_app_auth_unauthorized",
@@ -2532,6 +2772,30 @@
       "source_location": "L30"
     },
     {
+      "id": "robot_src_app_main_make_command_handler",
+      "label": "make_command_handler()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 32,
+      "community_name": "messages.py",
+      "file_type": "code",
+      "norm_label": "make_command_handler()",
+      "source_file": "robot/src/app/main.py",
+      "source_location": "L33"
+    },
+    {
+      "id": "robot_src_app_main_make_command_handler_handle",
+      "label": "handle()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 32,
+      "community_name": "messages.py",
+      "file_type": "code",
+      "norm_label": "handle()",
+      "source_file": "robot/src/app/main.py",
+      "source_location": "L34"
+    },
+    {
       "id": "backend_app_models_new_id",
       "label": "new_id()",
       "_callable": true,
@@ -2686,6 +2950,66 @@
       "norm_label": "._parse_cors_origins()",
       "source_file": "backend/app/config.py",
       "source_location": "L31"
+    },
+    {
+      "id": "robot_src_motion_controller_motioncontroller_emergency_stop",
+      "label": ".emergency_stop()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 38,
+      "community_name": "MotionController",
+      "file_type": "code",
+      "norm_label": ".emergency_stop()",
+      "source_file": "robot/src/motion/controller.py",
+      "source_location": "L44"
+    },
+    {
+      "id": "robot_src_motion_controller_motioncontroller_init",
+      "label": ".__init__()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 38,
+      "community_name": "MotionController",
+      "file_type": "code",
+      "norm_label": ".__init__()",
+      "source_file": "robot/src/motion/controller.py",
+      "source_location": "L9"
+    },
+    {
+      "id": "robot_src_motion_controller_motioncontroller_loop",
+      "label": "._loop()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 38,
+      "community_name": "MotionController",
+      "file_type": "code",
+      "norm_label": "._loop()",
+      "source_file": "robot/src/motion/controller.py",
+      "source_location": "L17"
+    },
+    {
+      "id": "robot_src_motion_controller_motioncontroller_request",
+      "label": ".request()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 38,
+      "community_name": "MotionController",
+      "file_type": "code",
+      "norm_label": ".request()",
+      "source_file": "robot/src/motion/controller.py",
+      "source_location": "L38"
+    },
+    {
+      "id": "robot_src_motion_controller_motioncontroller_shutdown",
+      "label": ".shutdown()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 38,
+      "community_name": "MotionController",
+      "file_type": "code",
+      "norm_label": ".shutdown()",
+      "source_file": "robot/src/motion/controller.py",
+      "source_location": "L49"
     },
     {
       "id": "webapp_app_layout_rootlayout",
@@ -3144,24 +3468,12 @@
       "source_location": "L199"
     },
     {
-      "id": "robot_src_app_main_frame_producer",
-      "label": "frame_producer()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 6,
-      "community_name": "src/app/main.py",
-      "file_type": "code",
-      "norm_label": "frame_producer()",
-      "source_file": "robot/src/app/main.py",
-      "source_location": "L48"
-    },
-    {
       "id": "robot_src_app_main_link_guard",
       "label": "link_guard()",
       "_callable": true,
       "_origin": "ast",
       "community": 6,
-      "community_name": "src/app/main.py",
+      "community_name": "RobotLink",
       "file_type": "code",
       "norm_label": "link_guard()",
       "source_file": "robot/src/app/main.py",
@@ -3173,35 +3485,11 @@
       "_callable": true,
       "_origin": "ast",
       "community": 6,
-      "community_name": "src/app/main.py",
+      "community_name": "RobotLink",
       "file_type": "code",
       "norm_label": "main()",
       "source_file": "robot/src/app/main.py",
       "source_location": "L82"
-    },
-    {
-      "id": "robot_src_app_main_make_command_handler",
-      "label": "make_command_handler()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 6,
-      "community_name": "src/app/main.py",
-      "file_type": "code",
-      "norm_label": "make_command_handler()",
-      "source_file": "robot/src/app/main.py",
-      "source_location": "L33"
-    },
-    {
-      "id": "robot_src_app_main_make_command_handler_handle",
-      "label": "handle()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 6,
-      "community_name": "src/app/main.py",
-      "file_type": "code",
-      "norm_label": "handle()",
-      "source_file": "robot/src/app/main.py",
-      "source_location": "L34"
     },
     {
       "id": "robot_src_app_main_telemetry_sender",
@@ -3209,107 +3497,11 @@
       "_callable": true,
       "_origin": "ast",
       "community": 6,
-      "community_name": "src/app/main.py",
+      "community_name": "RobotLink",
       "file_type": "code",
       "norm_label": "telemetry_sender()",
       "source_file": "robot/src/app/main.py",
       "source_location": "L70"
-    },
-    {
-      "id": "robot_src_camera_camera_camerapair_capture",
-      "label": ".capture()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 6,
-      "community_name": "src/app/main.py",
-      "file_type": "code",
-      "norm_label": ".capture()",
-      "source_file": "robot/src/camera/camera.py",
-      "source_location": "L41"
-    },
-    {
-      "id": "robot_src_camera_camera_camerapair_capture_lores",
-      "label": ".capture_lores()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 6,
-      "community_name": "src/app/main.py",
-      "file_type": "code",
-      "norm_label": ".capture_lores()",
-      "source_file": "robot/src/camera/camera.py",
-      "source_location": "L45"
-    },
-    {
-      "id": "robot_src_camera_camera_camerapair_close",
-      "label": ".close()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 6,
-      "community_name": "src/app/main.py",
-      "file_type": "code",
-      "norm_label": ".close()",
-      "source_file": "robot/src/camera/camera.py",
-      "source_location": "L50"
-    },
-    {
-      "id": "robot_src_camera_camera_camerapair_enter",
-      "label": ".__enter__()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 6,
-      "community_name": "src/app/main.py",
-      "file_type": "code",
-      "norm_label": ".__enter__()",
-      "source_file": "robot/src/camera/camera.py",
-      "source_location": "L55"
-    },
-    {
-      "id": "robot_src_camera_camera_camerapair_exit",
-      "label": ".__exit__()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 6,
-      "community_name": "src/app/main.py",
-      "file_type": "code",
-      "norm_label": ".__exit__()",
-      "source_file": "robot/src/camera/camera.py",
-      "source_location": "L58"
-    },
-    {
-      "id": "robot_src_camera_camera_camerapair_init",
-      "label": ".__init__()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 6,
-      "community_name": "src/app/main.py",
-      "file_type": "code",
-      "norm_label": ".__init__()",
-      "source_file": "robot/src/camera/camera.py",
-      "source_location": "L9"
-    },
-    {
-      "id": "robot_src_camera_camera_camerapair_start",
-      "label": ".start()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 6,
-      "community_name": "src/app/main.py",
-      "file_type": "code",
-      "norm_label": ".start()",
-      "source_file": "robot/src/camera/camera.py",
-      "source_location": "L34"
-    },
-    {
-      "id": "robot_src_camera_camera_encode",
-      "label": "encode()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 6,
-      "community_name": "src/app/main.py",
-      "file_type": "code",
-      "norm_label": "encode()",
-      "source_file": "robot/src/camera/camera.py",
-      "source_location": "L5"
     },
     {
       "id": "robot_src_link_client_robotlink_connected",
@@ -3317,7 +3509,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 6,
-      "community_name": "src/app/main.py",
+      "community_name": "RobotLink",
       "file_type": "code",
       "norm_label": ".connected()",
       "source_file": "robot/src/link/client.py",
@@ -3329,7 +3521,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 6,
-      "community_name": "src/app/main.py",
+      "community_name": "RobotLink",
       "file_type": "code",
       "norm_label": "._heartbeat_loop()",
       "source_file": "robot/src/link/client.py",
@@ -3341,7 +3533,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 6,
-      "community_name": "src/app/main.py",
+      "community_name": "RobotLink",
       "file_type": "code",
       "norm_label": ".__init__()",
       "source_file": "robot/src/link/client.py",
@@ -3353,7 +3545,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 6,
-      "community_name": "src/app/main.py",
+      "community_name": "RobotLink",
       "file_type": "code",
       "norm_label": ".on_command()",
       "source_file": "robot/src/link/client.py",
@@ -3365,7 +3557,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 6,
-      "community_name": "src/app/main.py",
+      "community_name": "RobotLink",
       "file_type": "code",
       "norm_label": "._receive_loop()",
       "source_file": "robot/src/link/client.py",
@@ -3377,7 +3569,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 6,
-      "community_name": "src/app/main.py",
+      "community_name": "RobotLink",
       "file_type": "code",
       "norm_label": ".run()",
       "source_file": "robot/src/link/client.py",
@@ -3389,7 +3581,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 6,
-      "community_name": "src/app/main.py",
+      "community_name": "RobotLink",
       "file_type": "code",
       "norm_label": ".send()",
       "source_file": "robot/src/link/client.py",
@@ -3401,7 +3593,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 6,
-      "community_name": "src/app/main.py",
+      "community_name": "RobotLink",
       "file_type": "code",
       "norm_label": ".send_live()",
       "source_file": "robot/src/link/client.py",
@@ -3413,203 +3605,11 @@
       "_callable": true,
       "_origin": "ast",
       "community": 6,
-      "community_name": "src/app/main.py",
+      "community_name": "RobotLink",
       "file_type": "code",
       "norm_label": "._send_loop()",
       "source_file": "robot/src/link/client.py",
       "source_location": "L82"
-    },
-    {
-      "id": "robot_src_link_outbox_outbox_add_msg",
-      "label": ".add_msg()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 6,
-      "community_name": "src/app/main.py",
-      "file_type": "code",
-      "norm_label": ".add_msg()",
-      "source_file": "robot/src/link/outbox.py",
-      "source_location": "L10"
-    },
-    {
-      "id": "robot_src_link_outbox_outbox_init",
-      "label": ".__init__()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 6,
-      "community_name": "src/app/main.py",
-      "file_type": "code",
-      "norm_label": ".__init__()",
-      "source_file": "robot/src/link/outbox.py",
-      "source_location": "L6"
-    },
-    {
-      "id": "robot_src_link_outbox_outbox_mark_sent",
-      "label": ".mark_sent()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 6,
-      "community_name": "src/app/main.py",
-      "file_type": "code",
-      "norm_label": ".mark_sent()",
-      "source_file": "robot/src/link/outbox.py",
-      "source_location": "L22"
-    },
-    {
-      "id": "robot_src_link_outbox_outbox_pending",
-      "label": ".pending()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 6,
-      "community_name": "src/app/main.py",
-      "file_type": "code",
-      "norm_label": ".pending()",
-      "source_file": "robot/src/link/outbox.py",
-      "source_location": "L16"
-    },
-    {
-      "id": "robot_src_link_video_latestframe_get",
-      "label": ".get()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 6,
-      "community_name": "src/app/main.py",
-      "file_type": "code",
-      "norm_label": ".get()",
-      "source_file": "robot/src/link/video.py",
-      "source_location": "L21"
-    },
-    {
-      "id": "robot_src_link_video_latestframe_init",
-      "label": ".__init__()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 6,
-      "community_name": "src/app/main.py",
-      "file_type": "code",
-      "norm_label": ".__init__()",
-      "source_file": "robot/src/link/video.py",
-      "source_location": "L13"
-    },
-    {
-      "id": "robot_src_link_video_latestframe_put",
-      "label": ".put()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 6,
-      "community_name": "src/app/main.py",
-      "file_type": "code",
-      "norm_label": ".put()",
-      "source_file": "robot/src/link/video.py",
-      "source_location": "L17"
-    },
-    {
-      "id": "robot_src_link_video_videolink_init",
-      "label": ".__init__()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 6,
-      "community_name": "src/app/main.py",
-      "file_type": "code",
-      "norm_label": ".__init__()",
-      "source_file": "robot/src/link/video.py",
-      "source_location": "L27"
-    },
-    {
-      "id": "robot_src_link_video_videolink_pump",
-      "label": "._pump()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 6,
-      "community_name": "src/app/main.py",
-      "file_type": "code",
-      "norm_label": "._pump()",
-      "source_file": "robot/src/link/video.py",
-      "source_location": "L46"
-    },
-    {
-      "id": "robot_src_link_video_videolink_run",
-      "label": ".run()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 6,
-      "community_name": "src/app/main.py",
-      "file_type": "code",
-      "norm_label": ".run()",
-      "source_file": "robot/src/link/video.py",
-      "source_location": "L36"
-    },
-    {
-      "id": "robot_src_link_video_videolink_submit",
-      "label": ".submit()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 6,
-      "community_name": "src/app/main.py",
-      "file_type": "code",
-      "norm_label": ".submit()",
-      "source_file": "robot/src/link/video.py",
-      "source_location": "L32"
-    },
-    {
-      "id": "robot_src_motion_controller_motioncontroller_emergency_stop",
-      "label": ".emergency_stop()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 6,
-      "community_name": "src/app/main.py",
-      "file_type": "code",
-      "norm_label": ".emergency_stop()",
-      "source_file": "robot/src/motion/controller.py",
-      "source_location": "L44"
-    },
-    {
-      "id": "robot_src_motion_controller_motioncontroller_init",
-      "label": ".__init__()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 6,
-      "community_name": "src/app/main.py",
-      "file_type": "code",
-      "norm_label": ".__init__()",
-      "source_file": "robot/src/motion/controller.py",
-      "source_location": "L9"
-    },
-    {
-      "id": "robot_src_motion_controller_motioncontroller_loop",
-      "label": "._loop()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 6,
-      "community_name": "src/app/main.py",
-      "file_type": "code",
-      "norm_label": "._loop()",
-      "source_file": "robot/src/motion/controller.py",
-      "source_location": "L17"
-    },
-    {
-      "id": "robot_src_motion_controller_motioncontroller_request",
-      "label": ".request()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 6,
-      "community_name": "src/app/main.py",
-      "file_type": "code",
-      "norm_label": ".request()",
-      "source_file": "robot/src/motion/controller.py",
-      "source_location": "L38"
-    },
-    {
-      "id": "robot_src_motion_controller_motioncontroller_shutdown",
-      "label": ".shutdown()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 6,
-      "community_name": "src/app/main.py",
-      "file_type": "code",
-      "norm_label": ".shutdown()",
-      "source_file": "robot/src/motion/controller.py",
-      "source_location": "L49"
     },
     {
       "id": "webapp_app_compare_page_comparepage",
@@ -4272,6 +4272,17 @@
       "source_location": "L130"
     },
     {
+      "id": "robot_src_camera_camera",
+      "label": "camera.py",
+      "_origin": "ast",
+      "community": 12,
+      "community_name": "CameraPair",
+      "file_type": "code",
+      "norm_label": "camera.py",
+      "source_file": "robot/src/camera/camera.py",
+      "source_location": "L1"
+    },
+    {
       "id": "readme",
       "label": "README.md",
       "_origin": "ast",
@@ -4698,17 +4709,6 @@
       "source_location": "L15"
     },
     {
-      "id": "webapp_lib_hooks_use_api",
-      "label": "use-api.ts",
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "robot-link.tsx",
-      "file_type": "code",
-      "norm_label": "use-api.ts",
-      "source_file": "webapp/lib/hooks/use-api.ts",
-      "source_location": "L1"
-    },
-    {
       "id": "webapp_lib_hooks_use_now",
       "label": "use-now.ts",
       "_origin": "ast",
@@ -4783,7 +4783,7 @@
       "file_type": "code",
       "norm_label": "video_stale_ms",
       "source_file": "webapp/lib/robot/use-video-feeds.ts",
-      "source_location": "L15"
+      "source_location": "L17"
     },
     {
       "id": "ref_react",
@@ -4864,6 +4864,83 @@
       "source_location": "L1",
       "type": "package",
       "version": "0"
+    },
+    {
+      "id": "robot_src_app_main",
+      "label": "src/app/main.py",
+      "_origin": "ast",
+      "community": 25,
+      "community_name": "src/app/main.py",
+      "file_type": "code",
+      "norm_label": "src/app/main.py",
+      "source_file": "robot/src/app/main.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "robot_src_link_client",
+      "label": "client.py",
+      "_origin": "ast",
+      "community": 25,
+      "community_name": "src/app/main.py",
+      "file_type": "code",
+      "norm_label": "client.py",
+      "source_file": "robot/src/link/client.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "robot_src_link_outbox",
+      "label": "outbox.py",
+      "_origin": "ast",
+      "community": 25,
+      "community_name": "src/app/main.py",
+      "file_type": "code",
+      "norm_label": "outbox.py",
+      "source_file": "robot/src/link/outbox.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "robot_src_link_video",
+      "label": "link/video.py",
+      "_origin": "ast",
+      "community": 25,
+      "community_name": "src/app/main.py",
+      "file_type": "code",
+      "norm_label": "link/video.py",
+      "source_file": "robot/src/link/video.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "robot_src_motion_controller",
+      "label": "controller.py",
+      "_origin": "ast",
+      "community": 25,
+      "community_name": "src/app/main.py",
+      "file_type": "code",
+      "norm_label": "controller.py",
+      "source_file": "robot/src/motion/controller.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "robot_src_motion_stepper",
+      "label": "stepper.py",
+      "_origin": "ast",
+      "community": 25,
+      "community_name": "src/app/main.py",
+      "file_type": "code",
+      "norm_label": "stepper.py",
+      "source_file": "robot/src/motion/stepper.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "robot_src_util_logging",
+      "label": "logging.py",
+      "_origin": "ast",
+      "community": 25,
+      "community_name": "src/app/main.py",
+      "file_type": "code",
+      "norm_label": "logging.py",
+      "source_file": "robot/src/util/logging.py",
+      "source_location": "L1"
     },
     {
       "id": "robot_src_camera_init",
@@ -5592,6 +5669,28 @@
       "source_location": "L12"
     },
     {
+      "id": "shared_comm_protocols_messages",
+      "label": "messages.py",
+      "_origin": "ast",
+      "community": 32,
+      "community_name": "messages.py",
+      "file_type": "code",
+      "norm_label": "messages.py",
+      "source_file": "shared/comm_protocols/messages.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "shared_comm_protocols_messages_py_basemodel",
+      "label": "BaseModel",
+      "_origin": "ast",
+      "community": 32,
+      "community_name": "messages.py",
+      "file_type": "code",
+      "norm_label": "basemodel",
+      "source_file": "",
+      "source_location": ""
+    },
+    {
       "id": "backend_app_models",
       "label": "models.py",
       "_origin": "ast",
@@ -6196,6 +6295,17 @@
       "source_location": "L42"
     },
     {
+      "id": "webapp_lib_hooks_use_api",
+      "label": "use-api.ts",
+      "_origin": "ast",
+      "community": 4,
+      "community_name": "types.ts",
+      "file_type": "code",
+      "norm_label": "use-api.ts",
+      "source_file": "webapp/lib/hooks/use-api.ts",
+      "source_location": "L1"
+    },
+    {
       "id": "webapp_lib_hooks_use_inspection",
       "label": "use-inspection.ts",
       "_origin": "ast",
@@ -6205,116 +6315,6 @@
       "norm_label": "use-inspection.ts",
       "source_file": "webapp/lib/hooks/use-inspection.ts",
       "source_location": "L1"
-    },
-    {
-      "id": "robot_src_app_main",
-      "label": "src/app/main.py",
-      "_origin": "ast",
-      "community": 6,
-      "community_name": "src/app/main.py",
-      "file_type": "code",
-      "norm_label": "src/app/main.py",
-      "source_file": "robot/src/app/main.py",
-      "source_location": "L1"
-    },
-    {
-      "id": "robot_src_camera_camera",
-      "label": "camera.py",
-      "_origin": "ast",
-      "community": 6,
-      "community_name": "src/app/main.py",
-      "file_type": "code",
-      "norm_label": "camera.py",
-      "source_file": "robot/src/camera/camera.py",
-      "source_location": "L1"
-    },
-    {
-      "id": "robot_src_link_client",
-      "label": "client.py",
-      "_origin": "ast",
-      "community": 6,
-      "community_name": "src/app/main.py",
-      "file_type": "code",
-      "norm_label": "client.py",
-      "source_file": "robot/src/link/client.py",
-      "source_location": "L1"
-    },
-    {
-      "id": "robot_src_link_outbox",
-      "label": "outbox.py",
-      "_origin": "ast",
-      "community": 6,
-      "community_name": "src/app/main.py",
-      "file_type": "code",
-      "norm_label": "outbox.py",
-      "source_file": "robot/src/link/outbox.py",
-      "source_location": "L1"
-    },
-    {
-      "id": "robot_src_link_video",
-      "label": "link/video.py",
-      "_origin": "ast",
-      "community": 6,
-      "community_name": "src/app/main.py",
-      "file_type": "code",
-      "norm_label": "link/video.py",
-      "source_file": "robot/src/link/video.py",
-      "source_location": "L1"
-    },
-    {
-      "id": "robot_src_motion_controller",
-      "label": "controller.py",
-      "_origin": "ast",
-      "community": 6,
-      "community_name": "src/app/main.py",
-      "file_type": "code",
-      "norm_label": "controller.py",
-      "source_file": "robot/src/motion/controller.py",
-      "source_location": "L1"
-    },
-    {
-      "id": "robot_src_motion_stepper",
-      "label": "stepper.py",
-      "_origin": "ast",
-      "community": 6,
-      "community_name": "src/app/main.py",
-      "file_type": "code",
-      "norm_label": "stepper.py",
-      "source_file": "robot/src/motion/stepper.py",
-      "source_location": "L1"
-    },
-    {
-      "id": "robot_src_util_logging",
-      "label": "logging.py",
-      "_origin": "ast",
-      "community": 6,
-      "community_name": "src/app/main.py",
-      "file_type": "code",
-      "norm_label": "logging.py",
-      "source_file": "robot/src/util/logging.py",
-      "source_location": "L1"
-    },
-    {
-      "id": "shared_comm_protocols_messages",
-      "label": "messages.py",
-      "_origin": "ast",
-      "community": 6,
-      "community_name": "src/app/main.py",
-      "file_type": "code",
-      "norm_label": "messages.py",
-      "source_file": "shared/comm_protocols/messages.py",
-      "source_location": "L1"
-    },
-    {
-      "id": "shared_comm_protocols_messages_py_basemodel",
-      "label": "BaseModel",
-      "_origin": "ast",
-      "community": 6,
-      "community_name": "src/app/main.py",
-      "file_type": "code",
-      "norm_label": "basemodel",
-      "source_file": "",
-      "source_location": ""
     },
     {
       "id": "webapp_app_compare_page",
@@ -7681,7 +7681,19 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "webapp/components/camera/camera-feed.tsx",
-      "source_location": "L20",
+      "source_location": "L17",
+      "weight": 1.0
+    },
+    {
+      "source": "webapp_components_camera_camera_feed_camerafeed",
+      "target": "webapp_lib_format_formatago",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "webapp/components/camera/camera-feed.tsx",
+      "source_location": "L24",
       "weight": 1.0
     },
     {
@@ -7693,7 +7705,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "webapp/components/camera/camera-feed.tsx",
-      "source_location": "L32",
+      "source_location": "L36",
       "weight": 1.0
     },
     {
@@ -9397,7 +9409,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "webapp/lib/robot/use-video-feeds.ts",
-      "source_location": "L43",
+      "source_location": "L47",
       "weight": 1.0
     },
     {
@@ -9409,7 +9421,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "webapp/lib/robot/use-video-feeds.ts",
-      "source_location": "L48",
+      "source_location": "L52",
       "weight": 1.0
     },
     {
@@ -10554,7 +10566,7 @@
     },
     {
       "source": "webapp_components_camera_camera_feed",
-      "target": "webapp_lib_hooks_use_now_usenow",
+      "target": "webapp_lib_format_formatago",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -10566,7 +10578,7 @@
     },
     {
       "source": "webapp_components_camera_camera_feed",
-      "target": "webapp_lib_robot_use_video_feeds_video_stale_ms",
+      "target": "webapp_lib_hooks_use_now_usenow",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -10578,6 +10590,18 @@
     },
     {
       "source": "webapp_components_camera_camera_feed",
+      "target": "webapp_lib_robot_use_video_feeds_video_stale_ms",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "webapp/components/camera/camera-feed.tsx",
+      "source_location": "L9",
+      "weight": 1.0
+    },
+    {
+      "source": "webapp_components_camera_camera_feed",
       "target": "webapp_lib_robot_use_video_feeds_videofeed",
       "relation": "imports",
       "_origin": "ast",
@@ -10585,7 +10609,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "webapp/components/camera/camera-feed.tsx",
-      "source_location": "L8",
+      "source_location": "L9",
       "weight": 1.0
     },
     {
@@ -14774,7 +14798,7 @@
     },
     {
       "source": "webapp_components_camera_camera_feed",
-      "target": "webapp_lib_hooks_use_now",
+      "target": "webapp_lib_format",
       "relation": "imports_from",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -14786,7 +14810,7 @@
     },
     {
       "source": "webapp_components_camera_camera_feed",
-      "target": "webapp_lib_robot_use_video_feeds",
+      "target": "webapp_lib_hooks_use_now",
       "relation": "imports_from",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -14794,6 +14818,18 @@
       "context": "import",
       "source_file": "webapp/components/camera/camera-feed.tsx",
       "source_location": "L8",
+      "weight": 1.0
+    },
+    {
+      "source": "webapp_components_camera_camera_feed",
+      "target": "webapp_lib_robot_use_video_feeds",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "webapp/components/camera/camera-feed.tsx",
+      "source_location": "L9",
       "weight": 1.0
     },
     {
@@ -18243,7 +18279,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "webapp/components/camera/camera-feed.tsx",
-      "source_location": "L18",
+      "source_location": "L15",
       "weight": 1.0
     },
     {
@@ -20025,7 +20061,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "webapp/lib/robot/use-video-feeds.ts",
-      "source_location": "L15",
+      "source_location": "L17",
       "weight": 1.0
     },
     {
@@ -20036,7 +20072,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "webapp/lib/robot/use-video-feeds.ts",
-      "source_location": "L24",
+      "source_location": "L27",
       "weight": 1.0
     },
     {
@@ -20047,7 +20083,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "webapp/lib/robot/use-video-feeds.ts",
-      "source_location": "L31",
+      "source_location": "L34",
       "weight": 1.0
     },
     {
@@ -22454,5 +22490,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "233311d755668d6807715d7e141e4640cede2cd0"
+  "built_at_commit": "af81a118b738bfe9ad21f0ffb2e99306c593783b"
 }

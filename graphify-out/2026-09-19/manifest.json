@@ -276,9 +276,9 @@
     "semantic_hash": ""
   },
   "webapp/components/camera/camera-feed.tsx": {
-    "mtime": 1789849130.669047,
-    "seen": 1789849408.0888252,
-    "ast_hash": "0345d106aab6d8e7524b978668135fb1",
+    "mtime": 1789849060.5646355,
+    "seen": 1789849070.082595,
+    "ast_hash": "ace204b8e2a786940684b556cfffb16a",
     "semantic_hash": ""
   },
   "webapp/components/inspection/run-state-pill.tsx": {
@@ -384,9 +384,9 @@
     "semantic_hash": ""
   },
   "webapp/features/live/live-view.tsx": {
-    "mtime": 1789849131.7705586,
-    "seen": 1789849408.088865,
-    "ast_hash": "f2eb9ba1c89297d9fd619ce8f8e44794",
+    "mtime": 1789849060.571244,
+    "seen": 1789849070.0826159,
+    "ast_hash": "d0896d807b53b878cdee0f8e2fc9adc6",
     "semantic_hash": ""
   },
   "webapp/features/rope/rope-view.tsx": {
@@ -474,9 +474,9 @@
     "semantic_hash": ""
   },
   "webapp/lib/robot/use-video-feeds.ts": {
-    "mtime": 1789849145.8007796,
-    "seen": 1789849408.088901,
-    "ast_hash": "ee23a8be65d3150768792b415b829a0d",
+    "mtime": 1789849060.5838792,
+    "seen": 1789849070.0826359,
+    "ast_hash": "e16a553771f9793ad7dbf4e245996e50",
     "semantic_hash": ""
   },
   "webapp/lib/routes.ts": {

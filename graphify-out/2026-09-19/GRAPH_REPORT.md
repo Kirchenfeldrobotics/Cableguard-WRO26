@@ -1,16 +1,16 @@
 # Graph Report - Cableguard-WRO26  (2026-09-19)
 
 ## Corpus Check
-- 101 files · ~20,693 words
+- 101 files · ~20,726 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 573 nodes · 1347 edges · 34 communities (19 shown, 6 thin omitted)
+- 573 nodes · 1350 edges · 39 communities (21 shown, 9 thin omitted)
 - Extraction: 97% EXTRACTED · 3% INFERRED · 0% AMBIGUOUS · INFERRED: 45 edges (avg confidence: 0.92)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `233311d7`
+- Built from commit: `af81a118`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -21,11 +21,13 @@
 - Frontend Build Dependencies
 - types.ts
 - Stepper
-- src/app/main.py
+- RobotLink
 - next
 - compilerOptions
 - prepare_wirerope.py
+- VideoLink
 - Hub
+- CameraPair
 - VideoHub
 - README.md
 - setup-graphify.sh
@@ -33,13 +35,16 @@
 - eslint.config.mjs
 - postcss.config.mjs
 - cableguard_shared
+- src/app/main.py
 - schemas.py
 - app/auth.py
+- messages.py
 - models.py
 - CableGuard design system
 - routers/defects.py
 - Settings
 - How-to-Use.md
+- MotionController
 
 ## God Nodes (most connected - your core abstractions)
 1. `cn()` - 40 edges
@@ -60,15 +65,15 @@
   robot/src/app/main.py → shared/comm_protocols/messages.py
 - `make_command_handler()` --uses--> `StopCmd`  [INFERRED]
   robot/src/app/main.py → shared/comm_protocols/messages.py
-- `login()` --uses--> `LoginRequest`  [INFERRED]
-  backend/app/routers/auth.py → backend/app/schemas.py
-- `login()` --uses--> `TokenOut`  [INFERRED]
-  backend/app/routers/auth.py → backend/app/schemas.py
+- `create_run()` --uses--> `Run`  [INFERRED]
+  backend/app/routers/runs.py → backend/app/models.py
+- `delete_run()` --uses--> `Run`  [INFERRED]
+  backend/app/routers/runs.py → backend/app/models.py
 
 ## Import Cycles
 - None detected.
 
-## Communities (34 total, 6 thin omitted)
+## Communities (39 total, 9 thin omitted)
 
 ### Community 0 - "live-view.tsx"
 Cohesion: 0.08
@@ -80,19 +85,19 @@ Nodes (21): authenticate_robot(), authenticate_ui(), WebSocket, Browsers cannot 
 
 ### Community 2 - "robot-link.tsx"
 Cohesion: 0.06
-Nodes (49): react, metadata, metadata, Logo(), CameraFeed(), RunStatePill(), AppShell(), formatClock() (+41 more)
+Nodes (47): react, metadata, metadata, Logo(), CameraFeed(), RunStatePill(), AppShell(), formatClock() (+39 more)
 
 ### Community 3 - "Frontend Build Dependencies"
 Cohesion: 0.06
 Nodes (33): eslint, eslint-config-next, react-dom, tailwind-merge, tailwindcss, @tailwindcss/postcss, @types/node, @types/react (+25 more)
 
 ### Community 4 - "types.ts"
-Cohesion: 0.09
-Nodes (35): metadata, plexMono, poppins, api, ApiError, json(), request(), AliveEvent (+27 more)
+Cohesion: 0.08
+Nodes (37): metadata, plexMono, poppins, api, ApiError, json(), request(), AliveEvent (+29 more)
 
-### Community 6 - "src/app/main.py"
-Cohesion: 0.05
-Nodes (19): frame_producer(), link_guard(), main(), make_command_handler(), telemetry_sender(), CameraPair, encode(), RobotLink (+11 more)
+### Community 6 - "RobotLink"
+Cohesion: 0.22
+Nodes (4): link_guard(), main(), telemetry_sender(), RobotLink
 
 ### Community 7 - "next"
 Cohesion: 0.11
@@ -105,6 +110,10 @@ Nodes (18): compilerOptions, allowJs, esModuleInterop, incremental, isolatedModu
 ### Community 9 - "prepare_wirerope.py"
 Cohesion: 0.25
 Nodes (10): find_split(), load_names(), main(), place(), Class names from a Roboflow data.yaml, as a list indexed by class id., Merges several Roboflow YOLO exports into a single dataset in the layout the…, Image/label dir of one split, for both common export layouts., Hardlink if possible - a copy of ~22'000 images costs several GB twice. (+2 more)
+
+### Community 12 - "CameraPair"
+Cohesion: 0.24
+Nodes (3): frame_producer(), CameraPair, encode()
 
 ### Community 14 - "README.md"
 Cohesion: 0.33
@@ -125,6 +134,10 @@ Nodes (27): _unauthorized(), Rope, create_rope(), delete_rope(), list_ropes(), d
 ### Community 31 - "app/auth.py"
 Cohesion: 0.14
 Nodes (25): _b64(), create_access_token(), decode_token(), dummy_verify(), get_current_user(), hash_password(), Session, Robot link token, operator passwords and the webapp's JWT access tokens. (+17 more)
+
+### Community 32 - "messages.py"
+Cohesion: 0.33
+Nodes (8): make_command_handler(), Alive, Defect, MotionTelemetry, BaseModel, RobotMessage, SpeedCmd, StopCmd
 
 ### Community 33 - "models.py"
 Cohesion: 0.16
@@ -147,22 +160,22 @@ Cohesion: 0.50
 Nodes (3): Datasets, Run, Setup
 
 ## Knowledge Gaps
-- **118 isolated node(s):** `CAMERAS`, `Direction`, `SentCommand`, `Size`, `StyleProps` (+113 more)
+- **118 isolated node(s):** `PATH`, `cableguard_shared`, `metadata`, `poppins`, `plexMono` (+113 more)
   These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 218 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **6 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **9 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `react` connect `robot-link.tsx` to `live-view.tsx`, `Frontend Build Dependencies`, `types.ts`?**
   _High betweenness centrality (0.042) - this node is a cross-community bridge._
-- **Why does `Stepper` connect `Stepper` to `src/app/main.py`?**
+- **Why does `Stepper` connect `Stepper` to `MotionController`, `src/app/main.py`, `RobotLink`?**
   _High betweenness centrality (0.032) - this node is a cross-community bridge._
-- **Why does `main()` connect `src/app/main.py` to `Stepper`?**
+- **Why does `main()` connect `RobotLink` to `messages.py`, `Stepper`, `MotionController`, `VideoLink`, `CameraPair`, `src/app/main.py`?**
   _High betweenness centrality (0.017) - this node is a cross-community bridge._
 - **Are the 2 inferred relationships involving `Stepper` (e.g. with `telemetry_sender()` and `MotionController`) actually correct?**
   _`Stepper` has 2 INFERRED edges - model-reasoned connections that need verification._
-- **What connects `CAMERAS`, `Direction`, `SentCommand` to the rest of the system?**
+- **What connects `PATH`, `cableguard_shared`, `metadata` to the rest of the system?**
   _118 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `live-view.tsx` be split into smaller, more focused modules?**
   _Cohesion score 0.07746068724519511 - nodes in this community are weakly interconnected._
