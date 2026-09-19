@@ -1,7 +1,6 @@
 from picamera2 import Picamera2 
 import time
 import simplejpeg
-import numpy as np 
 
 # encode frame as JPEG
 def encode(frame, quality=60): 
@@ -13,9 +12,8 @@ def encode(frame, quality=60):
     return simplejpeg.encode_jpeg_yuv_planes(y, u, v, quality=quality)
 
 class CameraPair: 
-    def __init__(self, main_size=(640, 640), lores_size=(640, 480), fps=15, rotate=-1):
+    def __init__(self, main_size=(640, 640), lores_size=(640, 480), fps=15):
         self.lores_size = lores_size
-        self.rotate     = rotate
         self._cams: list[Picamera2] = []
 
         for i in range(2):
@@ -52,19 +50,13 @@ class CameraPair:
     # capture a frame from each camera (lores stream)
     def capture_lores(self):
         w, h = self.lores_size
-        return [(i, self._upright(cam.capture_array("lores", wait=1.0)[:h, :w])) for i, cam in enumerate(self._cams)]
+        return [(i, cam.capture_array("lores", wait=1.0)) for i, cam in enumerate(self._cams)]
     
     # close both cameras
     def close(self): 
         for cam in self._cams: 
             cam.stop()
             cam.close()
-
-     # turn the frame upright, ascontiguousarray because rot90 only returns a view
-    def _upright(self, frame):
-        if self.rotate == 0:
-            return frame
-        return np.ascontiguousarray(np.rot90(frame, self.rotate))
 
     def __enter__(self): 
         return self.start()
