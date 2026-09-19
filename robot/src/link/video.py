@@ -46,5 +46,5 @@ class VideoLink:
     async def _pump(self, sock, idx: int): 
         while True: 
             jpeg = await self.buffers[idx].get()
-            await sock.send(bytes(idx) + jpeg)
+            await sock.send(bytes([idx]) + jpeg)
             await asyncio.sleep(self._period)
