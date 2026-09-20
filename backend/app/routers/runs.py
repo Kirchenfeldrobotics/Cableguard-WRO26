@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import Rope, Run
+from app.models import Rope, Run, utcnow
 from app.schemas import RunCreate, RunOut
 
 router = APIRouter(prefix="/api/runs", tags=["runs"])
@@ -24,6 +24,19 @@ def create_run(payload: RunCreate, db: Session = Depends(get_db)):
     db.add(run)
     db.commit()
     db.refresh(run)
+    return run 
+
+# Close a run. Finishing is what makes it show up in the rope history and the trend,
+# a run with no end is still being recorded into
+@router.post("/{run_id}/finish", response_model=RunOut)
+def finish_run(run_id: str, db: Session = Depends(get_db)): 
+    run = db.get(Run, run_id)
+    if run is None: 
+        raise HTTPException(404, "run not found")
+    if run.finished_at is None: 
+        run.finished_at = utcnow()
+        db.commit()
+        db.refresh(run)
     return run 
 
 # Delete a run based on a run:id

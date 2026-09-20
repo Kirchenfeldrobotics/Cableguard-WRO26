@@ -27,6 +27,7 @@ class MotionController:
                     self.motor.ramp_to(arg)
                 elif cmd == "stop":
                     self.motor.stop()
+                    log.info("stopped at %.2f m", self.motor.metres_done)
             except Exception:
                 log.exception("motion command failed: %s", cmd)
                 try:
@@ -42,8 +43,13 @@ class MotionController:
 
     # stop motor regardless of queue
     def emergency_stop(self):
-        self._cmds.put(("stop", None))
+        # The motion thread can be inside a ramp or waiting on the driver queue, and while
+        # it is, the feeder keeps handing out cruise blocks. Cutting the cruise here stops
+        # the pulses whatever that thread is doing; the queued stop ramps down the rest of
+        # the way once it gets its turn.
         self.motor.abort.set()
+        self.motor.cut_cruise()
+        self._cmds.put(("stop", None))
 
     # set stop event, terminate thread and close motor driver
     def shutdown(self): 

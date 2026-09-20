@@ -13,7 +13,7 @@ import { Dropdown } from "@/components/ui/dropdown";
 import { StatusMessage } from "@/components/ui/feedback";
 import { HeadingMeta, PageHeader, SectionTitle } from "@/components/ui/heading";
 import { api } from "@/lib/api/client";
-import { NOT_AVAILABLE, formatDate, isRunActive, shortId } from "@/lib/format";
+import { NOT_AVAILABLE, formatDate, formatDateTime, isRunActive, shortId } from "@/lib/format";
 import { useApi } from "@/lib/hooks/use-api";
 import { lastFinishedRun, useCurrentSelection, useRopeHistory } from "@/lib/hooks/use-inspection";
 import { useRobotConnected } from "@/lib/robot/robot-link";
@@ -28,16 +28,58 @@ export function DashboardView() {
 
   const [selecting, setSelecting] = useState(false);
   const [selectError, setSelectError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [runError, setRunError] = useState<string | null>(null);
 
   const rope = history.data?.rope;
   const runs = history.data?.runs ?? [];
-  const currentRun = runs.find((r) => r.id === current.data?.run_id);
+  // The selection is the server's answer, the run object may still be loading behind it.
+  // Reading the id rather than the object keeps the button from flipping back to Start.
+  const currentRunId = current.data?.run_id ?? null;
+  const currentRun = runs.find((r) => r.id === currentRunId);
   const running = connected && isRunActive(currentRun);
   const lastRun = lastFinishedRun(runs);
   const lastFindings = lastRun ? (history.data?.findingsByRun[lastRun.id] ?? []) : [];
   const lastRunLabel = lastRun
     ? `${shortId(lastRun.id)} · ${formatDate(lastRun.started_at)}`
     : "no finished run";
+
+  /**
+   * A run is created and selected in one step: selecting it is what makes the server zero
+   * the robot's position counter, so every defect is measured from where it stands now.
+   */
+  const startRun = async () => {
+    if (!rope) return;
+    setRunError(null);
+    setBusy(true);
+    try {
+      const run = await api.runs.create(rope.id, `Run ${formatDateTime(new Date().toISOString())}`);
+      await api.current.set({ rope_id: rope.id, run_id: run.id });
+      current.reload();
+      history.reload();
+    } catch (err) {
+      setRunError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  /** Closing the run also drops the selection, so nothing is recorded into it afterwards. */
+  const finishRun = async () => {
+    if (!rope || !currentRunId) return;
+    setRunError(null);
+    setBusy(true);
+    try {
+      await api.runs.finish(currentRunId);
+      await api.current.set({ rope_id: rope.id, run_id: null });
+      current.reload();
+      history.reload();
+    } catch (err) {
+      setRunError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const selectRope = async (nextRopeId: string) => {
     setSelectError(null);
@@ -140,16 +182,49 @@ export function DashboardView() {
       )}
 
       <div className="mt-[38px] flex flex-wrap gap-3.5">
-        {connected ? (
-          <ButtonLink href={routes.live} size="md" className="flex-[0_1_260px] py-[15px] text-[15px]">
-            Open live view
-          </ButtonLink>
+        {currentRunId ? (
+          <>
+            <ButtonLink href={routes.live} size="md" className="flex-[0_1_260px] py-[15px] text-[15px]">
+              Open live view
+            </ButtonLink>
+            <Button
+              variant="secondary"
+              disabled={busy}
+              onClick={finishRun}
+              className="flex-[0_1_200px] py-[15px] text-[15px]"
+            >
+              {busy ? "Finishing…" : "Finish run"}
+            </Button>
+          </>
         ) : (
-          <Button disabled className="flex-[0_1_260px] py-[15px] text-[15px]">
-            Open live view
+          <Button
+            disabled={!rope || !connected || busy}
+            onClick={startRun}
+            title={
+              !rope
+                ? "Select a rope first"
+                : !connected
+                  ? "The robot has to be reachable so it can zero its position for the new run"
+                  : undefined
+            }
+            className="flex-[0_1_260px] py-[15px] text-[15px]"
+          >
+            {busy ? "Starting…" : "Start run"}
           </Button>
         )}
       </div>
+
+      {runError ? (
+        <StatusMessage tone="error">{runError}</StatusMessage>
+      ) : currentRunId ? (
+        <StatusMessage>
+          Recording into {shortId(currentRunId)}
+          {currentRun && `, started ${formatDateTime(currentRun.started_at)}`}. Defects are placed
+          from where the robot stood when the run started.
+        </StatusMessage>
+      ) : (
+        rope && <StatusMessage>No run is being recorded. Start one to place defects on the rope.</StatusMessage>
+      )}
     </>
   );
 }

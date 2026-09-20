@@ -268,6 +268,12 @@ class Stepper():
             self._wait_idle()
             self._speed = 0.0
 
+    # stop feeding cruise blocks. Safe to call from any thread: the feeder picks it up on
+    # its next pass and the driver queue then drains within about two blocks. stop() has to
+    # run on the motion thread, this does not
+    def cut_cruise(self):
+        self._cruise_speed = 0.0
+
     # ramp stepper to 0.0
     def stop(self):
         if not self.moving:

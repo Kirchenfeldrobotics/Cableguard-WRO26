@@ -71,6 +71,8 @@ export const api = {
     list: (ropeId: string) => request<Run[]>(`/api/runs${query({ rope_id: ropeId })}`),
     create: (ropeId: string, name: string) =>
       request<Run>("/api/runs", { method: "POST", body: json({ name, rope_id: ropeId }) }),
+    finish: (runId: string) =>
+      request<Run>(`/api/runs/${encodeURIComponent(runId)}/finish`, { method: "POST" }),
     remove: (runId: string) =>
       request<void>(`/api/runs/${encodeURIComponent(runId)}`, { method: "DELETE" }),
   },
