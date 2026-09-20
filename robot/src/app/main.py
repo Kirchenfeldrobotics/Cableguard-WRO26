@@ -4,7 +4,6 @@ import asyncio
 import logging
 import signal
 import time
-from typing import TYPE_CHECKING
 
 from comm_protocols.messages import MotionTelemetry, ResetOriginCmd, StartCmd, StopCmd
 
@@ -14,11 +13,9 @@ from link.outbox import Outbox
 from link.video import VideoLink
 from motion.controller import MotionController
 from motion.stepper import Stepper
+from vision.detector import Detector
 from vision.pacing import ScanPlan, measure_cycle, plan_scan
 from vision.report import vision_telemetry
-
-if TYPE_CHECKING:
-    from vision.detector import Detector
 
 log = logging.getLogger("cableguard")
 
@@ -180,18 +177,10 @@ async def main():
     video = VideoLink()
     cams = CameraPair(fps=CAMERA_FPS).start()
 
-    # vision is optional, a broken model or a missing package must not stop the robot from
-    # driving. The detector sets the pace, so timing it is part of coming up
-    try:
-        from vision.detector import Detector
-
-        detector = Detector()
-        await asyncio.to_thread(detector.warmup)
-        cycle_s = await asyncio.to_thread(measure_cycle, cams, detector)
-    except Exception as exc:
-        detector = None
-        cycle_s = 1.0 / CAMERA_FPS          # nothing to time, fall back to the camera limit
-        log.warning("detection disabled, detector unavailable: %s", exc)
+    # the detector sets the pace the drive runs at, there is no scanning without it
+    detector = Detector()
+    await asyncio.to_thread(detector.warmup)
+    cycle_s = await asyncio.to_thread(measure_cycle, cams, detector)
 
     # the drive can only be asked for speeds it can actually hold
     plan = plan_scan(
@@ -202,7 +191,7 @@ async def main():
 
     link.on_command(make_command_handler(motion, plan))
 
-    log.info("stepper and link configured, detection %s", "on" if detector else "off")
+    log.info("stepper, detector and link configured")
 
     # kick off tasks, accept signals (shutdown if received)
     try: 
@@ -210,8 +199,7 @@ async def main():
             tg.create_task(link.run(), name="control-link")
             tg.create_task(video.run(), name="video-link")
             tg.create_task(frame_producer(cams, video, STEAM_FPS), name="frame-stream")
-            if detector is not None:
-                tg.create_task(detection_reporter(cams, detector, link, motor, plan.period), name="detection")
+            tg.create_task(detection_reporter(cams, detector, link, motor, plan.period), name="detection")
             tg.create_task(link_guard(link, motion), name="guard")
             tg.create_task(telemetry_sender(link, motor, plan, TELEMETRY_PERIOD), name="telemetry")
     except* asyncio.CancelledError:
