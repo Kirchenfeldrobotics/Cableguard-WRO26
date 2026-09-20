@@ -11,7 +11,6 @@ class VideoHub:
     def __init__(self): 
         self._viewers      = set()
         self._lock         = asyncio.Lock()
-        self._robot_online = False
 
     async def add_viewer(self, sock): 
         async with self._lock: 
@@ -20,10 +19,6 @@ class VideoHub:
     async def remove_viewer(self, sock): 
         async with self._lock: 
             self._viewers.discard(sock)
-
-    async def set_robot(self, is_online): 
-        async with self._lock: 
-            self._robot_online = is_online
 
     @property
     def viewer_count(self): 
@@ -46,5 +41,9 @@ class VideoHub:
         for viewer in dead: 
             log.info("dropping slow video viewer")
             await self.remove_viewer(viewer)
+            try:
+                await asyncio.wait_for(viewer.close(), timeout=SEND_TIMEOUT)
+            except Exception:
+                pass
 
 video_hub = VideoHub()

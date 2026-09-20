@@ -1,24 +1,30 @@
 from picamera2 import Picamera2 
 import time
+import simplejpeg
+
+def encode(frame, quality=95):
+    return simplejpeg.encode_jpeg(frame, quality=quality, colorspace="BGR")
 
 class CameraPair: 
-    def __init__(self, main_size=(640, 640), lores_size=(480, 480), fps=15): 
+    def __init__(self, main_size=(640, 640), lores_size=(640, 480), fps=15):
+        self.lores_size = lores_size
         self._cams: list[Picamera2] = []
-        for i in range(2): 
+
+        for i in range(2):
             cam = Picamera2(camera_num=i)
 
-            # configure camera for video
             cam.configure(cam.create_video_configuration(
-                main={"size": main_size, "format": "RGB888"}, 
-                lores={"size": lores_size, "format": "YUV420"}, 
-                buffer_count=4, 
+                main={"size": main_size, "format": "RGB888"},
+                lores={"size": lores_size, "format": "RGB888"},
+                buffer_count=4,
                 controls={
                     "FrameRate": fps,
                     "AeEnable": False,
-                    "ExposureTime": 8000,
+                    "ExposureTime": 20000,     
                     "AnalogueGain": 2.0,
                     "AwbEnable": False,
-                    "ColourGains": (1.5, 1.5)
+                    "ColourGains": (1.8, 2.2), 
+                    "NoiseReductionMode": 1,  
                 }
             ))
 
@@ -36,8 +42,9 @@ class CameraPair:
         return [(i, cam.capture_array("main")) for i, cam in enumerate(self._cams)]
 
     # capture a frame from each camera (lores stream)
-    def caputre_lores(self): 
-        return [(i, cam.capture_array("lores")) for i, cam in enumerate(self._cams)]
+    def capture_lores(self):
+        w, h = self.lores_size
+        return [(i, cam.capture_array("lores", wait=1.0)[:h, :w]) for i, cam in enumerate(self._cams)]
     
     # close both cameras
     def close(self): 

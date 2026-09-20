@@ -2,7 +2,7 @@ import logging
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
-from app.auth import authenticate_robot
+from app.auth import authenticate_robot, authenticate_ui
 from app.ws.video_hub import video_hub
 
 log = logging.getLogger(__name__)
@@ -14,7 +14,6 @@ async def video_in(sock: WebSocket):
         return 
 
     await sock.accept()
-    await video_hub.set_robot(True)
     log.info("video link up")
 
     try: 
@@ -23,11 +22,13 @@ async def video_in(sock: WebSocket):
     except WebSocketDisconnect:
         pass 
     finally: 
-        await video_hub.set_robot(False)
         log.info("video link down")
 
 @router.websocket("/ui")
 async def video_out(sock: WebSocket): 
+    if not await authenticate_ui(sock): 
+        return 
+
     await sock.accept()
     await video_hub.add_viewer(sock)
     log.info("video viewer connected (%d total)", video_hub.viewer_count)

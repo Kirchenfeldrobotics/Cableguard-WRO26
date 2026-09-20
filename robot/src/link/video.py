@@ -14,7 +14,7 @@ class LatestFrame:
         self._frame = None 
         self._event = asyncio.Event()
 
-    def put(self, data): 
+    def put(self, data: bytes): 
         self._frame = data 
         self._event.set()
 
@@ -29,7 +29,7 @@ class VideoLink:
         self.buffers = {0: LatestFrame(), 1: LatestFrame()}
 
     # add jpeg to the buffer 
-    def submit(self, cam_idx, jpeg): 
+    def submit(self, cam_idx: int, jpeg: bytes): 
         self.buffers[cam_idx].put(jpeg)
 
     # starts task that streams videos
@@ -43,8 +43,8 @@ class VideoLink:
                 log.info("video link closed, reconnecting...")
 
     # steams the two videos
-    async def _pump(self, sock, idx): 
+    async def _pump(self, sock, idx: int): 
         while True: 
             jpeg = await self.buffers[idx].get()
-            await sock.send(bytes(idx) + jpeg)
+            await sock.send(bytes([idx]) + jpeg)
             await asyncio.sleep(self._period)

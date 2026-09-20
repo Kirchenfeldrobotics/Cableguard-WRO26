@@ -1,10 +1,11 @@
 import asyncio 
 import json 
 import os 
-import logging 
+import logging
+from typing import Annotated
 
-import websockets 
-from pydantic import TypeAdapter, ValidationError
+import websockets
+from pydantic import Field, TypeAdapter, ValidationError
 
 from .outbox import Outbox
 from comm_protocols.messages import SpeedCmd, StopCmd
@@ -14,7 +15,7 @@ log = logging.getLogger(__name__)
 URL   = os.environ["CABLEGUARD_WS_URL"]
 TOKEN = os.environ["CABLEGUARD_ROBOT_TOKEN"]
 
-FromServer = TypeAdapter(SpeedCmd | StopCmd)
+FromServer = TypeAdapter(Annotated[SpeedCmd | StopCmd, Field(discriminator="type")])
 
 class RobotLink: 
     def __init__(self, outbox, heartbeat_s=5.0, send_hz=5.0): 
@@ -29,8 +30,19 @@ class RobotLink:
         self._on_command = handler
 
     # queue a message 
-    def send(self, msg): 
+    def send(self, msg: dict): 
         self.outbox.add_msg(msg)
+
+    # send a live message
+    async def send_live(self, msg: dict):
+        sock = self._sock
+        if sock is None:
+            return False
+        try:
+            await sock.send(json.dumps(msg))
+            return True
+        except websockets.ConnectionClosed:
+            return False
 
     # return whether or not the link is connected 
     @property

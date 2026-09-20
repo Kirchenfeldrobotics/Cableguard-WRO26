@@ -36,7 +36,7 @@ class Defect(RobotMessage):
 # Speed instruction 
 class SpeedCmd(BaseModel): 
     type: Literal["speed"] = "speed"
-    value: float
+    value: float = Field(allow_inf_nan=False)
 
 class StopCmd(BaseModel): 
     type: Literal["stop"] = "stop"
