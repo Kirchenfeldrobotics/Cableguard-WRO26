@@ -12,6 +12,7 @@ from link.outbox import Outbox
 from link.video import VideoLink
 from motion.controller import MotionController
 from motion.stepper import Stepper
+from vision.detector import Detector
 
 log = logging.getLogger("cableguard")
 
@@ -28,6 +29,7 @@ CAMERA_FPS = 15.0
 
 GUARD_PERIOD = 0.5
 TELEMETRY_PERIOD = 0.5
+DETECT_PERIOD = 2.0
 
 # creates function that turns messages into roboter commands
 def make_command_handler(motion: MotionController): 
@@ -56,6 +58,30 @@ async def frame_producer(cams: CameraPair, video: VideoLink, fps: float):
                 video.submit(idx, encode(lores))
         except Exception:
             log.exception("capture failed")
+        await asyncio.sleep(max(0.0, deadline - loop.time()))
+
+# run the detector on both cameras and write what it sees to the journal
+async def detection_logger(cams: CameraPair, detector: Detector, period: float):
+    loop = asyncio.get_running_loop()
+
+    while True:
+        deadline = loop.time() + period
+        try:
+            for idx, frame in await asyncio.to_thread(cams.capture):
+                started = loop.time()
+                found = await asyncio.to_thread(detector.detect, frame)
+                millis = (loop.time() - started) * 1000.0
+
+                if found:
+                    summary = ", ".join(
+                        f"{det.label} {det.confidence:.2f} at ({det.center[0]:.0f}, {det.center[1]:.0f})"
+                        for det in found
+                    )
+                    log.info("cam%d: %d detection(s) in %.0f ms: %s", idx, len(found), millis, summary)
+                else:
+                    log.info("cam%d: nothing detected (%.0f ms)", idx, millis)
+        except Exception:
+            log.exception("detection failed")
         await asyncio.sleep(max(0.0, deadline - loop.time()))
 
 # stop robot when the control link is down
@@ -103,9 +129,12 @@ async def main():
     video = VideoLink()
     cams = CameraPair(fps=CAMERA_FPS).start()
 
+    detector = Detector()
+    await asyncio.to_thread(detector.warmup)
+
     link.on_command(make_command_handler(motion))
 
-    log.info("stepper and link configured")
+    log.info("stepper, link and detector configured")
 
     # kick off tasks, accept signals (shutdown if received)
     try: 
@@ -113,6 +142,7 @@ async def main():
             tg.create_task(link.run(), name="control-link")
             tg.create_task(video.run(), name="video-link")
             tg.create_task(frame_producer(cams, video, STEAM_FPS), name="frame-stream")
+            tg.create_task(detection_logger(cams, detector, DETECT_PERIOD), name="detection-log")
             tg.create_task(link_guard(link, motion), name="guard")
             tg.create_task(telemetry_sender(link, motor, TELEMETRY_PERIOD), name="telemetry")
     except* asyncio.CancelledError:
