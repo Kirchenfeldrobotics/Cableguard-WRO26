@@ -46,7 +46,10 @@ components.
 | `video` / `video-stripe` / `video-text` | `#1A1D1F` / `#212528` / `#C9CDCF` | Camera tiles |
 
 Defects have no severity in the backend yet, so the design's "Action required" red and
-"Monitor" amber are mapped to the detector classes (`kindTone` in `lib/defects.ts`).
+"Monitor" amber are mapped to the two buckets the robot sorts its detector classes into
+(`kindTone` in `lib/defects.ts`): local faults are red, loss of metallic area amber. The
+model knows eight classes and seven of them are local faults, so colour alone is coarse:
+the class itself is always shown as text next to it (`defectClassLabel` in `lib/format.ts`).
 
 ### Typography
 
@@ -95,8 +98,9 @@ between cards, 12px outer padding around the app.
 | `LogRow`, `InfoRow` | `components/ui/log-row.tsx` | Tinted rows for detections and changes |
 | `FactList` | `components/ui/fact-list.tsx` | Label and value rows on a panel |
 | `Notice`, `StatusMessage`, `BackLink` | `components/ui/feedback.tsx` | Alerts, loading, empty and error states |
-| `RopeStrip`, `defectMarks`, `DefectLegend` | `components/rope/` | Unrolled rope with metre scale and defect marks |
+| `RopeStrip`, `findingMarks`, `DefectLegend` | `components/rope/` | Unrolled rope with metre scale and finding marks |
 | `CameraFeed` | `components/camera/camera-feed.tsx` | Live JPEG stream, dimmed with a "Not live" badge when frames stop, or striped placeholder |
+| `DetectionFrame` | `components/camera/detection-frame.tsx` | Where a detection sat in the detector frame; the frame itself is not stored, only the box |
 | `RunStatePill` | `components/inspection/run-state-pill.tsx` | Link lost, Live or Idle |
 | `Sidebar` | `components/layout/sidebar.tsx` | Navigation and link status |
 
@@ -105,9 +109,19 @@ between cards, 12px outer padding around the app.
 - **Status circle meanings** (`StatCard` `indicator`): `success` connected, `danger`
   link lost, `alert` needs review, `warning` detections, `ring` current selection
   (rope, position), `solid` motion, `muted` neutral or unavailable.
-- **Rope strip**: red marks for broken wires, amber for corrosion. In comparisons, marks
-  also found in the reference run are thin and grey, new ones are wider. The black
-  vertical line is the robot position (only drawn when a position is known).
+- **Findings, not detections**: the robot stores one row per detection and runs the
+  detector every two seconds on both cameras, so one flaw arrives as several rows a few
+  centimetres apart. `clusterDefects` groups rows of the same kind that are closer than
+  `CLUSTER_GAP_M` into a **finding**, and every screen counts and draws findings.
+  Detections stay reachable: the run page shows how many back each finding, and the defect
+  page lists them. Comparing runs also works on findings, otherwise repeat sightings would
+  be counted as new defects.
+- **Rope strip**: red marks for local faults, amber for loss of metallic area. A finding is
+  drawn over the stretch its detections cover, down to a minimum width so a single one
+  stays clickable, and faded by its confidence so a weak detection does not read like a
+  certain one. In comparisons, marks also found in the reference run are thin and grey,
+  new ones are wider and keep full opacity. The black vertical line is the robot position
+  (only drawn when a position is known).
 - **States**: every data view handles loading (`Loading…`), error (red text) and empty
   (a sentence saying what is missing and what to do).
 - **Destructive actions** need a second click (`Remove` becomes `Confirm remove`).
@@ -116,5 +130,10 @@ between cards, 12px outer padding around the app.
 - **Drive controls** (Drive, Resume) are disabled while the robot is not reachable, and
   moving the speed slider sends nothing. A command is reported as carried out only when
   telemetry shows it, never because the socket accepted it.
-- **Stale live data** is never shown as current: telemetry older than 2 s shows `—`, and a
-  camera tile without a new frame for 2 s dims its image and shows a "Not live" badge.
+- **Stale live data** is never shown as current: telemetry older than 2 s shows `—`, a
+  detector frame older than 8 s shows `—`, and a camera tile without a new frame for 2 s
+  dims its image and shows a "Not live" badge.
+- **Live detections**: `vision_telemetry` arrives for every detector frame, empty ones
+  included, so it doubles as the detector's heartbeat on the live screen. It carries no row
+  ids, so a frame with detections only triggers a reload of the stored run; the log itself
+  is always built from what the backend persisted.

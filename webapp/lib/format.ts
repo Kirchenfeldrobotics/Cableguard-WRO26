@@ -51,9 +51,46 @@ export function isRunActive(run: Run | undefined): boolean {
   return !!run && run.finished_at === null;
 }
 
-/** Human label used by the design for each detector class. */
+/**
+ * The two buckets the robot sorts its detector classes into. The model knows eight classes
+ * and seven of them are local faults, so the bucket is the severity, not the flaw: use
+ * `defectClassLabel` wherever the actual flaw matters.
+ */
 export function defectTypeLabel(kind: DefectKind): string {
-  return kind === "lf" ? "Broken wire" : "Corrosion";
+  return kind === "lf" ? "Local fault" : "Loss of metallic area";
+}
+
+/** Classes whose name does not read well once the underscores are gone. */
+const CLASS_LABELS: Record<string, string> = {
+  bird_caging: "Birdcaging",
+  unknown_defect: "Unclassified",
+};
+
+/**
+ * `broken_wire` becomes `Broken wire`. The class list comes from whatever model is on the
+ * robot, so anything a retrained model adds still gets a readable name.
+ */
+export function defectClassLabel(label: string | null | undefined): string {
+  if (!label) return NOT_AVAILABLE;
+  if (CLASS_LABELS[label]) return CLASS_LABELS[label];
+  const words = label.replace(/_/g, " ");
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
+/** `82%`. The detector drops anything below 35%, so the scale starts there. */
+export function formatConfidence(value: number | null | undefined): string {
+  return value == null ? NOT_AVAILABLE : `${Math.round(value * 100)}%`;
+}
+
+/** The robot numbers its cameras, the operator knows them as A and B. */
+export function formatCamera(cam: number | null | undefined): string {
+  if (cam == null) return NOT_AVAILABLE;
+  return `Camera ${String.fromCharCode(65 + cam)}`;
+}
+
+/** `12.4 m` for one detection, `12.1 - 12.7 m` for a group that spreads. */
+export function formatSpan(from: number, to: number): string {
+  return to - from < 0.05 ? formatMetres(from) : `${metres.format(from)} - ${formatMetres(to)}`;
 }
 
 /** Short, readable form of a UUID for headings and tables. */

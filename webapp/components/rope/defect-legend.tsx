@@ -6,6 +6,7 @@ export function DefectLegend({ note }: { note?: React.ReactNode }) {
     <div className="mt-3.5 flex flex-wrap items-center gap-5">
       <LegendItem className="bg-danger" label={`${defectTypeLabel("lf")} (LF)`} />
       <LegendItem className="bg-warning" label={`${defectTypeLabel("lma")} (LMA)`} />
+      <span className="text-xs leading-none text-text-subtle">Paler marks were detected less confidently</span>
       {note && <span className="text-xs leading-none text-text-subtle">{note}</span>}
     </div>
   );

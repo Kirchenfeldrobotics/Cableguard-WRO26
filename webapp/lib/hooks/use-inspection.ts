@@ -2,6 +2,7 @@
 
 import { api } from "@/lib/api/client";
 import type { Defect, Rope, Run } from "@/lib/api/types";
+import { clusterDefects, type Finding } from "@/lib/defects";
 import { useRobotLink } from "@/lib/robot/robot-link";
 import { useApi } from "./use-api";
 
@@ -9,7 +10,10 @@ export interface RopeHistory {
   rope: Rope | undefined;
   /** Newest first. */
   runs: Run[];
+  /** Raw detections, one entry per row the robot stored. */
   defectsByRun: Record<string, Defect[]>;
+  /** The same detections grouped into flaws, sorted by position. This is what the UI shows. */
+  findingsByRun: Record<string, Finding[]>;
 }
 
 async function loadRopeHistory(ropeId: string): Promise<RopeHistory> {
@@ -20,6 +24,7 @@ async function loadRopeHistory(ropeId: string): Promise<RopeHistory> {
     rope: ropes.find((r) => r.id === ropeId),
     runs: [...runs].sort((a, b) => b.started_at.localeCompare(a.started_at)),
     defectsByRun: Object.fromEntries(runs.map((run, i) => [run.id, defectLists[i]])),
+    findingsByRun: Object.fromEntries(runs.map((run, i) => [run.id, clusterDefects(defectLists[i])])),
   };
 }
 

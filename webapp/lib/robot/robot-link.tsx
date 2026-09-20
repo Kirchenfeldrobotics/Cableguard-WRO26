@@ -2,7 +2,12 @@
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 
-import type { MotionTelemetryEvent, RobotCommand, ServerEvent } from "@/lib/api/types";
+import type {
+  MotionTelemetryEvent,
+  RobotCommand,
+  ServerEvent,
+  VisionTelemetryEvent,
+} from "@/lib/api/types";
 import { wsUrl } from "@/lib/config";
 import { useNow } from "@/lib/hooks/use-now";
 
@@ -18,6 +23,12 @@ export const ROBOT_SILENT_MS = 12_000;
 /** The robot sends motion telemetry every 0.5 s (robot/src/app/main.py). */
 export const TELEMETRY_STALE_MS = 2_000;
 
+/**
+ * The robot reports one vision frame per camera every DETECT_PERIOD (2 s), so two per cycle.
+ * Past this the detector counts as silent, even while the robot itself still answers.
+ */
+export const VISION_STALE_MS = 8_000;
+
 export interface RobotLinkValue {
   /** Browser <-> server socket. */
   socket: SocketState;
@@ -26,6 +37,15 @@ export interface RobotLinkValue {
   telemetry: MotionTelemetryEvent | null;
   /** Epoch ms when `telemetry` arrived. */
   telemetryAt: number | null;
+  /** Last frame the detector reported, whether or not it found anything. */
+  vision: VisionTelemetryEvent | null;
+  /** Epoch ms when `vision` arrived. */
+  visionAt: number | null;
+  /**
+   * Increments whenever the robot reports a frame with detections. The socket carries no
+   * defect ids, so this only says "something was found": reload the run to get the rows.
+   */
+  detectionVersion: number;
   /** Epoch ms of the last sign of life from the robot: online status, heartbeat or telemetry. */
   robotSeenAt: number | null;
   /** Epoch ms of the last message received from the server. */
@@ -49,6 +69,9 @@ export function RobotLinkProvider({ children }: { children: React.ReactNode }) {
   const [robotOnline, setRobotOnline] = useState(false);
   const [telemetry, setTelemetry] = useState<MotionTelemetryEvent | null>(null);
   const [telemetryAt, setTelemetryAt] = useState<number | null>(null);
+  const [vision, setVision] = useState<VisionTelemetryEvent | null>(null);
+  const [visionAt, setVisionAt] = useState<number | null>(null);
+  const [detectionVersion, setDetectionVersion] = useState(0);
   const [robotSeenAt, setRobotSeenAt] = useState<number | null>(null);
   const [lastMessageAt, setLastMessageAt] = useState<number | null>(null);
   const [lastError, setLastError] = useState<string | null>(null);
@@ -91,6 +114,12 @@ export function RobotLinkProvider({ children }: { children: React.ReactNode }) {
             setTelemetry(event);
             setTelemetryAt(now);
             setRobotSeenAt(now);
+            break;
+          case "vision_telemetry":
+            setVision(event);
+            setVisionAt(now);
+            setRobotSeenAt(now);
+            if (event.detections.length > 0) setDetectionVersion((v) => v + 1);
             break;
           case "current_changed":
             setCurrentVersion((v) => v + 1);
@@ -135,6 +164,9 @@ export function RobotLinkProvider({ children }: { children: React.ReactNode }) {
         robotOnline,
         telemetry,
         telemetryAt,
+        vision,
+        visionAt,
+        detectionVersion,
         robotSeenAt,
         lastMessageAt,
         lastError,
@@ -171,4 +203,13 @@ export function useFreshTelemetry(): MotionTelemetryEvent | null {
   const now = useNow(500);
   if (!connected || telemetry === null || telemetryAt === null || now === null) return null;
   return now - telemetryAt <= TELEMETRY_STALE_MS ? telemetry : null;
+}
+
+/** The latest vision frame while the detector is still reporting, otherwise null. */
+export function useFreshVision(): VisionTelemetryEvent | null {
+  const { vision, visionAt } = useRobotLink();
+  const connected = useRobotConnected();
+  const now = useNow(500);
+  if (!connected || vision === null || visionAt === null || now === null) return null;
+  return now - visionAt <= VISION_STALE_MS ? vision : null;
 }

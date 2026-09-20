@@ -1,16 +1,22 @@
 "use client";
 
+import { DetectionFrame } from "@/components/camera/detection-frame";
 import { Button } from "@/components/ui/button";
 import { BackLink, StatusMessage } from "@/components/ui/feedback";
 import { FactList } from "@/components/ui/fact-list";
-import { HeadingMeta, PageHeader } from "@/components/ui/heading";
+import { HeadingMeta, PageHeader, SectionTitle } from "@/components/ui/heading";
 import { InfoRow } from "@/components/ui/log-row";
-import { findMatch } from "@/lib/defects";
+import { Table, Td, Th } from "@/components/ui/table";
+import { findMatch, findingOf, kindTone } from "@/lib/defects";
 import {
   NOT_AVAILABLE,
+  defectClassLabel,
   defectTypeLabel,
+  formatCamera,
+  formatConfidence,
   formatDateTime,
   formatMetres,
+  formatSpan,
   shortId,
 } from "@/lib/format";
 import { useRopeHistory } from "@/lib/hooks/use-inspection";
@@ -35,26 +41,29 @@ export function DefectView({
   const defect = run && data.defectsByRun[run.id]?.find((d) => d.id === defectId);
   if (!data.rope || !run || !defect) return <StatusMessage>This defect does not exist.</StatusMessage>;
 
+  // The page opens on one detection, but the flaw is the whole group it sits in.
+  const finding = findingOf(data.findingsByRun[run.id] ?? [], defect);
+  const siblings = finding?.detections ?? [defect];
+
   // Runs are sorted newest first, so the previous run is the next entry.
   const previousRun = data.runs[runIndex + 1];
-  const previous = previousRun && findMatch(data.defectsByRun[previousRun.id] ?? [], defect);
+  const previous =
+    previousRun && finding && findMatch(data.findingsByRun[previousRun.id] ?? [], finding);
 
   return (
     <>
       <BackLink href={routes.run(data.rope.id, run.id)}>{shortId(run.id)}</BackLink>
-      <PageHeader title={shortId(defect.id)}>
-        <HeadingMeta>{defectTypeLabel(defect.kind)}</HeadingMeta>
+      <PageHeader title={defectClassLabel(defect.label)}>
+        <HeadingMeta>
+          {defectTypeLabel(defect.kind)} · {formatMetres(defect.pos_to_start)}
+        </HeadingMeta>
       </PageHeader>
 
       <div className="mt-5 flex flex-wrap items-start gap-[22px]">
-        <figure className="m-0 flex min-w-[290px] flex-[1_1_460px] flex-col gap-2.5">
-          <div className="relative aspect-video rounded-card bg-video-placeholder">
-            <div className="absolute top-3.5 left-4 font-mono text-[11px] leading-none text-video-text">
-              {defect.kind} · {formatMetres(defect.pos_to_start)} · frame not stored
-            </div>
-          </div>
+        <figure className="m-0 flex min-w-[290px] flex-[1_1_380px] flex-col gap-2.5">
+          <DetectionFrame defect={defect} />
           <figcaption className="text-[13px] leading-none text-text-muted">
-            Camera A, frame that triggered the detection
+            {formatCamera(defect.cam)}, where the detection sat in the frame
           </figcaption>
         </figure>
 
@@ -62,9 +71,11 @@ export function DefectView({
           <FactList
             facts={[
               { label: "Position", value: formatMetres(defect.pos_to_start), tone: "ink" },
-              { label: "Type", value: defect.kind },
-              { label: "Detection confidence", value: NOT_AVAILABLE, tone: "ink" },
-              { label: "Status", value: NOT_AVAILABLE, tone: "ink" },
+              { label: "Flaw", value: defectClassLabel(defect.label), tone: "ink" },
+              { label: "Type", value: `${defectTypeLabel(defect.kind)} (${defect.kind.toUpperCase()})` },
+              { label: "Detection confidence", value: formatConfidence(defect.confidence), tone: "ink" },
+              { label: "Camera", value: formatCamera(defect.cam) },
+              { label: "Status", value: NOT_AVAILABLE },
               { label: "Run", value: shortId(run.id) },
               { label: "Detected", value: formatDateTime(defect.created_at) },
             ]}
@@ -79,9 +90,9 @@ export function DefectView({
                 <InfoRow tone="neutral" label="No earlier run" value="first run" />
               ) : previous ? (
                 <InfoRow
-                  tone="neutral"
+                  tone={kindTone(previous.kind)}
                   label="Position"
-                  value={`${previous.pos_to_start.toFixed(1)} → ${defect.pos_to_start.toFixed(1)} m`}
+                  value={`${previous.pos.toFixed(1)} → ${(finding?.pos ?? defect.pos_to_start).toFixed(1)} m`}
                 />
               ) : (
                 <InfoRow tone="neutral" label="Not detected before" value="first sighting" />
@@ -104,6 +115,44 @@ export function DefectView({
           </div>
         </div>
       </div>
+
+      <SectionTitle>
+        {siblings.length === 1 ? "The detection" : `${siblings.length} detections of this flaw`}
+      </SectionTitle>
+      {finding && siblings.length > 1 && (
+        <p className="mb-[18px] max-w-[620px] text-[13px] leading-[1.6] text-text-muted">
+          The detector saw this spot {siblings.length} times over {formatSpan(finding.from, finding.to)}.
+          The page above shows the clearest of them.
+        </p>
+      )}
+      <Table>
+        <thead>
+          <tr>
+            <Th>Position</Th>
+            <Th>Flaw</Th>
+            <Th align="right">Confidence</Th>
+            <Th>Camera</Th>
+            <Th>Detected</Th>
+          </tr>
+        </thead>
+        <tbody>
+          {siblings.map((d) => (
+            <tr key={d.id} className={d.id === defect.id ? "bg-surface-hover" : undefined}>
+              <Td mono strong>
+                {formatMetres(d.pos_to_start)}
+              </Td>
+              <Td>{defectClassLabel(d.label)}</Td>
+              <Td mono align="right">
+                {formatConfidence(d.confidence)}
+              </Td>
+              <Td muted>{formatCamera(d.cam)}</Td>
+              <Td mono muted>
+                {formatDateTime(d.created_at)}
+              </Td>
+            </tr>
+          ))}
+        </tbody>
+      </Table>
     </>
   );
 }

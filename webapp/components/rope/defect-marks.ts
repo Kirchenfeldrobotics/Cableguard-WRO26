@@ -1,22 +1,34 @@
-import type { Defect } from "@/lib/api/types";
-import { kindTone } from "@/lib/defects";
-import { defectTypeLabel, formatMetres, shortId } from "@/lib/format";
+import { kindTone, type Finding } from "@/lib/defects";
+import { defectClassLabel, defectTypeLabel, formatConfidence, formatSpan } from "@/lib/format";
 import { routes } from "@/lib/routes";
 
 import type { StripMark } from "./rope-strip";
 
-/** Turns defects of one run into clickable marks for <RopeStrip>. */
-export function defectMarks(
+function markTitle(finding: Finding): string {
+  const parts = [
+    defectClassLabel(finding.best.label) || defectTypeLabel(finding.kind),
+    formatConfidence(finding.confidence),
+    formatSpan(finding.from, finding.to),
+  ];
+  if (finding.detections.length > 1) parts.push(`${finding.detections.length} detections`);
+  return parts.join(" · ");
+}
+
+/** Turns the findings of one run into clickable marks for <RopeStrip>. */
+export function findingMarks(
   ropeId: string,
-  defects: Defect[],
-  state?: StripMark["state"] | ((d: Defect) => StripMark["state"]),
+  findings: Finding[],
+  state?: StripMark["state"] | ((finding: Finding) => StripMark["state"]),
 ): StripMark[] {
-  return defects.map((d) => ({
-    id: d.id,
-    pos: d.pos_to_start,
-    tone: kindTone(d.kind),
-    state: typeof state === "function" ? state(d) : state,
-    href: routes.defect(ropeId, d.run_id, d.id),
-    title: `${shortId(d.id)} · ${defectTypeLabel(d.kind)} · ${formatMetres(d.pos_to_start)}`,
+  return findings.map((finding) => ({
+    id: finding.best.id,
+    pos: finding.pos,
+    from: finding.from,
+    to: finding.to,
+    tone: kindTone(finding.kind),
+    confidence: finding.confidence,
+    state: typeof state === "function" ? state(finding) : state,
+    href: routes.defect(ropeId, finding.best.run_id, finding.best.id),
+    title: markTitle(finding),
   }));
 }

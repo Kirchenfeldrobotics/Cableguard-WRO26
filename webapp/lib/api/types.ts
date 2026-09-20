@@ -42,6 +42,17 @@ export interface Defect {
   /** Distance from the start of the rope, in metres. */
   pos_to_start: number;
   created_at: string;
+  /** Class name of the detector, e.g. `broken_wire`. Null for defects from another sensor. */
+  label: string | null;
+  /** 0..1, as the model reported it. */
+  confidence: number | null;
+  /** 0 or 1, the camera that saw it. */
+  cam: number | null;
+  /** Box in the detector frame, 0..1 of the frame's width and height. */
+  box_x1: number | null;
+  box_y1: number | null;
+  box_x2: number | null;
+  box_y2: number | null;
 }
 
 export interface CurrentSelection {
@@ -69,6 +80,34 @@ export interface MotionTelemetryEvent {
   seq: number;
 }
 
+/** One box from a vision_telemetry frame. */
+export interface VisionDetection {
+  label: string;
+  /** Null when the robot cannot map the class name to a kind. */
+  kind: DefectKind | null;
+  confidence: number;
+  /** x1, y1, x2, y2, 0..1 of the frame. */
+  box: [number, number, number, number];
+}
+
+/**
+ * What one camera saw in one frame, sent every DETECT_PERIOD (robot/src/app/main.py).
+ * Arrives for every frame, also the empty ones, so it doubles as the detector's heartbeat.
+ */
+export interface VisionTelemetryEvent {
+  type: "vision_telemetry";
+  seq: number;
+  cam: number;
+  /** Unix epoch seconds on the robot. */
+  captured_at: number;
+  inference_ms: number;
+  microsteps: number;
+  distance_from_origin: number | null;
+  frame_w: number;
+  frame_h: number;
+  detections: VisionDetection[];
+}
+
 export interface CurrentChangedEvent {
   type: "current_changed";
   rope_id: string | null;
@@ -84,6 +123,7 @@ export type ServerEvent =
   | RobotStatusEvent
   | AliveEvent
   | MotionTelemetryEvent
+  | VisionTelemetryEvent
   | CurrentChangedEvent
   | ErrorEvent;
 

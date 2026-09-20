@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 
-import { defectMarks } from "@/components/rope/defect-marks";
+import { findingMarks } from "@/components/rope/defect-marks";
 import { RopeStrip } from "@/components/rope/rope-strip";
 import { CardGrid, FactCard, Panel } from "@/components/ui/card";
 import { StatusMessage } from "@/components/ui/feedback";
@@ -10,7 +10,7 @@ import { HeadingMeta, PageHeader, SectionTitle } from "@/components/ui/heading";
 import { LogRow } from "@/components/ui/log-row";
 import type { Run } from "@/lib/api/types";
 import { compareRuns, kindTone } from "@/lib/defects";
-import { defectTypeLabel, formatDate, formatMetres, shortId } from "@/lib/format";
+import { defectClassLabel, formatConfidence, formatDate, formatSpan, shortId } from "@/lib/format";
 import { useCurrentSelection, useRopeHistory } from "@/lib/hooks/use-inspection";
 import { routes } from "@/lib/routes";
 
@@ -48,10 +48,12 @@ export function CompareView({
     if (!rope) return <StatusMessage>No rope is selected. Open a rope and choose Compare runs.</StatusMessage>;
     if (!runA || !runB) return <StatusMessage>Comparing needs at least two finished runs.</StatusMessage>;
 
-    const aDefects = history.data?.defectsByRun[runA.id] ?? [];
-    const bDefects = history.data?.defectsByRun[runB.id] ?? [];
-    const { added, unchanged, resolved } = compareRuns(bDefects, aDefects);
-    const addedIds = new Set(added.map((d) => d.id));
+    // Comparing raw detections would count every repeat sighting, so both runs are
+    // grouped into findings first.
+    const aFindings = history.data?.findingsByRun[runA.id] ?? [];
+    const bFindings = history.data?.findingsByRun[runB.id] ?? [];
+    const { added, unchanged, resolved } = compareRuns(bFindings, aFindings);
+    const addedIds = new Set(added.map((f) => f.best.id));
 
     return (
       <>
@@ -61,7 +63,7 @@ export function CompareView({
         </div>
 
         <CardGrid className="mt-[22px]">
-          <FactCard value={added.length} label="New defects" className="text-[26px] leading-none text-danger-strong" />
+          <FactCard value={added.length} label="New findings" className="text-[26px] leading-none text-danger-strong" />
           <FactCard value={unchanged.length} label="Unchanged" className="text-[26px] leading-none" />
           <FactCard
             value={resolved.length}
@@ -71,30 +73,30 @@ export function CompareView({
         </CardGrid>
 
         <Panel className="mt-[26px] flex flex-col gap-7 px-[22px] py-5">
-          <StripBlock label={runLabel(runB)} count={bDefects.length}>
-            <RopeStrip length={rope.length_m} marks={defectMarks(rope.id, bDefects, "unchanged")} />
+          <StripBlock label={runLabel(runB)} count={bFindings.length}>
+            <RopeStrip length={rope.length_m} marks={findingMarks(rope.id, bFindings, "unchanged")} />
           </StripBlock>
-          <StripBlock label={runLabel(runA)} count={aDefects.length}>
+          <StripBlock label={runLabel(runA)} count={aFindings.length}>
             <RopeStrip
               length={rope.length_m}
-              marks={defectMarks(rope.id, aDefects, (d) => (addedIds.has(d.id) ? "new" : "unchanged"))}
+              marks={findingMarks(rope.id, aFindings, (f) => (addedIds.has(f.best.id) ? "new" : "unchanged"))}
             />
           </StripBlock>
         </Panel>
 
-        <SectionTitle className="mb-4">New defects</SectionTitle>
+        <SectionTitle className="mb-4">New findings</SectionTitle>
         {added.length === 0 ? (
-          <StatusMessage>No new defects compared to the reference run.</StatusMessage>
+          <StatusMessage>No new findings compared to the reference run.</StatusMessage>
         ) : (
           <div className="flex max-w-[760px] flex-col gap-[7px]">
-            {added.map((d) => (
+            {added.map((f) => (
               <LogRow
-                key={d.id}
-                href={routes.defect(rope.id, d.run_id, d.id)}
-                tone={kindTone(d.kind)}
-                position={formatMetres(d.pos_to_start)}
+                key={f.best.id}
+                href={routes.defect(rope.id, f.best.run_id, f.best.id)}
+                tone={kindTone(f.kind)}
+                position={formatSpan(f.from, f.to)}
               >
-                {defectTypeLabel(d.kind)} · {shortId(d.id)}
+                {defectClassLabel(f.best.label)} · {formatConfidence(f.confidence)}
               </LogRow>
             ))}
           </div>
@@ -145,7 +147,7 @@ function StripBlock({ label, count, children }: { label: string; count: number; 
     <div>
       <div className="mb-3.5 flex justify-between gap-4">
         <span className="text-sm leading-none font-semibold">{label}</span>
-        <span className="font-mono text-xs leading-none text-text-subtle">{count} defects</span>
+        <span className="font-mono text-xs leading-none text-text-subtle">{count} findings</span>
       </div>
       {children}
     </div>

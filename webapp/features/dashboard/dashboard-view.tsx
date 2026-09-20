@@ -5,7 +5,7 @@ import Link from "next/link";
 
 import { RunStatePill } from "@/components/inspection/run-state-pill";
 import { DefectLegend } from "@/components/rope/defect-legend";
-import { defectMarks } from "@/components/rope/defect-marks";
+import { findingMarks } from "@/components/rope/defect-marks";
 import { RopeStrip } from "@/components/rope/rope-strip";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { CardGrid, Panel, StatCard } from "@/components/ui/card";
@@ -34,7 +34,7 @@ export function DashboardView() {
   const currentRun = runs.find((r) => r.id === current.data?.run_id);
   const running = connected && isRunActive(currentRun);
   const lastRun = lastFinishedRun(runs);
-  const lastDefects = lastRun ? (history.data?.defectsByRun[lastRun.id] ?? []) : [];
+  const lastFindings = lastRun ? (history.data?.findingsByRun[lastRun.id] ?? []) : [];
   const lastRunLabel = lastRun
     ? `${shortId(lastRun.id)} · ${formatDate(lastRun.started_at)}`
     : "no finished run";
@@ -133,7 +133,7 @@ export function DashboardView() {
       ) : (
         <>
           <Panel className="mt-[18px] px-[22px] py-5">
-            <RopeStrip length={rope.length_m} marks={defectMarks(rope.id, lastDefects)} />
+            <RopeStrip length={rope.length_m} marks={findingMarks(rope.id, lastFindings)} />
           </Panel>
           <DefectLegend />
         </>

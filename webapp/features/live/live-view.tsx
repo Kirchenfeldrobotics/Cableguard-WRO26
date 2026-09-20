@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { CameraFeed } from "@/components/camera/camera-feed";
 import { RunStatePill } from "@/components/inspection/run-state-pill";
-import { defectMarks } from "@/components/rope/defect-marks";
+import { findingMarks } from "@/components/rope/defect-marks";
 import { RopeStrip } from "@/components/rope/rope-strip";
 import { Button, RingIcon } from "@/components/ui/button";
 import { CardGrid, Panel, StatCard } from "@/components/ui/card";
@@ -17,17 +17,17 @@ import { MAX_DRIVE_SPEED, MIN_DRIVE_SPEED } from "@/lib/config";
 import { kindTone } from "@/lib/defects";
 import {
   NOT_AVAILABLE,
-  defectTypeLabel,
+  defectClassLabel,
   formatAgo,
+  formatConfidence,
   formatDriveSpeed,
-  formatMetres,
   formatNumber,
+  formatSpan,
   isRunActive,
-  shortId,
 } from "@/lib/format";
 import { useCurrentSelection, useRopeHistory } from "@/lib/hooks/use-inspection";
 import { useNow } from "@/lib/hooks/use-now";
-import { useFreshTelemetry, useRobotConnected, useRobotLink } from "@/lib/robot/robot-link";
+import { useFreshTelemetry, useFreshVision, useRobotConnected, useRobotLink } from "@/lib/robot/robot-link";
 import { useVideoFeeds } from "@/lib/robot/use-video-feeds";
 import { routes } from "@/lib/routes";
 
@@ -36,6 +36,7 @@ const SPEED_STEP = 50;
 /** How long a command may go without matching telemetry before the operator is warned. */
 const CONFIRM_TIMEOUT_MS = 5_000;
 const NO_TELEMETRY = "No motion telemetry from the robot in the last 2 seconds";
+const NO_VISION = "The robot has not reported a detector frame recently";
 
 const CAMERAS = [
   { code: "cam a", caption: "Camera A, upper rope surface" },
@@ -93,9 +94,10 @@ function commandFeedback(
 }
 
 export function LiveView() {
-  const { socket, telemetry, telemetryAt, lastError, send } = useRobotLink();
+  const { socket, telemetry, telemetryAt, detectionVersion, lastError, send } = useRobotLink();
   const connected = useRobotConnected();
   const fresh = useFreshTelemetry();
+  const vision = useFreshVision();
   const now = useNow(500);
   const feeds = useVideoFeeds(CAMERAS.length);
 
@@ -112,8 +114,18 @@ export function LiveView() {
   const rope = history.data?.rope;
   const run = history.data?.runs.find((r) => r.id === current.data?.run_id);
   const running = connected && isRunActive(run);
-  const defects = run ? (history.data?.defectsByRun[run.id] ?? []) : [];
-  const newestFirst = [...defects].sort((a, b) => b.created_at.localeCompare(a.created_at));
+  const findings = run ? (history.data?.findingsByRun[run.id] ?? []) : [];
+  // Newest finding first: the run walks the rope, so the last detection is the newest one.
+  const newestFirst = [...findings].sort((a, b) =>
+    b.best.created_at.localeCompare(a.best.created_at),
+  );
+
+  // The socket says a frame found something but carries no row ids, so the stored run is
+  // pulled in right away instead of waiting for the next poll.
+  const { reload } = history;
+  useEffect(() => {
+    if (detectionVersion > 0) reload();
+  }, [detectionVersion, reload]);
 
   const target = direction === "forward" ? magnitude : -magnitude;
   const stoppedOnItsOwn =
@@ -172,12 +184,12 @@ export function LiveView() {
           title={fresh ? undefined : NO_TELEMETRY}
         />
         <StatCard
-          value={NOT_AVAILABLE}
-          label={`Distance covered of ${formatMetres(rope?.length_m)}`}
-          indicator="muted"
-          title="The robot does not report distance yet"
+          value={vision ? `${formatNumber(vision.inference_ms)} ms` : NOT_AVAILABLE}
+          label={vision ? `Detector, ${vision.detections.length} in the last frame` : "Detector"}
+          indicator={vision ? "solid" : "muted"}
+          title={vision ? undefined : NO_VISION}
         />
-        <StatCard value={run ? defects.length : NOT_AVAILABLE} label="Defects this run" indicator="warning" />
+        <StatCard value={run ? findings.length : NOT_AVAILABLE} label="Findings this run" indicator="warning" />
       </CardGrid>
 
       <SectionTitle>Cameras</SectionTitle>
@@ -190,7 +202,7 @@ export function LiveView() {
       <SectionTitle>Position on rope</SectionTitle>
       <Panel className="px-[22px] py-5">
         {rope ? (
-          <RopeStrip length={rope.length_m} marks={defectMarks(rope.id, defects)} />
+          <RopeStrip length={rope.length_m} marks={findingMarks(rope.id, findings)} />
         ) : (
           <p className="m-0 text-[13px] text-text-subtle">No rope is selected on the server.</p>
         )}
@@ -199,22 +211,23 @@ export function LiveView() {
       <SectionTitle>Log</SectionTitle>
       <Panel className="flex flex-col gap-[7px] p-4">
         {rope &&
-          newestFirst.map((d) => (
+          newestFirst.map((f) => (
             <LogRow
-              key={d.id}
-              href={routes.defect(rope.id, d.run_id, d.id)}
-              tone={kindTone(d.kind)}
-              position={formatMetres(d.pos_to_start)}
+              key={f.best.id}
+              href={routes.defect(rope.id, f.best.run_id, f.best.id)}
+              tone={kindTone(f.kind)}
+              position={formatSpan(f.from, f.to)}
             >
-              {defectTypeLabel(d.kind)} · {shortId(d.id)}
+              {defectClassLabel(f.best.label)} · {formatConfidence(f.confidence)}
+              {f.detections.length > 1 && ` · ${f.detections.length}x`}
             </LogRow>
           ))}
         <div className="px-1 pt-1.5 pb-0.5 text-xs leading-none text-text-subtle">
           {!run
             ? "No run is selected on the server."
-            : defects.length === 0
+            : findings.length === 0
               ? "No detections in this run yet."
-              : `Refreshes every ${REFRESH_MS / 1000} s`}
+              : `Updates when the robot reports a detection, otherwise every ${REFRESH_MS / 1000} s`}
         </div>
       </Panel>
 

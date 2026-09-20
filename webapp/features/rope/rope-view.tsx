@@ -3,7 +3,7 @@
 import Link from "next/link";
 
 import { DefectLegend } from "@/components/rope/defect-legend";
-import { defectMarks } from "@/components/rope/defect-marks";
+import { findingMarks } from "@/components/rope/defect-marks";
 import { RopeStrip } from "@/components/rope/rope-strip";
 import { CardGrid, FactCard, Panel } from "@/components/ui/card";
 import { BackLink, StatusMessage } from "@/components/ui/feedback";
@@ -28,10 +28,10 @@ export function RopeView({ ropeId }: { ropeId: string }) {
   if (loading || !data) return <StatusMessage>Loading…</StatusMessage>;
   if (!data.rope) return <StatusMessage>This rope does not exist.</StatusMessage>;
 
-  const { rope, runs, defectsByRun } = data;
+  const { rope, runs, findingsByRun } = data;
   const shownRun = lastFinishedRun(runs) ?? runs[0];
   const finishedOldestFirst = runs.filter((r) => r.finished_at).reverse();
-  const counts = finishedOldestFirst.map((r) => defectsByRun[r.id]?.length ?? 0);
+  const counts = finishedOldestFirst.map((r) => findingsByRun[r.id]?.length ?? 0);
   const maxCount = Math.max(1, ...counts);
 
   return (
@@ -60,7 +60,7 @@ export function RopeView({ ropeId }: { ropeId: string }) {
       <Panel className="px-[22px] py-5">
         <RopeStrip
           length={rope.length_m}
-          marks={shownRun ? defectMarks(rope.id, defectsByRun[shownRun.id] ?? []) : []}
+          marks={shownRun ? findingMarks(rope.id, findingsByRun[shownRun.id] ?? []) : []}
         />
       </Panel>
       <DefectLegend
@@ -78,7 +78,7 @@ export function RopeView({ ropeId }: { ropeId: string }) {
               <Th>Date</Th>
               <Th align="right">Duration</Th>
               <Th align="right">Distance</Th>
-              <Th align="right">Defects</Th>
+              <Th align="right">Findings</Th>
               <Th align="right">Unreviewed</Th>
             </tr>
           </thead>
@@ -98,7 +98,7 @@ export function RopeView({ ropeId }: { ropeId: string }) {
                   {NOT_AVAILABLE}
                 </Td>
                 <Td mono align="right">
-                  {defectsByRun[run.id]?.length ?? 0}
+                  {findingsByRun[run.id]?.length ?? 0}
                 </Td>
                 <Td mono muted align="right">
                   {NOT_AVAILABLE}
@@ -132,8 +132,7 @@ export function RopeView({ ropeId }: { ropeId: string }) {
             ))}
           </Panel>
           <p className="mt-3.5 max-w-[620px] text-[13px] leading-[1.6] text-text-muted">
-            Defect count has gone from {counts[0]} to {counts[counts.length - 1]} over {counts.length}{" "}
-            runs.
+            Findings have gone from {counts[0]} to {counts[counts.length - 1]} over {counts.length} runs.
           </p>
         </>
       )}
