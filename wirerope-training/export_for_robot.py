@@ -12,7 +12,6 @@ HERE = Path(__file__).resolve().parent
 
 
 def train_imgsz(model):
-    """The imgsz the checkpoint was trained with, as a single int."""
     imgsz = ((model.ckpt or {}).get('train_args') or {}).get('imgsz')
     if isinstance(imgsz, (list, tuple)):              # some runs store [h, w]
         imgsz = max(imgsz)
