@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import signal
+from typing import TYPE_CHECKING
 
 from comm_protocols.messages import MotionTelemetry, SpeedCmd, StopCmd
 
@@ -12,7 +13,9 @@ from link.outbox import Outbox
 from link.video import VideoLink
 from motion.controller import MotionController
 from motion.stepper import Stepper
-from vision.detector import Detector
+
+if TYPE_CHECKING:
+    from vision.detector import Detector
 
 log = logging.getLogger("cableguard")
 
@@ -129,12 +132,19 @@ async def main():
     video = VideoLink()
     cams = CameraPair(fps=CAMERA_FPS).start()
 
-    detector = Detector()
-    await asyncio.to_thread(detector.warmup)
+    # vision is optional, a broken model or a missing package must not stop the robot from driving
+    try:
+        from vision.detector import Detector
+
+        detector = Detector()
+        await asyncio.to_thread(detector.warmup)
+    except Exception as exc:
+        detector = None
+        log.warning("detection disabled, detector unavailable: %s", exc)
 
     link.on_command(make_command_handler(motion))
 
-    log.info("stepper, link and detector configured")
+    log.info("stepper and link configured, detection %s", "on" if detector else "off")
 
     # kick off tasks, accept signals (shutdown if received)
     try: 
@@ -142,7 +152,8 @@ async def main():
             tg.create_task(link.run(), name="control-link")
             tg.create_task(video.run(), name="video-link")
             tg.create_task(frame_producer(cams, video, STEAM_FPS), name="frame-stream")
-            tg.create_task(detection_logger(cams, detector, DETECT_PERIOD), name="detection-log")
+            if detector is not None:
+                tg.create_task(detection_logger(cams, detector, DETECT_PERIOD), name="detection-log")
             tg.create_task(link_guard(link, motion), name="guard")
             tg.create_task(telemetry_sender(link, motor, TELEMETRY_PERIOD), name="telemetry")
     except* asyncio.CancelledError:
