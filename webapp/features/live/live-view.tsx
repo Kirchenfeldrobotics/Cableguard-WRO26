@@ -6,7 +6,7 @@ import { CameraFeed } from "@/components/camera/camera-feed";
 import { RunStatePill } from "@/components/inspection/run-state-pill";
 import { findingMarks } from "@/components/rope/defect-marks";
 import { RopeStrip } from "@/components/rope/rope-strip";
-import { Button, RingIcon } from "@/components/ui/button";
+import { Button, ButtonLink, RingIcon } from "@/components/ui/button";
 import { CardGrid, Panel, StatCard } from "@/components/ui/card";
 import { Notice, StatusMessage } from "@/components/ui/feedback";
 import { HeadingMeta, PageHeader, SectionTitle } from "@/components/ui/heading";
@@ -141,6 +141,47 @@ export function LiveView() {
     if (!send({ type: "stop" })) return;
     setSent({ expected: "stop", at: Date.now() });
   };
+
+  // Hiding the sidebar entry does not stop anyone typing the address, so the screen turns
+  // itself away too. Stop stays reachable while the robot reports movement: locking the
+  // operator out of the one control that halts a machine on a rope would be far worse
+  // than the screen they walked into.
+  if (current.data?.run_id == null) {
+    return (
+      <>
+        <PageHeader title="Inspection data">
+          <RunStatePill running={false} />
+        </PageHeader>
+
+        {moving && (
+          <Notice>
+            The robot is still moving, but no run is recording, so nothing it sees is stored.
+            Stop it here, or start a run to record what it finds.
+          </Notice>
+        )}
+
+        <StatusMessage>
+          The live view drives the robot into a run. Start one on the dashboard first.
+        </StatusMessage>
+
+        <div className="mt-[18px] flex flex-wrap gap-3.5">
+          <ButtonLink href={routes.dashboard} className="flex-[0_1_260px] py-[15px] text-[15px]">
+            Back to the dashboard
+          </ButtonLink>
+          {moving && (
+            <Button
+              variant="danger"
+              className="flex-[0_1_200px] py-[15px] text-[15px]"
+              disabled={socket !== "open"}
+              onClick={stop}
+            >
+              Stop the robot
+            </Button>
+          )}
+        </div>
+      </>
+    );
+  }
 
   return (
     <>

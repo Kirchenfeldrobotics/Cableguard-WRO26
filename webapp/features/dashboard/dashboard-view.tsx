@@ -16,11 +16,12 @@ import { api } from "@/lib/api/client";
 import { NOT_AVAILABLE, formatDate, formatDateTime, isRunActive, shortId } from "@/lib/format";
 import { useApi } from "@/lib/hooks/use-api";
 import { lastFinishedRun, useCurrentSelection, useRopeHistory } from "@/lib/hooks/use-inspection";
-import { useRobotConnected } from "@/lib/robot/robot-link";
+import { useRobotConnected, useRobotLink } from "@/lib/robot/robot-link";
 import { routes } from "@/lib/routes";
 
 export function DashboardView() {
   const connected = useRobotConnected();
+  const { send } = useRobotLink();
   const current = useCurrentSelection();
   const ropes = useApi("ropes", api.ropes.list);
   const ropeId = current.data?.rope_id ?? null;
@@ -70,6 +71,9 @@ export function DashboardView() {
     setRunError(null);
     setBusy(true);
     try {
+      // Ending the run takes the live screen away with it, so the robot must not be left
+      // driving behind it with nothing recording what it sees.
+      send({ type: "stop" });
       await api.runs.finish(currentRunId);
       await api.current.set({ rope_id: rope.id, run_id: null });
       current.reload();
@@ -85,7 +89,9 @@ export function DashboardView() {
     setSelectError(null);
     setSelecting(true);
     try {
-      // A run belongs to exactly one rope, so changing rope clears the run.
+      // A run belongs to exactly one rope, so changing rope clears the run. That hides the
+      // live screen too, so the same rule applies: do not leave the robot driving.
+      if (currentRunId) send({ type: "stop" });
       await api.current.set({ rope_id: nextRopeId, run_id: null });
       current.reload();
     } catch (err) {

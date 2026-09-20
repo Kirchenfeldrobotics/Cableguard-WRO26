@@ -7,6 +7,7 @@ import { Logo } from "@/components/brand/logo";
 import { useAuth } from "@/lib/auth/auth-context";
 import { cn } from "@/lib/cn";
 import { formatAgo } from "@/lib/format";
+import { useCurrentSelection } from "@/lib/hooks/use-inspection";
 import { useNow } from "@/lib/hooks/use-now";
 import { useRobotConnected, useRobotLink } from "@/lib/robot/robot-link";
 
@@ -24,6 +25,11 @@ function isActive(pathname: string, href: string) {
 
 export function Sidebar() {
   const pathname = usePathname();
+  const current = useCurrentSelection();
+  // The live screen is the drive screen, and driving with no run recording stores nothing.
+  // With none selected it is not offered at all.
+  const recording = current.data?.run_id != null;
+  const items = NAV_ITEMS.filter((item) => item.href !== "/live" || recording);
 
   return (
     <aside className="flex flex-col gap-[22px] rounded-shell bg-ink px-[18px] py-[26px] lg:sticky lg:top-3 lg:h-[calc(100vh-24px)] lg:w-[236px] lg:flex-none">
@@ -33,7 +39,7 @@ export function Sidebar() {
       <div className="h-px bg-ink-soft" />
 
       <nav className="flex gap-1 overflow-x-auto lg:flex-col">
-        {NAV_ITEMS.map((item) => {
+        {items.map((item) => {
           const active = isActive(pathname, item.href);
           return (
             <Link
