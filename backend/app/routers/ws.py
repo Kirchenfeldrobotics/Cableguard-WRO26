@@ -11,7 +11,7 @@ from app.repository.ingest import store
 from app.auth import authenticate_robot, authenticate_ui
 from comm_protocols.messages import MotionTelemetry, SpeedCmd, StopCmd
 from app.auth import authenticate_robot
-from comm_protocols.messages import Alive, Defect as DefectMsg, MotionTelemetry, SpeedCmd, StopCmd
+from comm_protocols.messages import Alive, Defect as DefectMsg, MotionTelemetry, SpeedCmd, StopCmd, VisionTelemetry
  
 ROBOT_TOKEN = os.environ["CABLEGUARD_ROBOT_TOKEN"]
 
@@ -21,7 +21,7 @@ router = APIRouter(prefix="/api/ws")
 # Every RobotMessage subclass the robot may send. Without Defect here the
 # persist path in repository/ingest.py is unreachable.
 FromRobot = TypeAdapter(
-    Annotated[Alive | MotionTelemetry | DefectMsg, Field(discriminator="type")]
+    Annotated[Alive | MotionTelemetry | DefectMsg | VisionTelemetry, Field(discriminator="type")]
 )
 FromUi   = TypeAdapter(Annotated[SpeedCmd | StopCmd, Field(discriminator="type")])
 

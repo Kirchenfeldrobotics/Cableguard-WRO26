@@ -63,6 +63,16 @@ class Defect(Base):
     pos_to_start: Mapped[float]         = mapped_column()
     created_at: Mapped[datetime]        = mapped_column(default=utcnow)
 
+    # What the vision model saw. A defect reported by another sensor carries none of it,
+    # the box is normalised to the frame it was found in
+    label: Mapped[str | None]           = mapped_column(String(64), default=None)
+    confidence: Mapped[float | None]    = mapped_column(default=None)
+    cam: Mapped[int | None]             = mapped_column(default=None)
+    box_x1: Mapped[float | None]        = mapped_column(default=None)
+    box_y1: Mapped[float | None]        = mapped_column(default=None)
+    box_x2: Mapped[float | None]        = mapped_column(default=None)
+    box_y2: Mapped[float | None]        = mapped_column(default=None)
+
     run: Mapped["Run"] = relationship(back_populates="defects")
 
 class AppState(Base): 

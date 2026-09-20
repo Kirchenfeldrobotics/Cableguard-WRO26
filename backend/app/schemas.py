@@ -72,3 +72,12 @@ class DefectOut(BaseModel):
     pos_to_start: float
 
     created_at: datetime
+
+    # Only set when the vision model reported the defect
+    label: str | None
+    confidence: float | None
+    cam: int | None
+    box_x1: float | None
+    box_y1: float | None
+    box_x2: float | None
+    box_y2: float | None

@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import signal
+import time
 from typing import TYPE_CHECKING
 
 from comm_protocols.messages import MotionTelemetry, SpeedCmd, StopCmd
@@ -13,6 +14,7 @@ from link.outbox import Outbox
 from link.video import VideoLink
 from motion.controller import MotionController
 from motion.stepper import Stepper
+from vision.report import vision_telemetry
 
 if TYPE_CHECKING:
     from vision.detector import Detector
@@ -29,6 +31,9 @@ ACCEL = 4000.0
 
 STEAM_FPS = 8.0
 CAMERA_FPS = 15.0
+
+# placeholder, the drive wheel is not measured yet: 1600 microsteps per turn on 50 mm
+MICROSTEPS_PER_METRE = 10186.0
 
 GUARD_PERIOD = 0.5
 TELEMETRY_PERIOD = 0.5
@@ -63,14 +68,22 @@ async def frame_producer(cams: CameraPair, video: VideoLink, fps: float):
             log.exception("capture failed")
         await asyncio.sleep(max(0.0, deadline - loop.time()))
 
-# run the detector on both cameras and write what it sees to the journal
-async def detection_logger(cams: CameraPair, detector: Detector, period: float):
+# run the detector on both cameras, write what it sees to the journal and report it
+async def detection_reporter(cams: CameraPair, detector: Detector, link: RobotLink, motor: Stepper, period: float):
     loop = asyncio.get_running_loop()
+    seq = 0
 
     while True:
         deadline = loop.time() + period
         try:
-            for idx, frame in await asyncio.to_thread(cams.capture):
+            frames = await asyncio.to_thread(cams.capture)
+            # both frames are from the same moment, taking the position per camera would
+            # charge cam1 with the inference time of cam0
+            captured_at = time.time()
+            microsteps  = motor.microsteps_done
+            distance    = microsteps / MICROSTEPS_PER_METRE
+
+            for idx, frame in frames:
                 started = loop.time()
                 found = await asyncio.to_thread(detector.detect, frame)
                 millis = (loop.time() - started) * 1000.0
@@ -83,6 +96,21 @@ async def detection_logger(cams: CameraPair, detector: Detector, period: float):
                     log.info("cam%d: %d detection(s) in %.0f ms: %s", idx, len(found), millis, summary)
                 else:
                     log.info("cam%d: nothing detected (%.0f ms)", idx, millis)
+
+                seq += 1
+                msg = vision_telemetry(
+                    seq=seq,
+                    cam=idx,
+                    frame=frame,
+                    found=found,
+                    captured_at=captured_at,
+                    microsteps=microsteps,
+                    distance_from_origin=distance,
+                    inference_ms=millis,
+                )
+                # the journal above is the fallback, a missed frame is not worth queueing
+                if link.connected and not await link.send(msg.model_dump()):
+                    log.warning("cam%d: telemetry dropped, link closed", idx)
         except Exception:
             log.exception("detection failed")
         await asyncio.sleep(max(0.0, deadline - loop.time()))
@@ -153,7 +181,7 @@ async def main():
             tg.create_task(video.run(), name="video-link")
             tg.create_task(frame_producer(cams, video, STEAM_FPS), name="frame-stream")
             if detector is not None:
-                tg.create_task(detection_logger(cams, detector, DETECT_PERIOD), name="detection-log")
+                tg.create_task(detection_reporter(cams, detector, link, motor, DETECT_PERIOD), name="detection")
             tg.create_task(link_guard(link, motion), name="guard")
             tg.create_task(telemetry_sender(link, motor, TELEMETRY_PERIOD), name="telemetry")
     except* asyncio.CancelledError:

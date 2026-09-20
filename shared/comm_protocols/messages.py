@@ -3,6 +3,9 @@ from pydantic import BaseModel, Field
 
 
 
+# lf = local fault (broken wires), lma = loss of metallic area (corrosion and wear)
+DefectKind = Literal["lf", "lma"]
+
 # == Robot ---> API ==
 
 # Parent class to every robot message
@@ -27,9 +30,31 @@ class MotionTelemetry(RobotMessage):
 class Defect(RobotMessage): 
     type: Literal["defect"] = "defect"
     persist: ClassVar[bool] = True 
-    kind: Literal["lf", "lma"]
+    kind: DefectKind
     distance_from_origin: float
     seq: int 
+
+# One box the detector found, normalised to the frame it was found in
+class VisionDetection(BaseModel): 
+    label: str                                  # class name as the model reports it
+    kind: DefectKind | None = None              # None as long as the label is not mapped
+    confidence: float = Field(ge=0.0, le=1.0)
+    box: tuple[float, float, float, float]      # x1, y1, x2, y2, 0..1
+
+# What one camera saw in one frame, empty detections included
+class VisionTelemetry(RobotMessage): 
+    type: Literal["vision_telemetry"] = "vision_telemetry"
+    live: ClassVar[bool]              = True 
+    persist: ClassVar[bool]           = True 
+    seq: int 
+    cam: Literal[0, 1]
+    captured_at: float                          # epoch seconds, a datetime would not survive json.dumps
+    inference_ms: float 
+    microsteps: int 
+    distance_from_origin: float | None = None   # metres since the step counter was last reset
+    frame_w: int 
+    frame_h: int 
+    detections: list[VisionDetection]
 
 # == API ---> Robot ==
 

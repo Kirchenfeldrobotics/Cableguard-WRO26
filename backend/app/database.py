@@ -59,6 +59,19 @@ def _migrate_sqlite(conn) -> None:
                 "WHERE created_at = '1970-01-01 00:00:00' AND run_id IN (SELECT id FROM runs)"
             ))
 
+        # What the vision model reports, nullable so older rows stay valid
+        for column, ddl in (
+            ("label", "label VARCHAR(64)"),
+            ("confidence", "confidence FLOAT"),
+            ("cam", "cam INTEGER"),
+            ("box_x1", "box_x1 FLOAT"),
+            ("box_y1", "box_y1 FLOAT"),
+            ("box_x2", "box_x2 FLOAT"),
+            ("box_y2", "box_y2 FLOAT"),
+        ):
+            if column not in columns["defects"]:
+                conn.execute(text(f"ALTER TABLE defects ADD COLUMN {ddl}"))
+
 
 def init_db() -> None:
     import app.models  
