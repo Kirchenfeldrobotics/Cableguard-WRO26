@@ -1,4 +1,4 @@
-__pycache__/
+# Please no __pycache__ because of the model
 *.py[cod]
 .venv/
 venv/
