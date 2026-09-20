@@ -3,3 +3,6 @@
 pigpio
 websockets
 pydantic
+ultralytics
+ncnn
+pyyaml
