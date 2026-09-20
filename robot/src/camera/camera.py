@@ -1,10 +1,10 @@
 from picamera2 import Picamera2 
-from libcamera import controls as libcontrols
 import time
 import simplejpeg
 
 # fixed working distance of the rope in front of the lens
 FOCUS_DISTANCE_M = 0.05
+AF_MODE_MANUAL = 0
 
 def encode(frame, quality=95):
     return simplejpeg.encode_jpeg(frame, quality=quality, colorspace="BGR")
@@ -51,7 +51,7 @@ class CameraPair:
         position = min(max(lens_position(self.focus_distance_m), lo), hi)
 
         return {
-            "AfMode": libcontrols.AfModeEnum.Manual,
+            "AfMode": AF_MODE_MANUAL,
             "LensPosition": position,
         }
 
