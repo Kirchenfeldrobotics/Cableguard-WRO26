@@ -39,7 +39,7 @@ components.
 | `border` | `#DADADA` | Inputs and secondary buttons |
 | `mark-muted` / `mark-tick` | `#BFBFBF` / `#D6D6D6` | Unchanged marks, older trend bars |
 | `danger` | `#C11119` | Broken wire (LF), Live and Link lost badges |
-| `danger-strong` / `danger-deep` | `#A50C13` / `#7F080E` | Emergency stop, red text |
+| `danger-strong` / `danger-deep` | `#A50C13` / `#7F080E` | Red text, `danger` buttons |
 | `danger-soft` | `#FBE3E5` | Alert banner, red rows |
 | `warning` / `warning-ink` / `warning-soft` | `#E8A33D` / `#8A5A00` / `#FDF0DC` | Corrosion (LMA) |
 | `success` / `success-ink` / `success-soft` / `success-line` | `#1E9E4A` / `#14713A` / `#E9F8EE` / `#C3E7CF` | Connected, running |
@@ -125,8 +125,10 @@ between cards, 12px outer padding around the app.
 - **States**: every data view handles loading (`Loading…`), error (red text) and empty
   (a sentence saying what is missing and what to do).
 - **Destructive actions** need a second click (`Remove` becomes `Confirm remove`).
-- **Emergency stop** is never disabled while the server socket is open, even if the
-  robot is reported offline. The server answers with an error if it cannot forward it.
+- **Stop** is never disabled while the server socket is open, even if the robot is reported
+  offline. The server answers with an error if it cannot forward it. There is no separate
+  emergency stop: it sent the same command as Stop, and a second button that looks more
+  urgent than the one that does the job is worse than no button.
 - **Drive controls**: the operator only starts, stops and picks the direction. The robot
   times its own detector at startup and drives exactly fast enough for the camera frames to
   cover the rope end to end (`robot/src/vision/pacing.py`), and reports the speed and

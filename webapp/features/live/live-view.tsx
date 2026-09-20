@@ -303,39 +303,17 @@ export function LiveView() {
         </div>
       </Panel>
 
-      <div className="mt-[38px] flex flex-wrap gap-3.5">
-        <Button
-          variant="danger"
-          size="lg"
-          className="flex-[1_1_260px]"
-          disabled={socket !== "open"}
-          onClick={stop}
-        >
-          <RingIcon className="border-white" />
-          Emergency stop
-        </Button>
-        <Button
-          variant="secondary"
-          size="lg"
-          className="flex-[1_1_260px]"
-          disabled
-          title="Session planning is not available yet"
-        >
-          <RingIcon className="border-current" />
-          Plan new session
-        </Button>
-        <div
-          title={motion === "unknown" ? NO_TELEMETRY : undefined}
-          className={cn(
-            "flex h-[58px] flex-[1_1_260px] items-center justify-center gap-2.5 rounded-control border text-base leading-none font-semibold",
-            motion === "scanning"
-              ? "border-success-line bg-linear-to-r from-success-soft to-[#d3f0dd] text-success-ink"
-              : "border-line-strong bg-surface text-text-muted",
-          )}
-        >
-          <RingIcon className="border-current" />
-          {motion === "scanning" ? "Scanning" : motion === "stopped" ? "Stopped" : "Motion unknown"}
-        </div>
+      <div
+        title={motion === "unknown" ? NO_TELEMETRY : undefined}
+        className={cn(
+          "mt-[38px] flex h-[58px] items-center justify-center gap-2.5 rounded-control border text-base leading-none font-semibold",
+          motion === "scanning"
+            ? "border-success-line bg-linear-to-r from-success-soft to-[#d3f0dd] text-success-ink"
+            : "border-line-strong bg-surface text-text-muted",
+        )}
+      >
+        <RingIcon className="border-current" />
+        {motion === "scanning" ? "Scanning" : motion === "stopped" ? "Stopped" : "Motion unknown"}
       </div>
 
       {lastError ? (
