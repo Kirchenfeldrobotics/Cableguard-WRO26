@@ -1,5 +1,9 @@
 import lgpio, math, threading, time
 
+# How far the rope moves per microstep. Placeholder until the drive is measured:
+# 1600 microsteps per turn on a 50 mm wheel. Every metre in the system comes from here
+MICROSTEPS_PER_METRE = 10186.0
+
 class Stepper():
     def __init__(self,
                  pul_pin,
@@ -13,6 +17,7 @@ class Stepper():
                  ena_active_high=False,
                  steps_per_rev=200,
                  microsteps=8,
+                 microsteps_per_metre=MICROSTEPS_PER_METRE,
                  cruise_block_s=0.02,
                  ramp_segments=40,
                  start_speed=200.0,
@@ -36,6 +41,9 @@ class Stepper():
         # specify steps
         self.full_steps_per_rev = steps_per_rev  # full steps per revolution
         self.microsteps         = microsteps     # microsteps per full step
+
+        # drive geometry, the only place microsteps and metres meet
+        self.microsteps_per_metre = microsteps_per_metre
 
         # one cruise block = one tx_pulse call => stop latency is ~2 blocks
         self.cruise_block_s = cruise_block_s
@@ -95,10 +103,29 @@ class Stepper():
     def speed(self):
         return self._speed if self._forward else self._speed * -1
 
+    # metres for a microstep count. Speeds convert with the same factor, microsteps per
+    # second over microsteps per metre is metres per second
+    def to_metres(self, microsteps):
+        return microsteps / self.microsteps_per_metre
+
+    # microsteps for a distance in metres, or microsteps per second for a speed in m/s
+    def to_microsteps(self, metres):
+        return metres * self.microsteps_per_metre
+
     # number of microsteps since last reset
     @property
     def microsteps_done(self):
         return self._accum
+
+    # distance since last reset, signed with the direction driven
+    @property
+    def metres_done(self):
+        return self.to_metres(self._accum)
+
+    # current speed in metres per second, signed like speed
+    @property
+    def speed_mps(self):
+        return self.to_metres(self.speed)
 
     # number of steps since last reset
     @property

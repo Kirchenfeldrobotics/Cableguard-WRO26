@@ -4,7 +4,14 @@ import { Panel } from "@/components/ui/card";
 import { FactList } from "@/components/ui/fact-list";
 import { PageHeader, SectionTitle } from "@/components/ui/heading";
 import { serverLabel } from "@/lib/config";
-import { NOT_AVAILABLE, formatAgo, formatNumber } from "@/lib/format";
+import {
+  NOT_AVAILABLE,
+  formatAgo,
+  formatDetectRate,
+  formatDriveSpeed,
+  formatMetres,
+  formatNumber,
+} from "@/lib/format";
 import { useNow } from "@/lib/hooks/use-now";
 import { TELEMETRY_STALE_MS, useRobotConnected, useRobotLink } from "@/lib/robot/robot-link";
 
@@ -108,6 +115,18 @@ export function SettingsView() {
           {
             label: "Microsteps (telemetry)",
             value: telemetry ? formatNumber(telemetry.microsteps) : NOT_AVAILABLE,
+          },
+          {
+            label: "Position on rope",
+            value: telemetry ? formatMetres(telemetry.metres) : NOT_AVAILABLE,
+          },
+          {
+            label: "Scan speed the robot chose",
+            value: telemetry ? formatDriveSpeed(telemetry.scan_speed_mps) : NOT_AVAILABLE,
+          },
+          {
+            label: "Detector rate the scan is paced for",
+            value: telemetry ? formatDetectRate(telemetry.detect_fps) : NOT_AVAILABLE,
           },
           { label: "Server", value: now ? serverLabel() : NOT_AVAILABLE },
         ]}

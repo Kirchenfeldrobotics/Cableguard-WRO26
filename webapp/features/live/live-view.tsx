@@ -11,16 +11,17 @@ import { CardGrid, Panel, StatCard } from "@/components/ui/card";
 import { Notice, StatusMessage } from "@/components/ui/feedback";
 import { HeadingMeta, PageHeader, SectionTitle } from "@/components/ui/heading";
 import { LogRow } from "@/components/ui/log-row";
-import type { MotionTelemetryEvent } from "@/lib/api/types";
+import type { DriveDirection, MotionTelemetryEvent } from "@/lib/api/types";
 import { cn } from "@/lib/cn";
-import { MAX_DRIVE_SPEED, MIN_DRIVE_SPEED } from "@/lib/config";
 import { kindTone } from "@/lib/defects";
 import {
   NOT_AVAILABLE,
   defectClassLabel,
   formatAgo,
   formatConfidence,
+  formatDetectRate,
   formatDriveSpeed,
+  formatMetres,
   formatNumber,
   formatSpan,
   isRunActive,
@@ -32,7 +33,6 @@ import { useVideoFeeds } from "@/lib/robot/use-video-feeds";
 import { routes } from "@/lib/routes";
 
 const REFRESH_MS = 5_000;
-const SPEED_STEP = 50;
 /** How long a command may go without matching telemetry before the operator is warned. */
 const CONFIRM_TIMEOUT_MS = 5_000;
 const NO_TELEMETRY = "No motion telemetry from the robot in the last 2 seconds";
@@ -43,24 +43,23 @@ const CAMERAS = [
   { code: "cam b", caption: "Camera B, lower rope surface" },
 ];
 
-type Direction = "forward" | "reverse";
-
 interface SentCommand {
-  /** Signed speed the robot should settle at, 0 for a stop. */
-  expected: number;
+  /** What the robot should be doing: scanning in this direction, or standing still. */
+  expected: DriveDirection | "stop";
   /** Epoch ms when the command was written to the server socket. */
   at: number;
 }
 
-/** Speed the robot settles at for a speed command, after its own clamping. */
-function settledSpeed(value: number): number {
-  const magnitude = Math.min(Math.abs(value), MAX_DRIVE_SPEED);
-  return magnitude < MIN_DRIVE_SPEED ? 0 : Math.sign(value) * magnitude;
+/** True once the robot's own telemetry shows it doing what the command asked for. */
+function carriedOut(sent: SentCommand, telemetry: MotionTelemetryEvent): boolean {
+  if (sent.expected === "stop") return telemetry.speed === 0;
+  const wanted = sent.expected === "forward" ? 1 : -1;
+  return telemetry.speed !== 0 && Math.sign(telemetry.speed) === wanted;
 }
 
 /**
  * Neither the server nor the robot acknowledges commands, so a command only counts as carried
- * out once the robot's own telemetry reports the expected speed.
+ * out once the robot's own telemetry reports it.
  */
 function commandFeedback(
   sent: SentCommand | null,
@@ -70,26 +69,29 @@ function commandFeedback(
   now: number | null,
 ): { text: string; tone: "muted" | "error" } | null {
   if (!sent) return null;
-  const expected = sent.expected === 0 ? "standstill" : formatDriveSpeed(sent.expected);
+  const asked = sent.expected === "stop" ? "standstill" : `scanning ${sent.expected}`;
   const reported = telemetry && telemetryAt !== null && telemetryAt > sent.at ? telemetry : null;
   const reports = telemetryFresh ? "Robot reports" : "Robot last reported";
   const staleNote =
     telemetryFresh || telemetryAt === null || now === null
       ? ""
       : ` ${formatAgo(Math.max(0, now - telemetryAt))}, no telemetry since`;
-  if (reported && Math.abs(reported.speed - sent.expected) <= 1) {
-    return { text: `${reports} ${expected}${staleNote}.`, tone: telemetryFresh ? "muted" : "error" };
+
+  if (reported && carriedOut(sent, reported)) {
+    const doing = reported.speed === 0 ? "standstill" : formatDriveSpeed(reported.speed_mps);
+    return { text: `${reports} ${doing}${staleNote}.`, tone: telemetryFresh ? "muted" : "error" };
   }
+
   const waited = now === null ? 0 : Math.max(0, now - sent.at);
   if (waited <= CONFIRM_TIMEOUT_MS) {
-    const what = sent.expected === 0 ? "Stop" : `Speed ${expected}`;
+    const what = sent.expected === "stop" ? "Stop" : `Start ${sent.expected}`;
     return { text: `${what} sent to the server, waiting for the robot to report it.`, tone: "muted" };
   }
   return {
     tone: "error",
     text: reported
-      ? `${reports} ${formatDriveSpeed(reported.speed)}${staleNote}, expected ${expected}.`
-      : `No telemetry from the robot since the command was sent ${formatAgo(waited)}. Do not assume it reached ${expected}.`,
+      ? `${reports} ${formatDriveSpeed(reported.speed_mps)}${staleNote}, expected ${asked}.`
+      : `No telemetry from the robot since the command was sent ${formatAgo(waited)}. Do not assume it is at ${asked}.`,
   };
 }
 
@@ -101,10 +103,7 @@ export function LiveView() {
   const now = useNow(500);
   const feeds = useVideoFeeds(CAMERAS.length);
 
-  const [magnitude, setMagnitude] = useState(0);
-  const [direction, setDirection] = useState<Direction>("forward");
-  const [lastDriven, setLastDriven] = useState<number | null>(null);
-  const [stopRequested, setStopRequested] = useState(false);
+  const [direction, setDirection] = useState<DriveDirection>("forward");
   const [sent, setSent] = useState<SentCommand | null>(null);
 
   const current = useCurrentSelection();
@@ -127,25 +126,20 @@ export function LiveView() {
     if (detectionVersion > 0) reload();
   }, [detectionVersion, reload]);
 
-  const target = direction === "forward" ? magnitude : -magnitude;
-  const stoppedOnItsOwn =
-    fresh?.speed === 0 && sent !== null && now !== null && now - sent.at > CONFIRM_TIMEOUT_MS;
-  const resumeSpeed = lastDriven !== null && (stopRequested || stoppedOnItsOwn) ? lastDriven : null;
-  const motion = fresh === null ? "unknown" : fresh.speed === 0 ? "stopped" : "moving";
+  // Reversing a moving robot on one click is not something the operator should be able to do
+  // by accident, so the direction is only picked while it stands still.
+  const moving = fresh !== null && fresh.speed !== 0;
+  const motion = fresh === null ? "unknown" : moving ? "scanning" : "stopped";
   const feedback = commandFeedback(sent, telemetry, telemetryAt, fresh !== null, now);
 
-  const drive = (speed: number) => {
-    if (!send({ type: "speed", value: speed })) return;
-    const expected = settledSpeed(speed);
-    setSent({ expected, at: Date.now() });
-    setLastDriven(expected === 0 ? null : expected);
-    setStopRequested(false);
+  const start = () => {
+    if (!send({ type: "start", direction })) return;
+    setSent({ expected: direction, at: Date.now() });
   };
 
-  const emergencyStop = () => {
+  const stop = () => {
     if (!send({ type: "stop" })) return;
-    setSent({ expected: 0, at: Date.now() });
-    setStopRequested(true);
+    setSent({ expected: "stop", at: Date.now() });
   };
 
   return (
@@ -172,13 +166,13 @@ export function LiveView() {
 
       <CardGrid>
         <StatCard
-          value={NOT_AVAILABLE}
-          label="Position on rope"
+          value={fresh ? formatMetres(fresh.metres) : NOT_AVAILABLE}
+          label={`Position on rope of ${formatMetres(rope?.length_m)}`}
           indicator="ring"
-          title="The robot does not report its position yet"
+          title={fresh ? "Measured from where the robot stood when the run was selected" : NO_TELEMETRY}
         />
         <StatCard
-          value={fresh ? formatDriveSpeed(fresh.speed) : NOT_AVAILABLE}
+          value={fresh ? formatDriveSpeed(fresh.speed_mps) : NOT_AVAILABLE}
           label="Drive speed"
           indicator="solid"
           title={fresh ? undefined : NO_TELEMETRY}
@@ -202,7 +196,11 @@ export function LiveView() {
       <SectionTitle>Position on rope</SectionTitle>
       <Panel className="px-[22px] py-5">
         {rope ? (
-          <RopeStrip length={rope.length_m} marks={findingMarks(rope.id, findings)} />
+          <RopeStrip
+            length={rope.length_m}
+            marks={findingMarks(rope.id, findings)}
+            livePos={fresh ? fresh.metres : null}
+          />
         ) : (
           <p className="m-0 text-[13px] text-text-subtle">No rope is selected on the server.</p>
         )}
@@ -235,13 +233,17 @@ export function LiveView() {
       <Panel className="flex flex-col gap-[18px] px-[22px] py-5">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex flex-col gap-2">
-            <span className="text-[13px] leading-none text-text-muted">Target speed</span>
-            <span className="text-[22px] leading-[1.15] font-bold">{formatDriveSpeed(target)}</span>
+            <span className="text-[13px] leading-none text-text-muted">Scan speed</span>
+            <span className="text-[22px] leading-[1.15] font-bold">
+              {fresh ? formatDriveSpeed(fresh.scan_speed_mps) : NOT_AVAILABLE}
+            </span>
           </div>
           <div role="group" aria-label="Direction" className="flex gap-2">
             <Button
               variant={direction === "forward" ? "primary" : "secondary"}
               aria-pressed={direction === "forward"}
+              disabled={moving}
+              title={moving ? "Stop the robot before changing direction" : undefined}
               onClick={() => setDirection("forward")}
             >
               Forward
@@ -249,6 +251,8 @@ export function LiveView() {
             <Button
               variant={direction === "reverse" ? "primary" : "secondary"}
               aria-pressed={direction === "reverse"}
+              disabled={moving}
+              title={moving ? "Stop the robot before changing direction" : undefined}
               onClick={() => setDirection("reverse")}
             >
               Reverse
@@ -256,46 +260,32 @@ export function LiveView() {
           </div>
         </div>
 
-        <div>
-          <input
-            type="range"
-            min={0}
-            max={MAX_DRIVE_SPEED}
-            step={SPEED_STEP}
-            value={magnitude}
-            onChange={(e) => setMagnitude(Number(e.target.value))}
-            aria-label="Target speed"
-            aria-valuetext={formatDriveSpeed(target)}
-            className="w-full accent-ink"
-          />
-          <div className="mt-2 flex justify-between gap-4 font-mono text-xs leading-none text-text-subtle">
-            <span>0</span>
-            <span>{formatNumber(MAX_DRIVE_SPEED)} steps/s</span>
-          </div>
-        </div>
-
         <p className="m-0 text-xs leading-normal text-text-subtle">
-          Nothing is sent until you press Drive. Below {formatNumber(MIN_DRIVE_SPEED)} steps/s the robot
-          ramps down to standstill.
+          The robot sets its own speed: it times its detector at startup and drives exactly fast
+          enough for the camera frames to cover the rope end to end.{" "}
+          {fresh
+            ? `It runs the detector ${formatDetectRate(fresh.detect_fps)} and holds ${formatDriveSpeed(fresh.scan_speed_mps)}.`
+            : "Its plan arrives with the motion telemetry."}
         </p>
 
         <div className="flex flex-wrap gap-3.5">
           <Button
             className="flex-[1_1_220px]"
-            disabled={!connected}
-            title={connected ? undefined : "The robot is not reachable"}
-            onClick={() => drive(target)}
+            disabled={!connected || moving}
+            title={
+              !connected ? "The robot is not reachable" : moving ? "The robot is already scanning" : undefined
+            }
+            onClick={start}
           >
-            {settledSpeed(target) === 0 ? "Ramp down to standstill" : `Drive at ${formatDriveSpeed(target)}`}
+            Start scanning {direction}
           </Button>
           <Button
             variant="secondary"
             className="flex-[1_1_220px]"
-            disabled={!connected || resumeSpeed === null}
-            title={resumeSpeed === null ? "Available after a stop, to drive again at the last speed" : undefined}
-            onClick={() => resumeSpeed !== null && drive(resumeSpeed)}
+            disabled={socket !== "open"}
+            onClick={stop}
           >
-            {resumeSpeed === null ? "Resume" : `Resume at ${formatDriveSpeed(resumeSpeed)}`}
+            Stop
           </Button>
         </div>
 
@@ -306,9 +296,9 @@ export function LiveView() {
           )}
         >
           {fresh
-            ? `Robot reports ${formatDriveSpeed(fresh.speed)} · ${formatNumber(fresh.microsteps)} microsteps · seq ${formatNumber(fresh.seq)}`
+            ? `Robot reports ${formatDriveSpeed(fresh.speed_mps)} · ${formatMetres(fresh.metres)} · ${formatNumber(fresh.microsteps)} microsteps · seq ${formatNumber(fresh.seq)}`
             : telemetry && telemetryAt !== null && now !== null
-              ? `No fresh telemetry. Last report ${formatAgo(Math.max(0, now - telemetryAt))}: ${formatDriveSpeed(telemetry.speed)}`
+              ? `No fresh telemetry. Last report ${formatAgo(Math.max(0, now - telemetryAt))}: ${formatDriveSpeed(telemetry.speed_mps)}`
               : "No telemetry from the robot yet"}
         </div>
       </Panel>
@@ -319,7 +309,7 @@ export function LiveView() {
           size="lg"
           className="flex-[1_1_260px]"
           disabled={socket !== "open"}
-          onClick={emergencyStop}
+          onClick={stop}
         >
           <RingIcon className="border-white" />
           Emergency stop
@@ -338,13 +328,13 @@ export function LiveView() {
           title={motion === "unknown" ? NO_TELEMETRY : undefined}
           className={cn(
             "flex h-[58px] flex-[1_1_260px] items-center justify-center gap-2.5 rounded-control border text-base leading-none font-semibold",
-            motion === "moving"
+            motion === "scanning"
               ? "border-success-line bg-linear-to-r from-success-soft to-[#d3f0dd] text-success-ink"
               : "border-line-strong bg-surface text-text-muted",
           )}
         >
           <RingIcon className="border-current" />
-          {motion === "moving" ? "Moving" : motion === "stopped" ? "Stopped" : "Motion unknown"}
+          {motion === "scanning" ? "Scanning" : motion === "stopped" ? "Stopped" : "Motion unknown"}
         </div>
       </div>
 

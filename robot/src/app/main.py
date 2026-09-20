@@ -6,7 +6,7 @@ import signal
 import time
 from typing import TYPE_CHECKING
 
-from comm_protocols.messages import MotionTelemetry, SpeedCmd, StopCmd
+from comm_protocols.messages import MotionTelemetry, ResetOriginCmd, StartCmd, StopCmd
 
 from camera.camera import CameraPair, encode
 from link.client import RobotLink
@@ -14,6 +14,7 @@ from link.outbox import Outbox
 from link.video import VideoLink
 from motion.controller import MotionController
 from motion.stepper import Stepper
+from vision.pacing import ScanPlan, measure_cycle, plan_scan
 from vision.report import vision_telemetry
 
 if TYPE_CHECKING:
@@ -32,25 +33,32 @@ ACCEL = 4000.0
 STEAM_FPS = 8.0
 CAMERA_FPS = 15.0
 
-# placeholder, the drive wheel is not measured yet: 1600 microsteps per turn on 50 mm
-MICROSTEPS_PER_METRE = 10186.0
-
 GUARD_PERIOD = 0.5
 TELEMETRY_PERIOD = 0.5
-DETECT_PERIOD = 2.0
 
-# creates function that turns messages into roboter commands
-def make_command_handler(motion: MotionController): 
+# creates function that turns messages into roboter commands. The speed is not ours to
+# choose, the scan plan fixed it so that the detector sees every bit of rope once
+def make_command_handler(motion: MotionController, plan: ScanPlan): 
+    # the round trip through metres is not bit exact, and ramp_to reads anything below
+    # start_speed as a stop, so a plan sitting on the lower limit must not fall through it
+    scan_speed = max(motion.motor.to_microsteps(plan.speed_mps), motion.motor.start_speed)
+
     def handle(cmd): 
         if isinstance(cmd, StopCmd): 
             log.info("stop requested")
             motion.emergency_stop()
 
-        elif isinstance(cmd, SpeedCmd): 
-            limit = motion.motor.max_speed
-            target = max(-limit, min(cmd.value, limit))
-            log.info("speed requested: %.0f (clamped to: %.0f)", cmd.value, target)
+        elif isinstance(cmd, StartCmd): 
+            target = scan_speed if cmd.direction == "forward" else -scan_speed
+            log.info("start requested: %s at %.3f m/s (%.0f microsteps/s)",
+                     cmd.direction, plan.speed_mps, scan_speed)
             motion.request("speed", target)
+
+        elif isinstance(cmd, ResetOriginCmd): 
+            if motion.motor.moving: 
+                log.warning("origin reset while moving, the run starts from here anyway")
+            log.info("origin reset at %.2f m", motion.motor.metres_done)
+            motion.motor.reset_steps_done()
 
     return handle
 
@@ -81,7 +89,7 @@ async def detection_reporter(cams: CameraPair, detector: Detector, link: RobotLi
             # charge cam1 with the inference time of cam0
             captured_at = time.time()
             microsteps  = motor.microsteps_done
-            distance    = microsteps / MICROSTEPS_PER_METRE
+            distance    = motor.metres_done
 
             for idx, frame in frames:
                 started = loop.time()
@@ -108,12 +116,16 @@ async def detection_reporter(cams: CameraPair, detector: Detector, link: RobotLi
                     distance_from_origin=distance,
                     inference_ms=millis,
                 )
-                # the journal above is the fallback, a missed frame is not worth queueing
-                if link.connected and not await link.send(msg.model_dump()):
-                    log.warning("cam%d: telemetry dropped, link closed", idx)
+                # queued, not sent live: a detection that is not stored is a defect lost
+                link.send(msg.model_dump())
         except Exception:
             log.exception("detection failed")
-        await asyncio.sleep(max(0.0, deadline - loop.time()))
+
+        slack = deadline - loop.time()
+        if slack < 0.0:
+            log.warning("cycle overran its %.0f ms budget by %.0f ms, the rope is not fully covered",
+                        period * 1000.0, -slack * 1000.0)
+        await asyncio.sleep(max(0.0, slack))
 
 # stop robot when the control link is down
 async def link_guard(link: RobotLink, motion: MotionController):
@@ -124,13 +136,21 @@ async def link_guard(link: RobotLink, motion: MotionController):
         await asyncio.sleep(GUARD_PERIOD)
 
 # send motion telemetry
-async def telemetry_sender(link: RobotLink, motor: Stepper, period: float):
+async def telemetry_sender(link: RobotLink, motor: Stepper, plan: ScanPlan, period: float):
     seq = 0
     while True:
         if link.connected:
             seq += 1
             try:
-                msg = MotionTelemetry(speed=motor.speed, microsteps=motor.microsteps_done, seq=seq)
+                msg = MotionTelemetry(
+                    speed=motor.speed,
+                    speed_mps=motor.speed_mps,
+                    microsteps=motor.microsteps_done,
+                    metres=motor.metres_done,
+                    scan_speed_mps=plan.speed_mps,
+                    detect_fps=plan.detect_fps,
+                    seq=seq,
+                )
                 await link.send_live(msg.model_dump())
             except Exception:
                 log.exception("telemetry failed")
@@ -160,17 +180,27 @@ async def main():
     video = VideoLink()
     cams = CameraPair(fps=CAMERA_FPS).start()
 
-    # vision is optional, a broken model or a missing package must not stop the robot from driving
+    # vision is optional, a broken model or a missing package must not stop the robot from
+    # driving. The detector sets the pace, so timing it is part of coming up
     try:
         from vision.detector import Detector
 
         detector = Detector()
         await asyncio.to_thread(detector.warmup)
+        cycle_s = await asyncio.to_thread(measure_cycle, cams, detector)
     except Exception as exc:
         detector = None
+        cycle_s = 1.0 / CAMERA_FPS          # nothing to time, fall back to the camera limit
         log.warning("detection disabled, detector unavailable: %s", exc)
 
-    link.on_command(make_command_handler(motion))
+    # the drive can only be asked for speeds it can actually hold
+    plan = plan_scan(
+        cycle_s=cycle_s,
+        camera_fps=CAMERA_FPS,
+        speed_limits=(motor.to_metres(motor.start_speed), motor.to_metres(motor.max_speed)),
+    )
+
+    link.on_command(make_command_handler(motion, plan))
 
     log.info("stepper and link configured, detection %s", "on" if detector else "off")
 
@@ -181,9 +211,9 @@ async def main():
             tg.create_task(video.run(), name="video-link")
             tg.create_task(frame_producer(cams, video, STEAM_FPS), name="frame-stream")
             if detector is not None:
-                tg.create_task(detection_reporter(cams, detector, link, motor, DETECT_PERIOD), name="detection")
+                tg.create_task(detection_reporter(cams, detector, link, motor, plan.period), name="detection")
             tg.create_task(link_guard(link, motion), name="guard")
-            tg.create_task(telemetry_sender(link, motor, TELEMETRY_PERIOD), name="telemetry")
+            tg.create_task(telemetry_sender(link, motor, plan, TELEMETRY_PERIOD), name="telemetry")
     except* asyncio.CancelledError:
         log.info("shutting down")
     finally: 

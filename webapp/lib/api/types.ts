@@ -76,7 +76,16 @@ export interface MotionTelemetryEvent {
   type: "motion_telemetry";
   /** Drive speed in microsteps per second (see robot/src/motion/stepper.py). */
   speed: number;
+  /** The same speed in metres per second. The robot owns the drive geometry. */
+  speed_mps: number;
+  /** Exact step count since the origin was reset, for debugging the drive. */
   microsteps: number;
+  /** Metres since the origin was reset, which happens when a run is selected. */
+  metres: number;
+  /** Speed the robot holds while scanning, derived from how fast its detector runs. */
+  scan_speed_mps: number;
+  /** Detector cycles per second the scan is paced for. */
+  detect_fps: number;
   seq: number;
 }
 
@@ -129,4 +138,10 @@ export type ServerEvent =
 
 // UI -> Server over /api/ws/ui (forwarded to the robot)
 
-export type RobotCommand = { type: "speed"; value: number } | { type: "stop" };
+/**
+ * The operator picks the direction and when to run; the robot derives its own speed so the
+ * detector frames cover the rope end to end (robot/src/vision/pacing.py).
+ */
+export type DriveDirection = "forward" | "reverse";
+
+export type RobotCommand = { type: "start"; direction: DriveDirection } | { type: "stop" };

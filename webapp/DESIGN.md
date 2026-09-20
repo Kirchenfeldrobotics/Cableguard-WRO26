@@ -127,9 +127,16 @@ between cards, 12px outer padding around the app.
 - **Destructive actions** need a second click (`Remove` becomes `Confirm remove`).
 - **Emergency stop** is never disabled while the server socket is open, even if the
   robot is reported offline. The server answers with an error if it cannot forward it.
-- **Drive controls** (Drive, Resume) are disabled while the robot is not reachable, and
-  moving the speed slider sends nothing. A command is reported as carried out only when
-  telemetry shows it, never because the socket accepted it.
+- **Drive controls**: the operator only starts, stops and picks the direction. The robot
+  times its own detector at startup and drives exactly fast enough for the camera frames to
+  cover the rope end to end (`robot/src/vision/pacing.py`), and reports the speed and
+  detector rate it settled on in every motion telemetry packet. Start is disabled while the
+  robot is unreachable or already scanning, and the direction buttons are disabled while it
+  moves, so no single click can reverse a moving machine. A command is reported as carried
+  out only when telemetry shows it, never because the socket accepted it.
+- **Position** is metres since the origin, which the backend resets on the robot whenever a
+  run is selected. The webapp never converts steps to metres, the robot owns the drive
+  geometry and reports both.
 - **Stale live data** is never shown as current: telemetry older than 2 s shows `—`, a
   detector frame older than 8 s shows `—`, and a camera tile without a new frame for 2 s
   dims its image and shows a "Not live" badge.

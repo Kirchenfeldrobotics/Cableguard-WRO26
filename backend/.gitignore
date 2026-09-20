@@ -7,6 +7,6 @@ data/*.db-shm
 
 .venv
 
-app/__pycache__
-app/ws/__pycache__
+app/__pycache__/
+app/ws/__pycache__/
 app/routers/__pycache__/

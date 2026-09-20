@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -6,7 +8,9 @@ from app.repository import state as state_repo
 from app.models import Run
 from app.routers.ws import hub
 from app.schemas import CurrentSelection
+from comm_protocols.messages import ResetOriginCmd
 
+log = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/current", tags=["current"])
 
 # Read the current rope/run 
@@ -29,6 +33,12 @@ async def set_current(payload: CurrentSelection, db: Session = Depends(get_db)):
 
     state_repo.set_current(db, payload.rope_id, payload.run_id)
     db.commit()
+
+    # Defect positions are metres into the run, so the robot starts counting from wherever
+    # it sits when the run is picked. Offline it simply misses this, the operator selects
+    # the run before starting anyway.
+    if payload.run_id is not None and not await hub.to_robot(ResetOriginCmd().model_dump()):
+        log.warning("run %s selected while the robot is offline, its origin is unchanged", payload.run_id)
 
     await hub.broadcast({
         "type": "current_changed", 

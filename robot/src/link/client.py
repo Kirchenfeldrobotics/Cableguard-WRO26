@@ -8,14 +8,16 @@ import websockets
 from pydantic import Field, TypeAdapter, ValidationError
 
 from .outbox import Outbox
-from comm_protocols.messages import SpeedCmd, StopCmd
+from comm_protocols.messages import ResetOriginCmd, StartCmd, StopCmd
 
 log = logging.getLogger(__name__)
 
 URL   = os.environ["CABLEGUARD_WS_URL"]
 TOKEN = os.environ["CABLEGUARD_ROBOT_TOKEN"]
 
-FromServer = TypeAdapter(Annotated[SpeedCmd | StopCmd, Field(discriminator="type")])
+FromServer = TypeAdapter(
+    Annotated[StartCmd | StopCmd | ResetOriginCmd, Field(discriminator="type")]
+)
 
 class RobotLink: 
     def __init__(self, outbox, heartbeat_s=5.0, send_hz=5.0): 

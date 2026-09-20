@@ -17,10 +17,16 @@ export function formatNumber(value: number | null | undefined, digits = 0): stri
   return value.toLocaleString("en-US", { maximumFractionDigits: digits });
 }
 
-/** `1,200 steps/s forward`. The sign of `value` is the drive direction. */
-export function formatDriveSpeed(value: number): string {
+/** `0.11 m/s forward`. The sign of `value` is the drive direction. */
+export function formatDriveSpeed(value: number | null | undefined): string {
+  if (value == null) return NOT_AVAILABLE;
   const direction = value > 0 ? " forward" : value < 0 ? " reverse" : "";
-  return `${formatNumber(Math.abs(value))} steps/s${direction}`;
+  return `${Math.abs(value).toFixed(2)} m/s${direction}`;
+}
+
+/** `1.8 /s`, how often the detector runs a frame from both cameras. */
+export function formatDetectRate(fps: number | null | undefined): string {
+  return fps == null ? NOT_AVAILABLE : `${fps.toFixed(1)} /s`;
 }
 
 const pad = (n: number) => String(n).padStart(2, "0");

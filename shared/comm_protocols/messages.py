@@ -18,12 +18,17 @@ class Alive(RobotMessage):
     type: Literal["alive"] = "alive"
     live: ClassVar[bool]   = True 
 
-# Robots state of motion 
+# Robots state of motion. The robot owns the drive geometry, so it reports both the exact
+# step counts and the metres they work out to, nobody downstream needs the conversion
 class MotionTelemetry(RobotMessage): 
     type: Literal["motion_telemetry"] = "motion_telemetry"
     live: ClassVar[bool]              = True 
-    speed: float 
-    microsteps: int 
+    speed: float                # microsteps per second, signed with the drive direction
+    speed_mps: float            # the same speed in metres per second
+    microsteps: int             # since the origin was last reset
+    metres: float               # the same position in metres
+    scan_speed_mps: float       # what the scan plan asks the drive to hold while running
+    detect_fps: float           # detector cycles per second the plan is built for
     seq: int 
 
 # Robots position  
@@ -58,10 +63,15 @@ class VisionTelemetry(RobotMessage):
 
 # == API ---> Robot ==
 
-# Speed instruction 
-class SpeedCmd(BaseModel): 
-    type: Literal["speed"] = "speed"
-    value: float = Field(allow_inf_nan=False)
+# Start scanning. Only the direction is ours to pick, the robot derives the speed from how
+# fast its detector runs so that the frames cover the rope end to end
+class StartCmd(BaseModel): 
+    type: Literal["start"] = "start"
+    direction: Literal["forward", "reverse"] = "forward"
 
 class StopCmd(BaseModel): 
     type: Literal["stop"] = "stop"
+
+# A run is measured from where the robot sits when the run is selected
+class ResetOriginCmd(BaseModel): 
+    type: Literal["reset_origin"] = "reset_origin"
