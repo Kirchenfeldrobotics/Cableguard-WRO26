@@ -2,3 +2,4 @@ stubs/
 models/
 src/camera/__pycache__/
 src/motion/__pycache__/
+src/vision/__pycache__/
