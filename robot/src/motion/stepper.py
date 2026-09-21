@@ -227,10 +227,6 @@ class Stepper():
         while lgpio.tx_busy(self.h, self.pul_pin, lgpio.TX_PWM):
             time.sleep(0.001)
 
-    # kill output, queued blocks still drain first (~2 blocks)
-    def _silence(self):
-        lgpio.tx_pulse(self.h, self.pul_pin, 0, 0)
-
     # queue a whole ramp, segments play back to back with no gap
     def _emit(self, segments, abortable=False):
         for v, cycles in segments:
@@ -284,9 +280,12 @@ class Stepper():
         segments = self.ramp_segments(self._speed, 0.0)
         if segments:
             self._emit(segments)
-            self._wait_idle()
 
-        self._silence()
+        # Every block goes out with a finite cycle count, so the output ends by itself once
+        # the ramp and any cruise block still queued have played. Its steps were counted when
+        # it was queued, so letting it play also keeps the position exact. lgpio refuses a
+        # zero/zero pulse as a way to cut it short ("bad PWM micros")
+        self._wait_idle()
         self._speed = 0.0
 
     def close(self):
@@ -295,7 +294,7 @@ class Stepper():
         finally:
             self._closing.set()
             self._feeder.join(timeout=1.0)
-            self._silence()
+            self._wait_idle()
             lgpio.gpio_write(self.h, self.pul_pin, 0)
             self.disable()
             lgpio.gpiochip_close(self.h)
