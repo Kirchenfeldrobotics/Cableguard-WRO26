@@ -72,6 +72,38 @@ def _migrate_sqlite(conn) -> None:
             if column not in columns["defects"]:
                 conn.execute(text(f"ALTER TABLE defects ADD COLUMN {ddl}"))
 
+        # Databases created while defects were placed relative to anchors (1da035e) were
+        # never moved off them: f9bba4c dropped anchors without a migration, so they still
+        # carry anchor_id and distance_to_anchor_m, both NOT NULL, and have no pos_to_start.
+        # Every read fails on the missing column and every insert on the NOT NULL ones.
+        # SQLite cannot drop a column that is indexed and a foreign key, so the table is
+        # rebuilt. The anchor's distance from the origin plus the defect's distance from the
+        # anchor is the position the app works with.
+        if "pos_to_start" not in columns["defects"] and "distance_to_anchor_m" in columns["defects"]:
+            anchor = (
+                "COALESCE((SELECT distance_to_origin_m FROM anchors "
+                "WHERE anchors.id = old.anchor_id), 0) + "
+                if "anchors" in tables else ""
+            )
+            conn.execute(text("ALTER TABLE defects RENAME TO defects_anchored"))
+
+            # the renamed table keeps its index names, the rebuilt one needs them back
+            for (name,) in conn.execute(text(
+                "SELECT name FROM sqlite_master WHERE type = 'index' "
+                "AND tbl_name = 'defects_anchored' AND sql IS NOT NULL"
+            )).all():
+                conn.execute(text(f'DROP INDEX "{name}"'))
+
+            Base.metadata.tables["defects"].create(conn)
+            conn.execute(text(
+                "INSERT INTO defects (id, run_id, kind, pos_to_start, created_at, "
+                "label, confidence, cam, box_x1, box_y1, box_x2, box_y2) "
+                f"SELECT id, run_id, kind, {anchor}distance_to_anchor_m, created_at, "
+                "label, confidence, cam, box_x1, box_y1, box_x2, box_y2 "
+                "FROM defects_anchored AS old"
+            ))
+            conn.execute(text("DROP TABLE defects_anchored"))
+
 
 def init_db() -> None:
     import app.models  
