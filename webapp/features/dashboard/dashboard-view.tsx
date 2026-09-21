@@ -161,7 +161,9 @@ export function DashboardView() {
       )}
 
       {current.error || history.error ? (
-        <StatusMessage tone="error">Could not load data from the server.</StatusMessage>
+        <StatusMessage tone="error">
+          Could not load data from the server. {(current.error ?? history.error)?.message}
+        </StatusMessage>
       ) : current.loading || history.loading ? (
         <StatusMessage>Loading…</StatusMessage>
       ) : !rope ? (

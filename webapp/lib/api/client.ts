@@ -40,7 +40,7 @@ async function request<T>(
     } catch {
       // Body is not JSON; keep the status text.
     }
-    throw new ApiError(res.status, detail || `Request failed (${res.status})`);
+    throw new ApiError(res.status, `${path} failed: ${res.status} ${detail || res.statusText}`);
   }
 
   if (res.status === 204) return undefined as T;
