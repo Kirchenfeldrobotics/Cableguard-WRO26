@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Literal
 
-from sqlalchemy import ForeignKey, String, UniqueConstraint, func
+from sqlalchemy import ForeignKey, LargeBinary, String, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -53,6 +53,17 @@ class Run(Base):
         back_populates="run", cascade="all, delete-orphan"
     )
 
+# The camera frame a detection was made in. Stored once and shared by every defect found in
+# it, the boxes of those defects are normalised to it
+class Frame(Base): 
+    __tablename__ = "frames"
+
+    id: Mapped[str]              = mapped_column(primary_key=True, default=new_id)
+    run_id: Mapped[str]          = mapped_column(ForeignKey("runs.id", ondelete="CASCADE"), index=True)
+    cam: Mapped[int]             = mapped_column()
+    jpeg: Mapped[bytes]          = mapped_column(LargeBinary)
+    created_at: Mapped[datetime] = mapped_column(default=utcnow)
+
 # A rope defect 
 class Defect(Base): 
     __tablename__ = "defects"
@@ -72,8 +83,11 @@ class Defect(Base):
     box_y1: Mapped[float | None]        = mapped_column(default=None)
     box_x2: Mapped[float | None]        = mapped_column(default=None)
     box_y2: Mapped[float | None]        = mapped_column(default=None)
+    frame_id: Mapped[str | None]        = mapped_column(ForeignKey("frames.id", ondelete="SET NULL"), default=None)
 
     run: Mapped["Run"] = relationship(back_populates="defects")
+    # without it the frame and its defects are flushed in any order and the foreign key fails
+    frame: Mapped["Frame | None"] = relationship()
 
 class AppState(Base): 
     __tablename__ = "app_state"

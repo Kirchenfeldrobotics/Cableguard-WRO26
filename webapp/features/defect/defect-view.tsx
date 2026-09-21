@@ -61,9 +61,9 @@ export function DefectView({
 
       <div className="mt-5 flex flex-wrap items-start gap-[22px]">
         <figure className="m-0 flex min-w-[290px] flex-[1_1_380px] flex-col gap-2.5">
-          <DetectionFrame defect={defect} />
+          <DetectionFrame key={defect.id} defect={defect} />
           <figcaption className="text-[13px] leading-none text-text-muted">
-            {formatCamera(defect.cam)}, where the detection sat in the frame
+            {formatCamera(defect.cam)}, the frame the detection was made in
           </figcaption>
         </figure>
 

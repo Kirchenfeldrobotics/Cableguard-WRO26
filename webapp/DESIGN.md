@@ -100,7 +100,7 @@ between cards, 12px outer padding around the app.
 | `Notice`, `StatusMessage`, `BackLink` | `components/ui/feedback.tsx` | Alerts, loading, empty and error states |
 | `RopeStrip`, `findingMarks`, `DefectLegend` | `components/rope/` | Unrolled rope with metre scale and finding marks |
 | `CameraFeed` | `components/camera/camera-feed.tsx` | Live JPEG stream, dimmed with a "Not live" badge when frames stop, or striped placeholder |
-| `DetectionFrame` | `components/camera/detection-frame.tsx` | Where a detection sat in the detector frame; the frame itself is not stored, only the box |
+| `DetectionFrame` | `components/camera/detection-frame.tsx` | The stored JPEG a defect was found in, with its box on top; fetched as a blob because an `<img>` cannot send the token |
 | `RunStatePill` | `components/inspection/run-state-pill.tsx` | Link lost, Live or Idle |
 | `Sidebar` | `components/layout/sidebar.tsx` | Navigation and link status |
 

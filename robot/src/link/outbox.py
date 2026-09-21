@@ -9,6 +9,11 @@ log = logging.getLogger(__name__)
 # this bounds how much is in flight, not how far behind the link may be
 MAX_BATCH = 200
 
+# A frame with a defect in it travels as a JPEG of about 100 KB. Reading and parsing a whole
+# backlog of those at once would hold the event loop, and with it the stop command, so a
+# batch also ends once it passes this many bytes
+MAX_BATCH_BYTES = 2_000_000
+
 # Once everything has been delivered the journal has done its job. Past this it is emptied
 # rather than kept growing for the rest of the run
 ROTATE_BYTES = 1_048_576
@@ -58,6 +63,7 @@ class Outbox:
 
         messages, self._sizes = [], []
         carry = 0                        # bytes of lines that carried no message
+        taken = 0
 
         with open(self._path, "rb") as f:
             f.seek(self._offset)
@@ -73,7 +79,8 @@ class Outbox:
                     continue
                 self._sizes.append(carry + len(raw))
                 carry = 0
-                if len(messages) >= MAX_BATCH:
+                taken += len(raw)
+                if len(messages) >= MAX_BATCH or taken >= MAX_BATCH_BYTES:
                     break
 
         return messages

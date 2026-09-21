@@ -55,8 +55,9 @@ async def robot_link(sock: WebSocket):
                 except Exception: 
                     log.exception("failed to store: %s", msg.type)
             
+            # frames go to the database, not to every open browser at the detector's rate
             if msg.live: 
-                await hub.broadcast(msg.model_dump())
+                await hub.broadcast(msg.model_dump(exclude={"jpeg"}))
 
     except WebSocketDisconnect: 
         pass

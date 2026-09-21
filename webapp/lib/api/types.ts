@@ -53,6 +53,8 @@ export interface Defect {
   box_y1: number | null;
   box_x2: number | null;
   box_y2: number | null;
+  /** Set when the frame the defect was found in is stored, see api.defects.frame. */
+  frame_id: string | null;
 }
 
 export interface CurrentSelection {

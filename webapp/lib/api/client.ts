@@ -13,11 +13,11 @@ export class ApiError extends Error {
 }
 
 /** `anonymous` skips the access token, for the login call itself. */
-async function request<T>(
+async function send(
   path: string,
   init?: RequestInit,
   { anonymous = false }: { anonymous?: boolean } = {},
-): Promise<T> {
+): Promise<Response> {
   const token = anonymous ? null : getToken();
   const res = await fetch(apiUrl(path), {
     ...init,
@@ -42,7 +42,11 @@ async function request<T>(
     }
     throw new ApiError(res.status, `${path} failed: ${res.status} ${detail || res.statusText}`);
   }
+  return res;
+}
 
+async function request<T>(path: string, init?: RequestInit, options?: { anonymous?: boolean }): Promise<T> {
+  const res = await send(path, init, options);
   if (res.status === 204) return undefined as T;
   return res.json() as Promise<T>;
 }
@@ -78,6 +82,9 @@ export const api = {
   },
   defects: {
     list: (runId: string) => request<Defect[]>(`/api/defects${query({ run_id: runId })}`),
+    /** JPEG of the frame the defect was found in. Fetched, not linked: an <img> cannot send the token. */
+    frame: (defectId: string) =>
+      send(`/api/defects/${encodeURIComponent(defectId)}/frame`).then((res) => res.blob()),
   },
   current: {
     get: () => request<CurrentSelection>("/api/current"),

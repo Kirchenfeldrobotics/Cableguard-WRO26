@@ -1,10 +1,13 @@
+import logging
 from collections.abc import Generator
 from contextlib import contextmanager
 
-from sqlalchemy import create_engine, event, inspect, text
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from app.config import settings
+
+log = logging.getLogger(__name__)
 
 IS_SQLITE = settings.DATABASE_URL.startswith("sqlite")
 
@@ -33,87 +36,48 @@ class Base(DeclarativeBase):
     pass
 
 
-def _migrate_sqlite(conn) -> None:
-    inspector = inspect(conn)
-    tables = set(inspector.get_table_names())
-    columns = {t: {c["name"] for c in inspector.get_columns(t)} for t in tables}
+# Bump this whenever a model changes. The database records the version it was built for,
+# and one built for any other is dropped and rebuilt from the models. The data is expendable,
+# a schema that only half matches the code is not: every missing column is a 500 on a page.
+SCHEMA_VERSION = 1
 
-    if "runs" in tables and "name" not in columns["runs"]: 
-        conn.execute(text("ALTER TABLE runs ADD COLUMN name VARCHAR(120) NOT NULL DEFAULT ''"))
-        # Runs recorded before the column get the label the UI already shows
-        conn.execute(text("UPDATE runs SET name = 'Run ' || substr(id, 1, 8) WHERE name = ''"))
 
-    if "defects" in tables: 
-        if "pos_to_start" not in columns["defects"] and "distance_to_start_m" in columns["defects"]: 
-            conn.execute(text("ALTER TABLE defects RENAME COLUMN distance_to_start_m TO pos_to_start"))
+def _rebuild_if_stale() -> None:
+    # raw connection: foreign keys can only be switched off outside a transaction, and with
+    # them off the tables can be dropped in any order, including ones no model knows anymore
+    raw = engine.raw_connection()
+    try:
+        cur = raw.cursor()
+        found = cur.execute("PRAGMA user_version").fetchone()[0]
+        if found == SCHEMA_VERSION:
+            return
 
-        if "created_at" not in columns["defects"]: 
-            conn.execute(text(
-                "ALTER TABLE defects ADD COLUMN created_at DATETIME NOT NULL "
-                "DEFAULT '1970-01-01 00:00:00'"
-            ))
-            # Best available timestamp for older defects: when their run started
-            conn.execute(text(
-                "UPDATE defects SET created_at = "
-                "(SELECT started_at FROM runs WHERE runs.id = defects.run_id) "
-                "WHERE created_at = '1970-01-01 00:00:00' AND run_id IN (SELECT id FROM runs)"
-            ))
-
-        # What the vision model reports, nullable so older rows stay valid
-        for column, ddl in (
-            ("label", "label VARCHAR(64)"),
-            ("confidence", "confidence FLOAT"),
-            ("cam", "cam INTEGER"),
-            ("box_x1", "box_x1 FLOAT"),
-            ("box_y1", "box_y1 FLOAT"),
-            ("box_x2", "box_x2 FLOAT"),
-            ("box_y2", "box_y2 FLOAT"),
-        ):
-            if column not in columns["defects"]:
-                conn.execute(text(f"ALTER TABLE defects ADD COLUMN {ddl}"))
-
-        # Databases created while defects were placed relative to anchors (1da035e) were
-        # never moved off them: f9bba4c dropped anchors without a migration, so they still
-        # carry anchor_id and distance_to_anchor_m, both NOT NULL, and have no pos_to_start.
-        # Every read fails on the missing column and every insert on the NOT NULL ones.
-        # SQLite cannot drop a column that is indexed and a foreign key, so the table is
-        # rebuilt. The anchor's distance from the origin plus the defect's distance from the
-        # anchor is the position the app works with.
-        if "pos_to_start" not in columns["defects"] and "distance_to_anchor_m" in columns["defects"]:
-            anchor = (
-                "COALESCE((SELECT distance_to_origin_m FROM anchors "
-                "WHERE anchors.id = old.anchor_id), 0) + "
-                if "anchors" in tables else ""
-            )
-            conn.execute(text("ALTER TABLE defects RENAME TO defects_anchored"))
-
-            # the renamed table keeps its index names, the rebuilt one needs them back
-            for (name,) in conn.execute(text(
-                "SELECT name FROM sqlite_master WHERE type = 'index' "
-                "AND tbl_name = 'defects_anchored' AND sql IS NOT NULL"
-            )).all():
-                conn.execute(text(f'DROP INDEX "{name}"'))
-
-            Base.metadata.tables["defects"].create(conn)
-            conn.execute(text(
-                "INSERT INTO defects (id, run_id, kind, pos_to_start, created_at, "
-                "label, confidence, cam, box_x1, box_y1, box_x2, box_y2) "
-                f"SELECT id, run_id, kind, {anchor}distance_to_anchor_m, created_at, "
-                "label, confidence, cam, box_x1, box_y1, box_x2, box_y2 "
-                "FROM defects_anchored AS old"
-            ))
-            conn.execute(text("DROP TABLE defects_anchored"))
+        tables = [row[0] for row in cur.execute(
+            "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'"
+        )]
+        cur.execute("PRAGMA foreign_keys=OFF")
+        for table in tables:
+            cur.execute(f'DROP TABLE "{table}"')
+        cur.execute("PRAGMA foreign_keys=ON")
+        raw.commit()
+        if tables:
+            log.warning("database schema %d does not match %d, dropped %d tables and rebuilt",
+                        found, SCHEMA_VERSION, len(tables))
+    finally:
+        raw.close()
 
 
 def init_db() -> None:
     import app.models  
 
-    Base.metadata.create_all(bind=engine)
+    if IS_SQLITE:
+        _rebuild_if_stale()
 
+    Base.metadata.create_all(bind=engine)
 
     if IS_SQLITE:
         with engine.begin() as conn:
-            _migrate_sqlite(conn)
+            conn.exec_driver_sql(f"PRAGMA user_version = {SCHEMA_VERSION}")
 
 
 def get_db() -> Generator[Session, None, None]:

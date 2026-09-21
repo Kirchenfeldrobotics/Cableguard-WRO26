@@ -13,7 +13,7 @@ log = logging.getLogger(__name__)
 MODEL_DIR = Path(__file__).resolve().parents[2] / "models" / "best_ncnn_model"
 
 # Detection thresholds
-CONF = 0.35
+CONF = 0.5
 
 # IOU threshold for non-max suppression
 IOU = 0.5

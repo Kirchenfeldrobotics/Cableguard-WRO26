@@ -60,6 +60,7 @@ class VisionTelemetry(RobotMessage):
     frame_w: int 
     frame_h: int 
     detections: list[VisionDetection]
+    jpeg: str | None = None                     # base64 JPEG of the frame, only sent with detections
 
 # == API ---> Robot ==
 

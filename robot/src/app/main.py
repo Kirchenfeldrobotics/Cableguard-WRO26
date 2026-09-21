@@ -30,6 +30,9 @@ ACCEL = 4000.0
 STEAM_FPS = 8.0
 CAMERA_FPS = 15.0
 
+# the frame a defect was found in is kept as evidence, sharp enough to see a single wire
+DEFECT_JPEG_QUALITY = 85
+
 GUARD_PERIOD = 0.5
 TELEMETRY_PERIOD = 0.5
 
@@ -91,6 +94,8 @@ async def detection_reporter(cams: CameraPair, detector: Detector, link: RobotLi
             for idx, frame in frames:
                 started = loop.time()
                 found = await asyncio.to_thread(detector.detect, frame)
+                # only a frame with something in it is worth storing
+                jpeg = await asyncio.to_thread(encode, frame, DEFECT_JPEG_QUALITY) if found else None
                 millis = (loop.time() - started) * 1000.0
 
                 if found:
@@ -112,6 +117,7 @@ async def detection_reporter(cams: CameraPair, detector: Detector, link: RobotLi
                     microsteps=microsteps,
                     distance_from_origin=distance,
                     inference_ms=millis,
+                    jpeg=jpeg,
                 )
                 # queued, not sent live: a detection that is not stored is a defect lost
                 link.send(msg.model_dump())

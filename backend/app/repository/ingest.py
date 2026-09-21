@@ -1,3 +1,5 @@
+import base64
+import binascii
 import logging
 from collections.abc import Callable
 import uuid
@@ -5,7 +7,7 @@ import uuid
 from sqlalchemy.orm import Session
 from comm_protocols.messages import Defect as DefectMsg, VisionTelemetry
 
-from app.models import Defect 
+from app.models import Defect, Frame 
 from app.repository.state import get_current
 
 log = logging.getLogger(__name__)
@@ -45,12 +47,31 @@ def _store_vision(db, msg):
         log.warning("dropping %s: the robot reports no position", msg.type)
         return 
 
+    stored = []
     for det in msg.detections: 
         # the robot could not map the class name, writing a kind here would invent one
         if det.kind is None: 
             log.warning("skipping detection: %s is not mapped to a kind", det.label)
             continue 
+        stored.append(det)
 
+    # a frame nothing points at is only dead weight
+    if not stored: 
+        return 
+
+    # The frame is stored once and every defect found in it points at it. A frame that does
+    # not decode costs the picture, not the defects.
+    frame = None
+    if msg.jpeg is not None: 
+        try: 
+            jpeg = base64.b64decode(msg.jpeg, validate=True)
+        except binascii.Error: 
+            log.warning("frame of %s seq %d is not valid base64, storing its defects without it",
+                        msg.type, msg.seq)
+        else: 
+            frame = Frame(id=str(uuid.uuid4()), run_id=run_id, cam=msg.cam, jpeg=jpeg)
+
+    for det in stored: 
         db.add(Defect(
             id=str(uuid.uuid4()), 
             run_id=run_id, 
@@ -63,6 +84,7 @@ def _store_vision(db, msg):
             box_y1=det.box[1], 
             box_x2=det.box[2], 
             box_y2=det.box[3], 
+            frame=frame, 
         ))
 
 # Mapping from message type to handler 

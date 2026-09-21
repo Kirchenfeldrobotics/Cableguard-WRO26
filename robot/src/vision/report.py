@@ -1,3 +1,5 @@
+import base64
+
 from comm_protocols.messages import VisionDetection, VisionTelemetry
 
 # class name of the model => kind the protocol knows, in the class order of metadata.yaml.
@@ -16,7 +18,7 @@ LABEL_TO_KIND = {
 
 # one detector result per frame, boxes normalised because the detection stream (main, 640x640)
 # and the stream the webapp shows (lores, 640x480) do not share a resolution
-def vision_telemetry(seq, cam, frame, found, captured_at, microsteps, distance_from_origin, inference_ms):
+def vision_telemetry(seq, cam, frame, found, captured_at, microsteps, distance_from_origin, inference_ms, jpeg=None):
     h, w = frame.shape[:2]
 
     return VisionTelemetry(
@@ -37,4 +39,5 @@ def vision_telemetry(seq, cam, frame, found, captured_at, microsteps, distance_f
             )
             for det in found
         ],
+        jpeg=base64.b64encode(jpeg).decode("ascii") if jpeg else None,
     )

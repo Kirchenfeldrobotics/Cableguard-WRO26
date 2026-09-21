@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy.orm import Session 
 
 from app.database import get_db 
@@ -17,3 +17,11 @@ def get_defect(defect_id: str, db: Session = Depends(get_db)):
     if defect is None: 
         raise HTTPException(404, "defect not found")
     return defect
+
+# The frame the defect was found in, as the robot's camera saw it
+@router.get("/{defect_id}/frame")
+def get_defect_frame(defect_id: str, db: Session = Depends(get_db)): 
+    jpeg = repo.get_frame(db, defect_id)
+    if jpeg is None: 
+        raise HTTPException(404, "no frame stored for this defect")
+    return Response(content=jpeg, media_type="image/jpeg")

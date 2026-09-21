@@ -26,6 +26,9 @@ const markColor: Record<Tone, string> = {
   neutral: "bg-text-subtle",
 };
 
+/** The detector keeps nothing at or below 50%, so the fade spans 50-100% rather than 0-100%. */
+const CONFIDENCE_FLOOR = 0.5;
+
 /** Narrowest a mark may get, so a single detection stays clickable. */
 const minWidthPx: Record<string, number> = { new: 5, unchanged: 3, point: 4 };
 
@@ -85,7 +88,7 @@ export function RopeStrip({
                   opacity:
                     mark.state === "unchanged" || mark.confidence == null
                       ? undefined
-                      : 0.45 + 0.55 * mark.confidence,
+                      : 0.45 + 0.55 * Math.max(0, (mark.confidence - CONFIDENCE_FLOOR) / (1 - CONFIDENCE_FLOOR)),
                 }}
                 className={cn(
                   "h-6 rounded-[3px]",

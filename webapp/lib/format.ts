@@ -83,7 +83,7 @@ export function defectClassLabel(label: string | null | undefined): string {
   return words.charAt(0).toUpperCase() + words.slice(1);
 }
 
-/** `82%`. The detector drops anything below 35%, so the scale starts there. */
+/** `82%`. The detector drops anything at or below 50%, so the scale starts there. */
 export function formatConfidence(value: number | null | undefined): string {
   return value == null ? NOT_AVAILABLE : `${Math.round(value * 100)}%`;
 }

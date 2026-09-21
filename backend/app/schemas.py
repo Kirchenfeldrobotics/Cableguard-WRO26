@@ -81,3 +81,5 @@ class DefectOut(BaseModel):
     box_y1: float | None
     box_x2: float | None
     box_y2: float | None
+    # Set when the frame the defect was found in is stored, GET /api/defects/{id}/frame
+    frame_id: str | None
