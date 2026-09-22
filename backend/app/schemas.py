@@ -8,7 +8,11 @@ from pydantic import BaseModel, ConfigDict
 # Credentials sent by the webapp login form
 class LoginRequest(BaseModel): 
     username: str 
-    password: str 
+    password: str
+
+# Key read from the NFC tag on the robot
+class NfcLoginRequest(BaseModel):
+    key: str
 
 # Schema for the signed-in operator
 class UserOut(BaseModel): 

@@ -26,6 +26,10 @@ class Settings(BaseSettings):
     DEFAULT_USERNAME: str = "user1"
     DEFAULT_PASSWORD: str = "#wro"
 
+    # Secret stored on the NFC tag on the robot. Tapping the tag opens
+    # /login#nfc=<key> and signs in as the operator above. Empty disables it.
+    NFC_LOGIN_KEY: str = ""
+
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
     def _parse_cors_origins(cls, v: object) -> object:
