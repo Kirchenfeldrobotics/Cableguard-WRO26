@@ -134,7 +134,7 @@ class VL53L0X:
         self._write(SOFT_RESET_GO2_SOFT_RESET_N, 0x00)
         self._wait(lambda: self._read(IDENTIFICATION_MODEL_ID) == 0x00, "entering reset")
         self._write(SOFT_RESET_GO2_SOFT_RESET_N, 0x01)
-        self._wait(lambda: self._read(IDENTIFICATION_MODEL_ID) != 0x00, "booting")
+        self._wait(self._booted, "booting")
 
         # I2C standard mode, then read the stop variable every measurement has to write back
         self._writes(((0x88, 0x00), (0x80, 0x01), (0xFF, 0x01), (0x00, 0x00)))
@@ -165,6 +165,13 @@ class VL53L0X:
         self._write(SYSTEM_SEQUENCE_CONFIG, 0x02)
         self._calibrate(0x00)                        # phase
         self._write(SYSTEM_SEQUENCE_CONFIG, 0xE8)
+
+    # the sensor does not answer on the bus while it boots, a read nobody acknowledges means not yet
+    def _booted(self):
+        try:
+            return self._read(IDENTIFICATION_MODEL_ID) != 0x00
+        except OSError:
+            return False
 
     # enables as many reference SPADs as the factory calibration in NVM asks for
     def _setup_reference_spads(self):
