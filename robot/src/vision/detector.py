@@ -18,7 +18,7 @@ MODEL_DIR = Path(__file__).resolve().parents[2] / "models" / "best_ncnn_model"
 CONF = 0.1
 
 # IOU threshold for overlap merging
-IOU = 1
+IOU = 0
 
 @dataclass(frozen=True)
 class Detection:
