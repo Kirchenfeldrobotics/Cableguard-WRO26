@@ -3,7 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 
 import { ApiError, api } from "@/lib/api/client";
-import type { AuthUser } from "@/lib/api/types";
+import type { AuthUser, LoginResult } from "@/lib/api/types";
 import { clearToken, getToken, onSignedOut, setToken } from "@/lib/auth/session";
 
 export type AuthStatus = "loading" | "signed-in" | "signed-out";
@@ -14,6 +14,8 @@ export interface AuthValue {
   user: AuthUser | null;
   /** Rejects with the ApiError from `POST /api/auth/login`. */
   signIn: (username: string, password: string) => Promise<void>;
+  /** Rejects with the ApiError from `POST /api/auth/nfc`. */
+  signInWithNfc: (key: string) => Promise<void>;
   signOut: () => void;
 }
 
@@ -67,12 +69,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [],
   );
 
-  const signIn = useCallback(async (username: string, password: string) => {
-    const result = await api.auth.login(username, password);
+  const accept = useCallback((result: LoginResult) => {
     setToken(result.access_token);
     setUser(result.user);
     setStatus("signed-in");
   }, []);
+
+  const signIn = useCallback(
+    async (username: string, password: string) => accept(await api.auth.login(username, password)),
+    [accept],
+  );
+
+  const signInWithNfc = useCallback(
+    async (key: string) => accept(await api.auth.nfcLogin(key)),
+    [accept],
+  );
 
   const signOut = useCallback(() => {
     clearToken();
@@ -81,7 +92,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ status, user, signIn, signOut }}>{children}</AuthContext.Provider>
+    <AuthContext.Provider value={{ status, user, signIn, signInWithNfc, signOut }}>
+      {children}
+    </AuthContext.Provider>
   );
 }
 

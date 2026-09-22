@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
@@ -9,11 +9,24 @@ import { PageHeader } from "@/components/ui/heading";
 import { useAuth } from "@/lib/auth/auth-context";
 
 export function LoginView() {
-  const { signIn } = useAuth();
+  const { signIn, signInWithNfc } = useAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // The NFC tag on the robot opens /login#nfc=<key>. The key sits in the URL
+  // fragment, which the browser never sends to a server, and is removed from
+  // the address bar before it is used.
+  useEffect(() => {
+    const key = new URLSearchParams(window.location.hash.slice(1)).get("nfc");
+    if (!key) return;
+    window.history.replaceState(null, "", window.location.pathname);
+
+    signInWithNfc(key).catch((err: unknown) =>
+      setError(err instanceof Error ? err.message : "NFC sign in failed"),
+    );
+  }, [signInWithNfc]);
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();

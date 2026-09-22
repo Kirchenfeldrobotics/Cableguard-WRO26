@@ -63,6 +63,12 @@ def dummy_verify(password: str) -> None:
     verify_password(password, hash_password(_DUMMY_HASH_PASSWORD))
 
 
+def nfc_key_matches(key: str) -> bool:
+    """Whether `key` is the NFC_LOGIN_KEY from the robot's tag. Always False while it is unset."""
+    expected = settings.NFC_LOGIN_KEY
+    return bool(expected) and hmac.compare_digest(key.encode(), expected.encode())
+
+
 # access tokens ---------------------------------------------------------------
 
 def create_access_token(user: User) -> tuple[str, int]:

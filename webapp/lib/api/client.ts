@@ -63,6 +63,9 @@ export const api = {
         { method: "POST", body: json({ username, password }) },
         { anonymous: true },
       ),
+    /** Signs in with the key from the robot's NFC tag. */
+    nfcLogin: (key: string) =>
+      request<LoginResult>("/api/auth/nfc", { method: "POST", body: json({ key }) }, { anonymous: true }),
     me: () => request<AuthUser>("/api/auth/me"),
   },
   ropes: {
