@@ -1,11 +1,13 @@
 import logging
+import multiprocessing as mp
+import signal
+import threading
 import time
 from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
 import yaml
-from ultralytics import YOLO
 
 log = logging.getLogger(__name__)
 
@@ -17,9 +19,6 @@ CONF = 0.5
 
 # IOU threshold for non-max suppression
 IOU = 0.5
-
-
-
 
 @dataclass(frozen=True)
 class Detection:
@@ -49,6 +48,8 @@ class Detector:
         self.names = {int(i): name for i, name in meta["names"].items()}
         self.conf = conf
         self.iou = iou
+        # imported here so that only the detector process pays for torch
+        from ultralytics import YOLO
         # task="detect" must be explicit
         self._model = YOLO(str(model_dir), task="detect")
         log.info("ncnn model loaded: %s, imgsz=%d, classes=%s",
@@ -74,3 +75,59 @@ class Detector:
         started = time.monotonic()
         self.detect(blank)
         log.info("warmup done in %.0f ms", (time.monotonic() - started) * 1000.0)
+
+
+# Runs a Detector in its own process. ncnn keeps Python's GIL for the whole forward pass,
+# which would freeze every other thread of the robot, the one feeding the drive included
+def _serve(conn):
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+    # Ctrl-C is for the robot process, this one ends when the pipe closes
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
+
+    try:
+        detector = Detector()
+    except Exception as exc:
+        conn.send((False, exc))
+        return
+    conn.send((True, None))
+
+    while True:
+        try:
+            name, args = conn.recv()
+        except EOFError:
+            return
+        try:
+            conn.send((True, getattr(detector, name)(*args)))
+        except Exception as exc:
+            conn.send((False, exc))
+
+# stands in for a Detector, each call blocks until the detector process answers
+class DetectorProcess:
+
+    # starts the process and waits until the model is loaded
+    def __init__(self):
+        # spawn, not fork: a forked child would inherit the robot's GPIO and PIO handles
+        ctx = mp.get_context("spawn")
+        self._conn, child = ctx.Pipe()
+        self._proc = ctx.Process(target=_serve, args=(child,), name="detector", daemon=True)
+        self._proc.start()
+        child.close()
+        self._lock = threading.Lock()
+        self._answer()
+
+    def _answer(self):
+        ok, value = self._conn.recv()
+        if not ok:
+            raise value
+        return value
+
+    def _call(self, name, *args):
+        with self._lock:
+            self._conn.send((name, args))
+            return self._answer()
+
+    def detect(self, frame) -> list[Detection]:
+        return self._call("detect", frame)
+
+    def warmup(self):
+        self._call("warmup")

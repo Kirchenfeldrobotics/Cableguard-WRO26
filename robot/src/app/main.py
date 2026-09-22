@@ -13,7 +13,7 @@ from link.outbox import Outbox
 from link.video import VideoLink
 from motion.controller import MotionController
 from motion.stepper import Stepper
-from vision.detector import Detector
+from vision.detector import DetectorProcess
 from vision.pacing import ScanPlan, measure_cycle, plan_scan
 from vision.report import vision_telemetry
 
@@ -77,7 +77,7 @@ async def frame_producer(cams: CameraPair, video: VideoLink, fps: float):
         await asyncio.sleep(max(0.0, deadline - loop.time()))
 
 # run the detector on both cameras, write what it sees to the journal and report it
-async def detection_reporter(cams: CameraPair, detector: Detector, link: RobotLink, motor: Stepper, period: float):
+async def detection_reporter(cams: CameraPair, detector: DetectorProcess, link: RobotLink, motor: Stepper, period: float):
     loop = asyncio.get_running_loop()
     seq = 0
 
@@ -188,7 +188,7 @@ async def main():
     cams = CameraPair(fps=CAMERA_FPS).start()
 
     # the detector sets the pace the drive runs at, there is no scanning without it
-    detector = Detector()
+    detector = DetectorProcess()
     await asyncio.to_thread(detector.warmup)
     cycle_s = await asyncio.to_thread(measure_cycle, cams, detector)
 

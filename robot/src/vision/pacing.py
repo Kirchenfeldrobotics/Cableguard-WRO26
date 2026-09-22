@@ -11,10 +11,10 @@ METRE_PER_FRAME = 0.06
 # The detector is never run at the edge of what it manages. Inference gets slower the more
 # boxes a frame holds, and the benchmark runs on a clean rope, so a cycle in the field is
 # slower than a cycle at startup. A cycle that overruns leaves a gap in the rope
-HEADROOM = 1.4
+HEADROOM = 1.7
 
 # Cycles the benchmark averages over. The first one is thrown away, it still allocates
-BENCHMARK_CYCLES = 3
+BENCHMARK_CYCLES = 9
 
 # Speed and period are derived from each other, so multiplying them back out lands a few
 # float bits either side of one frame. Anything under a tenth of a millimetre is that noise
