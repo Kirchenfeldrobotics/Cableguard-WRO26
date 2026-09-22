@@ -2,6 +2,7 @@ stubs/
 models/
 src/camera/__pycache__/
 src/motion/__pycache__/
+src/tof/__pycache__/
 src/display/__pycache__/
 src/vision/__pycache__/
 src/link/__pycache__/

@@ -91,6 +91,14 @@ export interface MotionTelemetryEvent {
   seq: number;
 }
 
+/** What the robot's distance sensor sees (robot/src/tof). Live only, nothing is stored. */
+export interface DistanceTelemetryEvent {
+  type: "distance_telemetry";
+  /** Metres to the nearest object, null when nothing is within the sensor's range of about 2 m. */
+  distance_m: number | null;
+  seq: number;
+}
+
 /** One box from a vision_telemetry frame. */
 export interface VisionDetection {
   label: string;
@@ -134,6 +142,7 @@ export type ServerEvent =
   | RobotStatusEvent
   | AliveEvent
   | MotionTelemetryEvent
+  | DistanceTelemetryEvent
   | VisionTelemetryEvent
   | CurrentChangedEvent
   | ErrorEvent;

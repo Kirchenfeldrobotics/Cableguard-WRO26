@@ -12,6 +12,11 @@ export function formatMetres(value: number | null | undefined): string {
   return value == null ? NOT_AVAILABLE : `${metres.format(value)} m`;
 }
 
+/** `0.42 m` to the nearest object. Null is a reading as well: nothing within the sensor's range. */
+export function formatDistance(value: number | null): string {
+  return value === null ? "nothing in range" : `${value.toFixed(2)} m`;
+}
+
 export function formatNumber(value: number | null | undefined, digits = 0): string {
   if (value == null) return NOT_AVAILABLE;
   return value.toLocaleString("en-US", { maximumFractionDigits: digits });

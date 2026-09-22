@@ -6,7 +6,7 @@ import signal
 import time
 from dataclasses import dataclass
 
-from comm_protocols.messages import MotionTelemetry, ResetOriginCmd, StartCmd, StopCmd
+from comm_protocols.messages import DistanceTelemetry, MotionTelemetry, ResetOriginCmd, StartCmd, StopCmd
 
 from camera.camera import CameraPair, encode
 from display.screen import Status, StatusScreen
@@ -15,6 +15,7 @@ from link.outbox import Outbox
 from link.video import VideoLink
 from motion.controller import MotionController
 from motion.stepper import Stepper
+from tof.vl53l0x import VL53L0X
 from vision.detector import DetectorProcess
 from vision.pacing import ScanPlan, measure_cycle, plan_scan
 from vision.report import vision_telemetry
@@ -38,6 +39,10 @@ DEFECT_JPEG_QUALITY = 85
 GUARD_PERIOD = 0.5
 TELEMETRY_PERIOD = 0.5
 
+# distance sensor, a TOF200C (VL53L0X) on I2C bus 1 (SDA GPIO2, SCL GPIO3)
+TOF_I2C_BUS = 1
+DISTANCE_PERIOD = 0.5
+# status display, a 1.54" ST7789 on SPI0 (SCL GPIO11, SDA GPIO10, CS GPIO8)
 # status display, a 1.69" 240x280 ST7789 on SPI0 (SCL GPIO11, SDA GPIO10, CS GPIO8)
 DISPLAY_DC_PIN = 25
 DISPLAY_RST_PIN = 27
@@ -193,6 +198,28 @@ async def telemetry_sender(link: RobotLink, motor: Stepper, plan: ScanPlan, peri
                 log.exception("telemetry failed")
         await asyncio.sleep(period)
 
+# send what the distance sensor sees, live only
+async def distance_sender(link: RobotLink, tof: VL53L0X, period: float):
+    seq = 0
+    failing = False
+    while True:
+        if link.connected:
+            try:
+                # a sensor that dropped out has lost its setup, it has to be set up again
+                if failing:
+                    await asyncio.to_thread(tof.reset)
+                distance = await asyncio.to_thread(tof.read_m)
+            except (OSError, RuntimeError) as exc:
+                # logged once, a loose wire would otherwise fill the journal twice a second
+                if not failing:
+                    log.warning("distance sensor stopped answering: %s", exc)
+                failing = True
+            else:
+                if failing:
+                    log.info("distance sensor answers again")
+                failing = False
+                seq += 1
+                await link.send_live(DistanceTelemetry(distance_m=distance, seq=seq).model_dump())
 # redraw the status display
 async def display_updater(screen: StatusScreen, link: RobotLink, outbox: Outbox, motor: Stepper,
                           stats: DetectionStats, period: float):
@@ -238,6 +265,14 @@ async def main():
     # Configure link to api 
     outbox = Outbox("outbox.jsonl")
     link = RobotLink(outbox)
+
+    # distance to the next object, the robot runs without it
+    try:
+        tof = VL53L0X(TOF_I2C_BUS)
+    except (OSError, RuntimeError) as exc:
+        log.warning("no distance sensor: %s", exc)
+        tof = None
+
     video = VideoLink()
     cams = CameraPair(fps=CAMERA_FPS).start()
 
@@ -267,6 +302,8 @@ async def main():
             tg.create_task(detection_reporter(cams, detector, link, motor, stats, plan.period), name="detection")
             tg.create_task(link_guard(link, motion), name="guard")
             tg.create_task(telemetry_sender(link, motor, plan, TELEMETRY_PERIOD), name="telemetry")
+            if tof is not None:
+                tg.create_task(distance_sender(link, tof, DISTANCE_PERIOD), name="distance")
             tg.create_task(display_updater(screen, link, outbox, motor, stats, DISPLAY_PERIOD), name="display")
     except* asyncio.CancelledError:
         log.info("shutting down")
@@ -274,6 +311,8 @@ async def main():
         motion.emergency_stop()
         cams.close()
         motion.shutdown()
+        if tof is not None:
+            tof.close()
         screen.close()
         log.info("stopped")
 
