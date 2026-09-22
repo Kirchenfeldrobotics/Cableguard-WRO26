@@ -1,6 +1,6 @@
 -e ../shared
 
-pigpio
+lgpio
 websockets
 pydantic
 ultralytics

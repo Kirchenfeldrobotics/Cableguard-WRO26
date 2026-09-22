@@ -5,4 +5,4 @@ src/motion/__pycache__/
 src/vision/__pycache__/
 src/link/__pycache__/
 src/app/__pycache__/
-
+src/motion/libstepgen.so

@@ -1,8 +1,20 @@
-import lgpio, math, threading, time
+import ctypes, lgpio, math, os, threading, time
+from collections import deque
 
 # How far the rope moves per microstep. Placeholder until the drive is measured:
 # 1600 microsteps per turn on a 50 mm wheel. Every metre in the system comes from here
 MICROSTEPS_PER_METRE = 10186.0
+
+# The step pulses come from a PIO state machine on the RP1 (stepgen.c), not from Linux,
+# which cannot time them evenly. Build the library on the Pi before the first run
+_stepgen = ctypes.CDLL(os.path.join(os.path.dirname(os.path.abspath(__file__)), "libstepgen.so"))
+_stepgen.stepgen_open.argtypes = [ctypes.c_uint]
+_stepgen.stepgen_put.argtypes  = [ctypes.c_uint, ctypes.c_uint]
+_stepgen.stepgen_close.restype = None
+
+# depth of the RP1 PIO FIFOs. A block counts as pending until the PIO reports it played,
+# so with at most this many pending neither the TX nor the RX FIFO can overflow
+PIO_FIFO_DEPTH = 8
 
 class Stepper():
     def __init__(self,
@@ -10,7 +22,6 @@ class Stepper():
                  dir_pin,
                  ena_pin=None,
                  chip=4,
-                 puls_us=20,
                  dir_setup_s=0.001,
                  ena_settle_s=0.2,
                  invert_dir=False,
@@ -19,6 +30,7 @@ class Stepper():
                  microsteps=8,
                  microsteps_per_metre=MICROSTEPS_PER_METRE,
                  cruise_block_s=0.02,
+                 cruise_blocks_ahead=3,
                  ramp_segments=40,
                  start_speed=200.0,
                  max_speed=2000.0,
@@ -29,8 +41,7 @@ class Stepper():
         self.dir_pin = dir_pin
         self.ena_pin = ena_pin
 
-        # specify driver timing
-        self.puls_us      = puls_us       # how long the pulse is high
+        # specify driver timing, the pulse itself is fixed at 10 us by the PIO program
         self.dir_setup_s  = dir_setup_s   # break after direction high
         self.ena_settle_s = ena_settle_s  # break after enabled high
 
@@ -45,8 +56,10 @@ class Stepper():
         # drive geometry, the only place microsteps and metres meet
         self.microsteps_per_metre = microsteps_per_metre
 
-        # one cruise block = one tx_pulse call => stop latency is ~2 blocks
-        self.cruise_block_s = cruise_block_s
+        # One cruise block = one word to the PIO. Enough blocks stay queued to ride out a
+        # busy CPU, few enough that a stop is not stuck behind them for long
+        self.cruise_block_s      = cruise_block_s
+        self.cruise_blocks_ahead = cruise_blocks_ahead
 
         # how many constant-speed segments a ramp is approximated with
         self.n_ramp_segments = ramp_segments
@@ -56,11 +69,16 @@ class Stepper():
         self.max_speed   = max_speed
         self.accel       = accel
 
-        # setup lgpio (no daemon, unlike pigpio)
+        # the PIO takes the step pin over, lgpio must not claim it afterwards or the pin
+        # falls back to plain GPIO
+        err = _stepgen.stepgen_open(pul_pin)
+        if err < 0:
+            raise OSError(-err, f"cannot drive the step pin from /dev/pio0: {os.strerror(-err)}")
+
+        # lgpio (no daemon, unlike pigpio) drives direction and enable
         # chip 4 is the RP1 on the pi 5, chip 0 on older boards and newer kernels
         self.h = lgpio.gpiochip_open(chip)
 
-        lgpio.gpio_claim_output(self.h, pul_pin, 0)
         lgpio.gpio_claim_output(self.h, dir_pin, 0)
 
         if ena_pin is not None:
@@ -72,8 +90,11 @@ class Stepper():
         self._forward = True
         self.abort    = threading.Event()
 
-        # position: every pulse is commanded, so the count is exact
-        self._accum = 0
+        # position: a block's steps are banked once the PIO reports it played, so the count
+        # never runs ahead of the motor
+        self._accum   = 0
+        self._pending = deque()   # signed steps of every block the PIO has not played yet
+        self._lock    = threading.Lock()
 
         # cruise is fed in finite blocks so the steps stay countable
         self._cruise_speed = 0.0
@@ -138,7 +159,8 @@ class Stepper():
 
     # reset number of microsteps done
     def reset_steps_done(self):
-        self._accum = 0
+        with self._lock:
+            self._accum = 0
 
     # enable stepper (ena pin required)
     def enable(self):
@@ -159,16 +181,8 @@ class Stepper():
         lgpio.gpio_write(self.h, self.dir_pin, level)
         time.sleep(self.dir_setup_s)
 
-    # high and low time in whole us for a given speed
-    def pulse_times(self, v):
-        period_us = int(round(1e6 / v))
-        off_us    = period_us - self.puls_us
-        if off_us < self.puls_us:
-            off_us = self.puls_us
-        return self.puls_us, off_us
-
     # ramp as a list of (speed, cycles) segments
-    # lgpio wants a period plus a cycle count, not one entry per step,
+    # the PIO takes a period plus a step count per block, not one entry per step,
     # so the ramp is approximated with n segments of constant speed
     def ramp_segments(self, v_from, v_to):
         v_from = max(v_from, self.start_speed)
@@ -197,34 +211,44 @@ class Stepper():
 
         return segments
 
-    # bank cycles into the position counter, signed by direction
-    def _count(self, cycles):
-        self._accum += cycles if self._forward else -cycles
+    # bank the steps of every block the PIO has played since the last look, caller holds the lock
+    def _reap(self):
+        for _ in range(_stepgen.stepgen_done()):
+            self._accum += self._pending.popleft()
+
+    # number of blocks the PIO has not played yet
+    def _pending_blocks(self):
+        with self._lock:
+            self._reap()
+            return len(self._pending)
+
+    # hand one block to the PIO, False if its FIFO is full
+    def _put(self, v, cycles):
+        with self._lock:
+            self._reap()
+            if len(self._pending) >= PIO_FIFO_DEPTH:
+                return False
+            if _stepgen.stepgen_put(int(round(1e6 / v)), cycles) < 0:
+                raise ValueError(f"{cycles} steps at {v:.0f} microsteps/s do not fit in a PIO block")
+            self._pending.append(cycles if self._forward else -cycles)
+            return True
 
     # queue one block of pulses, blocks until there is room in the queue
     def _queue(self, v, cycles):
-        on, off = self.pulse_times(v)
-        while lgpio.tx_room(self.h, self.pul_pin, lgpio.TX_PWM) < 1:
+        while not self._put(v, cycles):
             time.sleep(0.001)
-        lgpio.tx_pulse(self.h, self.pul_pin, on, off, pulse_cycles=cycles)
-        self._count(cycles)
 
     # tops up the queue while cruising, so cruise steps stay counted
-    # keeps only one block ahead, otherwise a stop would sit behind the backlog
     def _feeder_loop(self):
         while not self._closing.is_set():
             v = self._cruise_speed
-            if v > 0.0:
-                cycles = max(1, int(self.cruise_block_s * v))
-                if lgpio.tx_room(self.h, self.pul_pin, lgpio.TX_PWM) > 1:
-                    on, off = self.pulse_times(v)
-                    lgpio.tx_pulse(self.h, self.pul_pin, on, off, pulse_cycles=cycles)
-                    self._count(cycles)
+            if v > 0.0 and self._pending_blocks() < self.cruise_blocks_ahead:
+                self._put(v, max(1, int(self.cruise_block_s * v)))
             time.sleep(self.cruise_block_s / 4.0)
 
     # blocks until every queued pulse has been sent
     def _wait_idle(self):
-        while lgpio.tx_busy(self.h, self.pul_pin, lgpio.TX_PWM):
+        while self._pending_blocks():
             time.sleep(0.001)
 
     # queue a whole ramp, segments play back to back with no gap
@@ -265,8 +289,8 @@ class Stepper():
             self._speed = 0.0
 
     # stop feeding cruise blocks. Safe to call from any thread: the feeder picks it up on
-    # its next pass and the driver queue then drains within about two blocks. stop() has to
-    # run on the motion thread, this does not
+    # its next pass and the queued blocks then play out within cruise_blocks_ahead blocks.
+    # stop() has to run on the motion thread, this does not
     def cut_cruise(self):
         self._cruise_speed = 0.0
 
@@ -281,10 +305,9 @@ class Stepper():
         if segments:
             self._emit(segments)
 
-        # Every block goes out with a finite cycle count, so the output ends by itself once
-        # the ramp and any cruise block still queued have played. Its steps were counted when
-        # it was queued, so letting it play also keeps the position exact. lgpio refuses a
-        # zero/zero pulse as a way to cut it short ("bad PWM micros")
+        # Blocks already handed to the PIO cannot be taken back, so the ramp and any cruise
+        # block still queued play out first. Waiting for them keeps the position exact and
+        # makes sure the last pulse is over before the direction may change
         self._wait_idle()
         self._speed = 0.0
 
@@ -295,7 +318,7 @@ class Stepper():
             self._closing.set()
             self._feeder.join(timeout=1.0)
             self._wait_idle()
-            lgpio.gpio_write(self.h, self.pul_pin, 0)
+            _stepgen.stepgen_close()
             self.disable()
             lgpio.gpiochip_close(self.h)
 
