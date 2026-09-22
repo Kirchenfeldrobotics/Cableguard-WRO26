@@ -29,7 +29,7 @@ export function formatDriveSpeed(value: number | null | undefined): string {
   return `${Math.abs(value).toFixed(2)} m/s${direction}`;
 }
 
-/** `1.8 /s`, how often the detector runs a frame from both cameras. */
+/** `1.8 /s`, how often the detector runs a frame from both cameras, at both ring angles. */
 export function formatDetectRate(fps: number | null | undefined): string {
   return fps == null ? NOT_AVAILABLE : `${fps.toFixed(1)} /s`;
 }

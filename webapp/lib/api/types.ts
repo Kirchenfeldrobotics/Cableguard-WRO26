@@ -76,7 +76,7 @@ export interface AliveEvent {
 
 export interface MotionTelemetryEvent {
   type: "motion_telemetry";
-  /** Drive speed in microsteps per second (see robot/src/motion/stepper.py). */
+  /** Drive speed in microsteps per second (see robot/src/motion/drive.py). */
   speed: number;
   /** The same speed in metres per second. The robot owns the drive geometry. */
   speed_mps: number;

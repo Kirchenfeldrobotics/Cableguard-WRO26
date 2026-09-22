@@ -1,13 +1,15 @@
 import logging
 import queue
 import threading
-from motion.stepper import Stepper
+from motion.drive import Drive
 
 log = logging.getLogger(__name__)
 
+# Serialises the drive commands that come in over the link onto one thread. The turret is
+# not in here: it takes its moves from the detection cycle alone and needs no queue
 class MotionController: 
-    def __init__(self, motor: Stepper): 
-        self.motor = motor 
+    def __init__(self, drive: Drive):
+        self.drive = drive
         self._cmds = queue.Queue()
         self._stop = threading.Event()
         self._thread = threading.Thread(target=self._loop, daemon=True)
@@ -24,21 +26,21 @@ class MotionController:
                 cmd, arg = self._cmds.get_nowait()
             try:
                 if cmd == "speed":
-                    self.motor.ramp_to(arg)
+                    self.drive.ramp_to(arg)
                 elif cmd == "stop":
-                    self.motor.stop()
-                    log.info("stopped at %.2f m", self.motor.metres_done)
+                    self.drive.stop()
+                    log.info("stopped at %.2f m", self.drive.metres_done)
             except Exception:
                 log.exception("motion command failed: %s", cmd)
                 try:
-                    self.motor.stop()
+                    self.drive.stop()
                 except Exception:
                     log.exception("stop after failed command failed")
 
     # put cmd in queue
     def request(self, cmd: str, arg=None): 
         if cmd == "speed":
-            self.motor.abort.clear()
+            self.drive.abort.clear()
         self._cmds.put((cmd, arg))
 
     # stop motor regardless of queue
@@ -47,14 +49,12 @@ class MotionController:
         # it is, the feeder keeps handing out cruise blocks. Cutting the cruise here stops
         # the pulses whatever that thread is doing; the queued stop ramps down the rest of
         # the way once it gets its turn.
-        self.motor.abort.set()
-        self.motor.cut_cruise()
+        self.drive.abort.set()
+        self.drive.cut_cruise()
         self._cmds.put(("stop", None))
 
     # set stop event, terminate thread and close motor driver
     def shutdown(self): 
         self._stop.set()
         self._thread.join(timeout=2.0)
-        self.motor.close()
-
-    
+        self.drive.close()
