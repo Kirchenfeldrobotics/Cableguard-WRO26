@@ -17,23 +17,25 @@ RAMWR   = 0x2C
 MADCTL  = 0x36
 COLMOD  = 0x3A
 
-# the 1.54" panel is 240x240, its controller has RAM for 240x320
-SIZE = 240
+# The 1.69" panel is 240x280. Its controller has RAM for 240x320 and the panel sits in the
+# middle of it, 20 rows from either end, whichever way round the rows run
+PANEL_W = 240
+PANEL_H = 280
+RAM_OFFSET = (320 - PANEL_H) // 2
 
-# MADCTL and RAM offset (x, y) per rotation. Rotations that run the RAM rows backwards start
-# 80 rows in, that is where the first line of the panel then sits
-ROTATIONS = {
-    0:   (0x00, 0, 0),
-    90:  (0x60, 0, 0),
-    180: (0xC0, 0, 80),
-    270: (0xA0, 80, 0),
-}
+# MADCTL per rotation, at 90 and 270 degrees the RAM rows run along x
+ROTATIONS = {0: 0x00, 90: 0x60, 180: 0xC0, 270: 0xA0}
 
 
 class ST7789:
     def __init__(self, dc_pin, rst_pin, bl_pin, rotation=90, spi_bus=0, spi_dev=0, spi_hz=32_000_000, chip=4):
-        self.width = self.height = SIZE
-        madctl, self._dx, self._dy = ROTATIONS[rotation]
+        madctl = ROTATIONS[rotation]
+        if rotation in (90, 270):
+            self.width, self.height = PANEL_H, PANEL_W
+            self._dx, self._dy = RAM_OFFSET, 0
+        else:
+            self.width, self.height = PANEL_W, PANEL_H
+            self._dx, self._dy = 0, RAM_OFFSET
         self.dc_pin = dc_pin
         self.bl_pin = bl_pin
 
@@ -77,8 +79,10 @@ class ST7789:
     def backlight(self, on):
         lgpio.gpio_write(self.h, self.bl_pin, 1 if on else 0)
 
-    # draws a PIL image of the panel's size
+    # draws a PIL image of the panel's size, as it stands in the chosen rotation
     def show(self, image):
+        if image.size != (self.width, self.height):
+            raise ValueError(f"image is {image.size}, the panel shows {self.width}x{self.height}")
         rgb = np.asarray(image.convert("RGB"), dtype=np.uint16)
         pixels = ((rgb[..., 0] >> 3) << 11) | ((rgb[..., 1] >> 2) << 5) | (rgb[..., 2] >> 3)
 

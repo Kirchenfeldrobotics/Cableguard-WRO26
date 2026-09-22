@@ -8,7 +8,7 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
 
-from .st7789 import SIZE, ST7789
+from .st7789 import ST7789
 
 log = logging.getLogger(__name__)
 
@@ -27,6 +27,9 @@ BIG   = ImageFont.load_default(40)
 # the Pi 5 throttles at 85 °C
 WARM_C = 70.0
 HOT_C  = 80.0
+
+# the 1.69" panel has rounded corners, text closer to the side than this gets cut off there
+MARGIN = 12
 
 
 # what the robot knows about itself, taken fresh for every frame
@@ -75,49 +78,50 @@ def _age(seconds):
     return f"{seconds / 3600:.0f} h"
 
 
-# one frame: link, motion, detections, system, each under a line of its own
-def render(s: Status, ip, temp, load):
-    img = Image.new("RGB", (SIZE, SIZE), BLACK)
+# One frame: link, motion, detections, system, each under a line of its own. Laid out for
+# the landscape 280x240, standing upright it keeps the same rows with room left below
+def render(s: Status, ip, temp, load, width, height):
+    img = Image.new("RGB", (width, height), BLACK)
     d = ImageDraw.Draw(img)
-    right = SIZE - 6
+    left, right = MARGIN, width - MARGIN
 
     # the bar turns red once the backend is out of reach, the clock shows a frozen screen
-    d.rectangle((0, 0, SIZE, 26), fill=GREEN if s.online else RED)
-    d.text((6, 4), "ONLINE" if s.online else "OFFLINE", font=FONT, fill=WHITE)
+    d.rectangle((0, 0, width, 26), fill=GREEN if s.online else RED)
+    d.text((left, 4), "ONLINE" if s.online else "OFFLINE", font=FONT, fill=WHITE)
     d.text((right, 5), time.strftime("%H:%M:%S"), font=SMALL, fill=WHITE, anchor="ra")
-    d.text((6, 32), f"IP {ip or 'no network'}", font=SMALL, fill=WHITE)
+    d.text((left, 32), f"IP {ip or 'no network'}", font=SMALL, fill=WHITE)
     if s.backlog_bytes:
-        d.text((6, 52), f"outbox {_size(s.backlog_bytes)} unsent", font=SMALL, fill=AMBER)
+        d.text((left, 52), f"outbox {_size(s.backlog_bytes)} unsent", font=SMALL, fill=AMBER)
     else:
-        d.text((6, 52), "outbox empty", font=SMALL, fill=GREY)
+        d.text((left, 52), "outbox empty", font=SMALL, fill=GREY)
 
-    d.line((0, 76, SIZE, 76), fill=GREY)
+    d.line((0, 76, width, 76), fill=GREY)
     if s.speed_mps > 0.0:
         state, colour = "FORWARD", GREEN
     elif s.speed_mps < 0.0:
         state, colour = "BACKWARD", AMBER
     else:
         state, colour = "STOPPED", GREY
-    d.text((6, 82), state, font=FONT, fill=colour)
+    d.text((left, 82), state, font=FONT, fill=colour)
     d.text((right, 82), f"{abs(s.speed_mps):.3f} m/s", font=FONT, fill=WHITE, anchor="ra")
-    d.text((6, 104), f"{s.metres:.2f} m", font=BIG, fill=WHITE)
+    d.text((left, 104), f"{s.metres:.2f} m", font=BIG, fill=WHITE)
 
-    d.line((0, 152, SIZE, 152), fill=GREY)
-    d.text((6, 158), f"defects {s.defects}", font=FONT, fill=AMBER if s.defects else WHITE)
+    d.line((0, 152, width, 152), fill=GREY)
+    d.text((left, 158), f"defects {s.defects}", font=FONT, fill=AMBER if s.defects else WHITE)
     if s.cycle_ms is not None:
         d.text((right, 160), f"cycle {s.cycle_ms:.0f} ms", font=SMALL, fill=GREY, anchor="ra")
     if s.last_defect:
         age = _age(time.monotonic() - s.last_defect_at)
-        d.text((6, 182), f"{s.last_defect}  {age} ago", font=SMALL, fill=WHITE)
+        d.text((left, 182), f"{s.last_defect}  {age} ago", font=SMALL, fill=WHITE)
     else:
-        d.text((6, 182), "none found yet", font=SMALL, fill=GREY)
+        d.text((left, 182), "none found yet", font=SMALL, fill=GREY)
 
-    d.line((0, 206, SIZE, 206), fill=GREY)
+    d.line((0, 206, width, 206), fill=GREY)
     if temp is None:
-        d.text((6, 214), "CPU --", font=FONT, fill=GREY)
+        d.text((left, 214), "CPU --", font=FONT, fill=GREY)
     else:
         colour = RED if temp >= HOT_C else AMBER if temp >= WARM_C else WHITE
-        d.text((6, 214), f"CPU {temp:.0f} °C", font=FONT, fill=colour)
+        d.text((left, 214), f"CPU {temp:.0f} °C", font=FONT, fill=colour)
     d.text((right, 214), f"load {load:.1f}", font=FONT, fill=WHITE, anchor="ra")
     return img
 
@@ -134,19 +138,21 @@ class StatusScreen:
             self._panel = None
 
     def show(self, status: Status):
-        if self._panel is None:
+        panel = self._panel
+        if panel is None:
             return
-        img = render(status, local_ip(), cpu_temp(), os.getloadavg()[0])
+        img = render(status, local_ip(), cpu_temp(), os.getloadavg()[0], panel.width, panel.height)
         with self._lock:
             if self._panel is not None:
                 self._panel.show(img)
 
     # a single line in the middle, for while there is no status yet
     def message(self, text):
-        if self._panel is None:
+        panel = self._panel
+        if panel is None:
             return
-        img = Image.new("RGB", (SIZE, SIZE), BLACK)
-        ImageDraw.Draw(img).text((SIZE // 2, SIZE // 2), text, font=FONT, fill=WHITE, anchor="mm")
+        img = Image.new("RGB", (panel.width, panel.height), BLACK)
+        ImageDraw.Draw(img).text((panel.width // 2, panel.height // 2), text, font=FONT, fill=WHITE, anchor="mm")
         with self._lock:
             if self._panel is not None:
                 self._panel.show(img)
