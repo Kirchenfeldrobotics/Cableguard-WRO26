@@ -20,6 +20,7 @@ import {
   formatAgo,
   formatConfidence,
   formatDetectRate,
+  formatDistance,
   formatDriveSpeed,
   formatMetres,
   formatNumber,
@@ -28,7 +29,13 @@ import {
 } from "@/lib/format";
 import { useCurrentSelection, useRopeHistory } from "@/lib/hooks/use-inspection";
 import { useNow } from "@/lib/hooks/use-now";
-import { useFreshTelemetry, useFreshVision, useRobotConnected, useRobotLink } from "@/lib/robot/robot-link";
+import {
+  useFreshDistance,
+  useFreshTelemetry,
+  useFreshVision,
+  useRobotConnected,
+  useRobotLink,
+} from "@/lib/robot/robot-link";
 import { useVideoFeeds } from "@/lib/robot/use-video-feeds";
 import { routes } from "@/lib/routes";
 
@@ -37,6 +44,7 @@ const REFRESH_MS = 5_000;
 const CONFIRM_TIMEOUT_MS = 5_000;
 const NO_TELEMETRY = "No motion telemetry from the robot in the last 2 seconds";
 const NO_VISION = "The robot has not reported a detector frame recently";
+const NO_DISTANCE = "No distance reading from the robot in the last 2 seconds";
 
 const CAMERAS = [
   { code: "cam a", caption: "Camera A, upper rope surface" },
@@ -100,6 +108,7 @@ export function LiveView() {
   const connected = useRobotConnected();
   const fresh = useFreshTelemetry();
   const vision = useFreshVision();
+  const distance = useFreshDistance();
   const now = useNow(500);
   const feeds = useVideoFeeds(CAMERAS.length);
 
@@ -330,17 +339,17 @@ export function LiveView() {
           </Button>
         </div>
 
-        <div
-          className={cn(
-            "border-t border-surface-strong pt-4 font-mono text-[13px] leading-[1.4]",
-            fresh ? "text-text-muted" : "text-danger-strong",
-          )}
-        >
-          {fresh
-            ? `Robot reports ${formatDriveSpeed(fresh.speed_mps)} · ${formatMetres(fresh.metres)} · ${formatNumber(fresh.microsteps)} microsteps · seq ${formatNumber(fresh.seq)}`
-            : telemetry && telemetryAt !== null && now !== null
-              ? `No fresh telemetry. Last report ${formatAgo(Math.max(0, now - telemetryAt))}: ${formatDriveSpeed(telemetry.speed_mps)}`
-              : "No telemetry from the robot yet"}
+        <div className="flex flex-col gap-1.5 border-t border-surface-strong pt-4 font-mono text-[13px] leading-[1.4]">
+          <div className={fresh ? "text-text-muted" : "text-danger-strong"}>
+            {fresh
+              ? `Robot reports ${formatDriveSpeed(fresh.speed_mps)} · ${formatMetres(fresh.metres)} · ${formatNumber(fresh.microsteps)} microsteps · seq ${formatNumber(fresh.seq)}`
+              : telemetry && telemetryAt !== null && now !== null
+                ? `No fresh telemetry. Last report ${formatAgo(Math.max(0, now - telemetryAt))}: ${formatDriveSpeed(telemetry.speed_mps)}`
+                : "No telemetry from the robot yet"}
+          </div>
+          <div className="text-text-muted" title={distance ? undefined : NO_DISTANCE}>
+            Distance sensor · {distance ? formatDistance(distance.distance_m) : NOT_AVAILABLE}
+          </div>
         </div>
       </Panel>
 

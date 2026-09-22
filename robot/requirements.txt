@@ -6,3 +6,4 @@ pydantic
 ultralytics
 ncnn
 pyyaml
+smbus2

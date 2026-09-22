@@ -31,6 +31,13 @@ class MotionTelemetry(RobotMessage):
     detect_fps: float           # detector cycles per second the plan is built for
     seq: int 
 
+# What the robot's distance sensor sees. Live only, a reading is worthless a second later
+class DistanceTelemetry(RobotMessage):
+    type: Literal["distance_telemetry"] = "distance_telemetry"
+    live: ClassVar[bool]                = True
+    distance_m: float | None    # to the nearest object, None when nothing is in the sensor's range
+    seq: int
+
 # Robots position  
 class Defect(RobotMessage): 
     type: Literal["defect"] = "defect"

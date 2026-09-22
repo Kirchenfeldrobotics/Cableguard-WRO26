@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 
 import type {
+  DistanceTelemetryEvent,
   MotionTelemetryEvent,
   RobotCommand,
   ServerEvent,
@@ -23,6 +24,9 @@ export const ROBOT_SILENT_MS = 12_000;
 /** The robot sends motion telemetry every 0.5 s (robot/src/app/main.py). */
 export const TELEMETRY_STALE_MS = 2_000;
 
+/** The robot sends a distance reading every 0.5 s (robot/src/app/main.py). */
+export const DISTANCE_STALE_MS = 2_000;
+
 /**
  * The robot reports one vision frame per camera every DETECT_PERIOD (2 s), so two per cycle.
  * Past this the detector counts as silent, even while the robot itself still answers.
@@ -37,6 +41,10 @@ export interface RobotLinkValue {
   telemetry: MotionTelemetryEvent | null;
   /** Epoch ms when `telemetry` arrived. */
   telemetryAt: number | null;
+  /** Last reading of the robot's distance sensor. */
+  distance: DistanceTelemetryEvent | null;
+  /** Epoch ms when `distance` arrived. */
+  distanceAt: number | null;
   /** Last frame the detector reported, whether or not it found anything. */
   vision: VisionTelemetryEvent | null;
   /** Epoch ms when `vision` arrived. */
@@ -69,6 +77,8 @@ export function RobotLinkProvider({ children }: { children: React.ReactNode }) {
   const [robotOnline, setRobotOnline] = useState(false);
   const [telemetry, setTelemetry] = useState<MotionTelemetryEvent | null>(null);
   const [telemetryAt, setTelemetryAt] = useState<number | null>(null);
+  const [distance, setDistance] = useState<DistanceTelemetryEvent | null>(null);
+  const [distanceAt, setDistanceAt] = useState<number | null>(null);
   const [vision, setVision] = useState<VisionTelemetryEvent | null>(null);
   const [visionAt, setVisionAt] = useState<number | null>(null);
   const [detectionVersion, setDetectionVersion] = useState(0);
@@ -113,6 +123,11 @@ export function RobotLinkProvider({ children }: { children: React.ReactNode }) {
           case "motion_telemetry":
             setTelemetry(event);
             setTelemetryAt(now);
+            setRobotSeenAt(now);
+            break;
+          case "distance_telemetry":
+            setDistance(event);
+            setDistanceAt(now);
             setRobotSeenAt(now);
             break;
           case "vision_telemetry":
@@ -164,6 +179,8 @@ export function RobotLinkProvider({ children }: { children: React.ReactNode }) {
         robotOnline,
         telemetry,
         telemetryAt,
+        distance,
+        distanceAt,
         vision,
         visionAt,
         detectionVersion,
@@ -203,6 +220,15 @@ export function useFreshTelemetry(): MotionTelemetryEvent | null {
   const now = useNow(500);
   if (!connected || telemetry === null || telemetryAt === null || now === null) return null;
   return now - telemetryAt <= TELEMETRY_STALE_MS ? telemetry : null;
+}
+
+/** The latest distance reading while it is fresh and the robot is connected, otherwise null. */
+export function useFreshDistance(): DistanceTelemetryEvent | null {
+  const { distance, distanceAt } = useRobotLink();
+  const connected = useRobotConnected();
+  const now = useNow(500);
+  if (!connected || distance === null || distanceAt === null || now === null) return null;
+  return now - distanceAt <= DISTANCE_STALE_MS ? distance : null;
 }
 
 /** The latest vision frame while the detector is still reporting, otherwise null. */

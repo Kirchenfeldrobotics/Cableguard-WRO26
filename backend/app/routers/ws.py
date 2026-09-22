@@ -12,6 +12,7 @@ from app.auth import authenticate_robot, authenticate_ui
 from comm_protocols.messages import (
     Alive,
     Defect as DefectMsg,
+    DistanceTelemetry,
     MotionTelemetry,
     StartCmd,
     StopCmd,
@@ -26,7 +27,10 @@ router = APIRouter(prefix="/api/ws")
 # Every RobotMessage subclass the robot may send. Without Defect here the
 # persist path in repository/ingest.py is unreachable.
 FromRobot = TypeAdapter(
-    Annotated[Alive | MotionTelemetry | DefectMsg | VisionTelemetry, Field(discriminator="type")]
+    Annotated[
+        Alive | MotionTelemetry | DistanceTelemetry | DefectMsg | VisionTelemetry,
+        Field(discriminator="type"),
+    ]
 )
 # The robot picks its own speed, the operator only starts, stops and sets the direction
 FromUi   = TypeAdapter(Annotated[StartCmd | StopCmd, Field(discriminator="type")])
