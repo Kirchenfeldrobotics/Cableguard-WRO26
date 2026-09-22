@@ -83,6 +83,10 @@ async def detection_reporter(cams: CameraPair, detector: Detector, link: RobotLi
 
     while True:
         deadline = loop.time() + period
+        # a standing robot sees the same bit of rope over and over, and inference keeps the Pi hot
+        if not motor.moving:
+            await asyncio.sleep(period)
+            continue
         try:
             frames = await asyncio.to_thread(cams.capture)
             # both frames are from the same moment, taking the position per camera would
