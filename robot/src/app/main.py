@@ -4,10 +4,12 @@ import asyncio
 import logging
 import signal
 import time
+from dataclasses import dataclass
 
 from comm_protocols.messages import MotionTelemetry, ResetOriginCmd, StartCmd, StopCmd
 
 from camera.camera import CameraPair, encode
+from display.screen import Status, StatusScreen
 from link.client import RobotLink
 from link.outbox import Outbox
 from link.video import VideoLink
@@ -36,9 +38,16 @@ DEFECT_JPEG_QUALITY = 85
 GUARD_PERIOD = 0.5
 TELEMETRY_PERIOD = 0.5
 
+# status display, a 1.54" ST7789 on SPI0 (SCL GPIO11, SDA GPIO10, CS GPIO8)
+DISPLAY_DC_PIN = 25
+DISPLAY_RST_PIN = 27
+DISPLAY_BL_PIN = 24
+DISPLAY_ROTATION = 90       # 270 if the picture stands on its head
+DISPLAY_PERIOD = 1.0
+
 # creates function that turns messages into roboter commands. The speed is not ours to
 # choose, the scan plan fixed it so that the detector sees every bit of rope once
-def make_command_handler(motion: MotionController, plan: ScanPlan): 
+def make_command_handler(motion: MotionController, plan: ScanPlan, stats: DetectionStats): 
     # the round trip through metres is not bit exact, and ramp_to reads anything below
     # start_speed as a stop, so a plan sitting on the lower limit must not fall through it
     scan_speed = max(motion.motor.to_microsteps(plan.speed_mps), motion.motor.start_speed)
@@ -59,6 +68,7 @@ def make_command_handler(motion: MotionController, plan: ScanPlan):
                 log.warning("origin reset while moving, the run starts from here anyway")
             log.info("origin reset at %.2f m", motion.motor.metres_done)
             motion.motor.reset_steps_done()
+            stats.new_run()
 
     return handle
 
@@ -76,8 +86,23 @@ async def frame_producer(cams: CameraPair, video: VideoLink, fps: float):
             log.exception("capture failed")
         await asyncio.sleep(max(0.0, deadline - loop.time()))
 
+# what the detector has found in the current run, for the status display
+@dataclass
+class DetectionStats:
+    count: int = 0
+    last: str | None = None           # label and confidence of the latest defect
+    last_at: float | None = None      # time.monotonic() of it
+    cycle_ms: float | None = None     # how long the last detector cycle took
+
+    # a run starts at its origin, the detector timing carries over
+    def new_run(self):
+        self.count = 0
+        self.last = None
+        self.last_at = None
+
 # run the detector on both cameras, write what it sees to the journal and report it
-async def detection_reporter(cams: CameraPair, detector: DetectorProcess, link: RobotLink, motor: Stepper, period: float):
+async def detection_reporter(cams: CameraPair, detector: DetectorProcess, link: RobotLink, motor: Stepper,
+                             stats: DetectionStats, period: float):
     loop = asyncio.get_running_loop()
     seq = 0
 
@@ -108,6 +133,10 @@ async def detection_reporter(cams: CameraPair, detector: DetectorProcess, link: 
                         for det in found
                     )
                     log.info("cam%d: %d detection(s) in %.0f ms: %s", idx, len(found), millis, summary)
+                    best = max(found, key=lambda det: det.confidence)
+                    stats.count += len(found)
+                    stats.last = f"{best.label} {best.confidence:.2f}"
+                    stats.last_at = time.monotonic()
                 else:
                     log.info("cam%d: nothing detected (%.0f ms)", idx, millis)
 
@@ -129,6 +158,7 @@ async def detection_reporter(cams: CameraPair, detector: DetectorProcess, link: 
             log.exception("detection failed")
 
         slack = deadline - loop.time()
+        stats.cycle_ms = (period - slack) * 1000.0
         if slack < 0.0:
             log.warning("cycle overran its %.0f ms budget by %.0f ms, the rope is not fully covered",
                         period * 1000.0, -slack * 1000.0)
@@ -163,6 +193,26 @@ async def telemetry_sender(link: RobotLink, motor: Stepper, plan: ScanPlan, peri
                 log.exception("telemetry failed")
         await asyncio.sleep(period)
 
+# redraw the status display
+async def display_updater(screen: StatusScreen, link: RobotLink, outbox: Outbox, motor: Stepper,
+                          stats: DetectionStats, period: float):
+    while True:
+        status = Status(
+            online=link.connected,
+            backlog_bytes=outbox.backlog_bytes,
+            speed_mps=motor.speed_mps,
+            metres=motor.metres_done,
+            defects=stats.count,
+            last_defect=stats.last,
+            last_defect_at=stats.last_at,
+            cycle_ms=stats.cycle_ms,
+        )
+        try:
+            await asyncio.to_thread(screen.show, status)
+        except Exception:
+            log.exception("display update failed")
+        await asyncio.sleep(period)
+
 async def main():
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 
@@ -170,6 +220,10 @@ async def main():
     loop = asyncio.get_running_loop()
     for sig in (signal.SIGTERM, signal.SIGINT):
         loop.add_signal_handler(sig, task.cancel)
+
+    # first up, so that the model loading and benchmark below are not a dark screen
+    screen = StatusScreen(DISPLAY_DC_PIN, DISPLAY_RST_PIN, DISPLAY_BL_PIN, rotation=DISPLAY_ROTATION)
+    screen.message("starting")
 
     # configure stepper
     motor = Stepper(
@@ -199,7 +253,8 @@ async def main():
         speed_limits=(motor.to_metres(motor.start_speed), motor.to_metres(motor.max_speed)),
     )
 
-    link.on_command(make_command_handler(motion, plan))
+    stats = DetectionStats()
+    link.on_command(make_command_handler(motion, plan, stats))
 
     log.info("stepper, detector and link configured")
 
@@ -209,15 +264,17 @@ async def main():
             tg.create_task(link.run(), name="control-link")
             tg.create_task(video.run(), name="video-link")
             tg.create_task(frame_producer(cams, video, STEAM_FPS), name="frame-stream")
-            tg.create_task(detection_reporter(cams, detector, link, motor, plan.period), name="detection")
+            tg.create_task(detection_reporter(cams, detector, link, motor, stats, plan.period), name="detection")
             tg.create_task(link_guard(link, motion), name="guard")
             tg.create_task(telemetry_sender(link, motor, plan, TELEMETRY_PERIOD), name="telemetry")
+            tg.create_task(display_updater(screen, link, outbox, motor, stats, DISPLAY_PERIOD), name="display")
     except* asyncio.CancelledError:
         log.info("shutting down")
     finally: 
         motion.emergency_stop()
         cams.close()
         motion.shutdown()
+        screen.close()
         log.info("stopped")
 
 if __name__ == "__main__": 
