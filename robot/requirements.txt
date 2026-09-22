@@ -6,3 +6,5 @@ pydantic
 ultralytics
 ncnn
 pyyaml
+spidev
+pillow>=10.1

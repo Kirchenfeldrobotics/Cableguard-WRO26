@@ -51,6 +51,12 @@ class Outbox:
         except OSError:
             log.exception("could not record how far the outbox has been sent")
 
+    # bytes written but not delivered yet
+    @property
+    def backlog_bytes(self):
+        size = self._path.stat().st_size if self._path.exists() else 0
+        return max(0, size - self._offset)
+
     def add_msg(self, msg: dict):
         with open(self._path, "a") as f:
             f.write(json.dumps(msg) + "\n")
