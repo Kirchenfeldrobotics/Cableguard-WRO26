@@ -11,7 +11,7 @@ METRE_PER_FRAME = 0.06
 # The detector is never run at the edge of what it manages. Inference gets slower the more
 # boxes a frame holds, and the benchmark runs on a clean rope, so a cycle in the field is
 # slower than a cycle at startup. A cycle that overruns leaves a gap in the rope
-HEADROOM = 1.7
+HEADROOM = 2.2
 
 # Cycles the benchmark averages over. The first one is thrown away, it still allocates
 BENCHMARK_CYCLES = 9

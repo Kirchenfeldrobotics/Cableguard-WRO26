@@ -15,9 +15,9 @@ log = logging.getLogger(__name__)
 MODEL_DIR = Path(__file__).resolve().parents[2] / "models" / "best_ncnn_model"
 
 # Detection thresholds
-CONF = 0.5
+CONF = 0.35
 
-# IOU threshold for non-max suppression
+# IOU threshold for overlap merging
 IOU = 0.5
 
 @dataclass(frozen=True)
