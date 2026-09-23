@@ -62,10 +62,15 @@ TURRET_ANGLES = (0.0, 90.0)
 # startup: it has no endstop, so leaving it open is the whole calibration
 TURRET_OPEN_ANGLE = -45.0
 
-# How long the ring takes to swing out to that angle and to come back. The turns inside a
-# scan cycle are paced by the cycle itself; these two are not, and the camera cables do not
-# take the ring at the speed it could manage
+# How long the ring takes to swing out to that angle and to come back. The camera cables do
+# not take the ring at the speed it could manage
 TURRET_OPEN_TURN_S = 0.6
+
+# The least a quarter turn inside a scan cycle may take. The cables set this, not the motor.
+# It is a floor rather than a duration: the turn runs alongside the detector and is stretched
+# to cover it whenever the net needs longer. Lower it and the whole cycle gets shorter, until
+# the detector becomes the slower half
+TURRET_SCAN_TURN_S = 0.8
 
 # Anything the distance sensor sees closer than this counts as a rope socket ahead. Far
 # enough that the robot is still open before it arrives, close enough that the rope itself
@@ -162,20 +167,30 @@ async def turn_cameras(turret: Turret, degrees: float, seconds: float | None = N
         log.exception("camera ring did not reach %.0f deg, it stands at %.0f deg", degrees, turret.angle)
         return False
 
-# One look at the rope: a frame from every camera, the detector on each of them, and a
-# report for every frame, empty ones included
-async def scan_round(cams: CameraPair, detector: DetectorProcess, link: RobotLink, drive: Drive,
-                     seq):
+# what one look at the rope produced, before the detector has seen any of it
+@dataclass(frozen=True)
+class Round:
+    frames: list            # (camera index, image) for every camera
+    captured_at: float      # epoch seconds
+    microsteps: int         # where the drive stood when the shutter went
+    metres: float
+
+
+# One look at the rope: a frame from every camera. This is the only part of a round that
+# needs the ring standing still
+async def capture_round(cams: CameraPair, drive: Drive) -> Round:
+    frames = await asyncio.to_thread(cams.capture)
+    # every frame of a round is from the same moment, taking the position per camera would
+    # charge cam1 with the inference time of cam0
+    return Round(frames, time.time(), drive.microsteps_done, drive.metres_done)
+
+
+# The detector on what a round saw, and a report for every frame, empty ones included. It
+# runs while the ring is already turning: the shutter needs the cameras still, the net does not
+async def report_round(detector: DetectorProcess, link: RobotLink, look: Round, seq):
     loop = asyncio.get_running_loop()
 
-    frames = await asyncio.to_thread(cams.capture)
-    # both frames are from the same moment, taking the position per camera would
-    # charge cam1 with the inference time of cam0
-    captured_at = time.time()
-    microsteps  = drive.microsteps_done
-    distance    = drive.metres_done
-
-    for idx, frame in frames:
+    for idx, frame in look.frames:
         started = loop.time()
         found = await asyncio.to_thread(detector.detect, frame)
         # only a frame with something in it is worth storing
@@ -196,19 +211,20 @@ async def scan_round(cams: CameraPair, detector: DetectorProcess, link: RobotLin
             cam=idx,
             frame=frame,
             found=found,
-            captured_at=captured_at,
-            microsteps=microsteps,
-            distance_from_origin=distance,
+            captured_at=look.captured_at,
+            microsteps=look.microsteps,
+            distance_from_origin=look.metres,
             inference_ms=millis,
             jpeg=jpeg,
         )
         # queued, not sent live: a detection that is not stored is a defect lost
         link.send(msg.model_dump())
 
-# Walk the rope one cycle at a time: look, turn the cameras a quarter turn, look again, turn
-# back. The drive holds a speed that covers exactly one frame of rope per cycle. While the
-# robot is open for a rope socket the ring waits at the angle that clears it and the detector
-# is idle; the cycle picks up again where it left off once the robot closes
+# Walk the rope one cycle at a time: look, and turn the cameras a quarter turn while the
+# detector works on what was just seen; look again from there, and turn back the same way.
+# The drive holds a speed that covers exactly one frame of rope per cycle. While the robot is
+# open for a rope socket the ring waits at the angle that clears it and the detector is idle;
+# the cycle picks up again where it left off once the robot closes
 async def detection_reporter(cams: CameraPair, detector: DetectorProcess, link: RobotLink, drive: Drive,
                              turret: Turret, rope_socket: RopeSocket, stats: DetectionStats,
                              plan: ScanPlan):
@@ -243,17 +259,18 @@ async def detection_reporter(cams: CameraPair, detector: DetectorProcess, link: 
 
         deadline = loop.time() + plan.period
         try:
-            for angle in TURRET_ANGLES:
+            # The ring already stands at the first angle. Every round is taken where it
+            # stands and the ring then moves on to the next, the last one back to the first,
+            # so the cycle ends where it began with no turn of its own
+            for nxt in TURRET_ANGLES[1:] + TURRET_ANGLES[:1]:
                 # a socket ahead ends the cycle here, no quarter turn is started into it
                 if rope_socket.is_open:
                     break
-                await turn_cameras(turret, angle, plan.turn_s)
-                await scan_round(cams, detector, link, drive, seq)
-
-            # parked again, where the next cycle expects the cameras to be. A robot that
-            # stopped meanwhile is left alone, it belongs at the open angle now
-            if not rope_socket.is_open and drive.moving:
-                await turn_cameras(turret, TURRET_ANGLES[0], plan.turn_s)
+                look = await capture_round(cams, drive)
+                await asyncio.gather(
+                    turn_cameras(turret, nxt, plan.turn_s),
+                    report_round(detector, link, look, seq),
+                )
         except Exception:
             log.exception("detection failed")
 
@@ -405,7 +422,9 @@ async def main():
         cycle_s=cycle_s,
         camera_fps=CAMERA_FPS,
         speed_limits=(drive.to_metres(drive.start_speed), drive.to_metres(drive.max_speed)),
-        min_turn_s=turret.min_turn_s(TURRET_ANGLES[1] - TURRET_ANGLES[0]),
+        # the ring goes no quicker than its ramp allows, and no quicker than the cables take
+        min_turn_s=max(turret.min_turn_s(TURRET_ANGLES[1] - TURRET_ANGLES[0]),
+                       TURRET_SCAN_TURN_S),
     )
 
     stats = DetectionStats()
