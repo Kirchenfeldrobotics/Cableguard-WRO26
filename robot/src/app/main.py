@@ -58,7 +58,12 @@ TURRET_ANGLES = (0.0, 90.0)
 
 # Where the ring parks while the robot is open. A rope socket is the fitting the rope ends
 # in, and the robot only clears one with the cameras swung out of the way
-TURRET_OPEN_ANGLE = 20.0
+TURRET_OPEN_ANGLE = -30.0
+
+# How long the ring takes to swing out to that angle and to come back. The turns inside a
+# scan cycle are paced by the cycle itself; these two are not, and the camera cables do not
+# take the ring at the speed it could manage
+TURRET_OPEN_TURN_S = 1.5
 
 # Anything the distance sensor sees closer than this counts as a rope socket ahead. Far
 # enough that the robot is still open before it arrives, close enough that the rope itself
@@ -214,14 +219,15 @@ async def detection_reporter(cams: CameraPair, detector: DetectorProcess, link: 
         if rope_socket.is_open:
             # a turn that did not make it leaves the ring off its angle and is tried again,
             # at the pace of a cycle rather than of the poll
-            reached = turret.at(TURRET_OPEN_ANGLE) or await turn_cameras(turret, TURRET_OPEN_ANGLE)
+            reached = turret.at(TURRET_OPEN_ANGLE) or await turn_cameras(
+                turret, TURRET_OPEN_ANGLE, TURRET_OPEN_TURN_S)
             rope_socket.close_if_clear(drive.metres_done)
             await asyncio.sleep(OPEN_POLL if reached else plan.period)
             continue
 
         # closed again, so the ring goes back to where a cycle starts
         if not turret.at(TURRET_ANGLES[0]):
-            await turn_cameras(turret, TURRET_ANGLES[0])
+            await turn_cameras(turret, TURRET_ANGLES[0], TURRET_OPEN_TURN_S)
 
         # a standing robot sees the same bit of rope over and over, and inference keeps the Pi hot
         if not drive.moving:
@@ -418,7 +424,7 @@ async def main():
     finally: 
         motion.emergency_stop()
         cams.close()
-        turret.close()
+        turret.close(TURRET_OPEN_TURN_S)
         motion.shutdown()
         screen.close()
         log.info("stopped")

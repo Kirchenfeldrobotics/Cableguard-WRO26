@@ -126,12 +126,13 @@ class Turret(Stepper):
             self._speed = 0.0
             time.sleep(self.settle_s)
 
-    # back to where the cameras started, unwinding their cables
-    def park(self):
-        self.turn_to(0.0)
+    # Back to where the cameras started, unwinding their cables. Without a time it goes as
+    # fast as the ring allows, which is more than the cables take
+    def park(self, seconds=None):
+        self.turn_to(0.0, seconds)
 
-    def close(self):
+    def close(self, seconds=None):
         try:
-            self.park()
+            self.park(seconds)
         finally:
             super().close()
