@@ -37,6 +37,7 @@ class Turret(Stepper):
                  settle_s=SETTLE_S,
                  min_speed=MIN_SPEED,
                  ramp_segments=RAMP_SEGMENTS,
+                 start_angle=0.0,
                  **kwargs):                 # the rest is the base driver's, see stepper.py
 
         super().__init__(pul_pin, dir_pin, ramp_segments=ramp_segments, **kwargs)
@@ -44,6 +45,11 @@ class Turret(Stepper):
         self.gear_ratio = gear_ratio
         self.settle_s   = settle_s
         self.min_speed  = min_speed
+
+        # The ring has no endstop, so its angle is the one it is told it has. Whoever sets
+        # the robot up leaves it at start_angle, and the counter starts from there
+        self.start_angle = start_angle
+        self._accum      = self._steps_at(start_angle)
 
         # One move at a time. A turn runs in a worker thread, and shutting down cancels the
         # task waiting on it without stopping the thread, so close() can arrive while the
@@ -126,10 +132,10 @@ class Turret(Stepper):
             self._speed = 0.0
             time.sleep(self.settle_s)
 
-    # Back to where the cameras started, unwinding their cables. Without a time it goes as
-    # fast as the ring allows, which is more than the cables take
+    # Back to the angle the ring was calibrated at, unwinding its cables. Without a time it
+    # goes as fast as the ring allows, which is more than the cables take
     def park(self, seconds=None):
-        self.turn_to(0.0, seconds)
+        self.turn_to(self.start_angle, seconds)
 
     def close(self, seconds=None):
         try:

@@ -57,7 +57,9 @@ TURRET_ACCEL      = 20000.0     # the ring is light, it may be ramped harder tha
 TURRET_ANGLES = (0.0, 90.0)
 
 # Where the ring parks while the robot is open. A rope socket is the fitting the rope ends
-# in, and the robot only clears one with the cameras swung out of the way
+# in, and the robot only clears one with the cameras swung out of the way. The ring also
+# rests here whenever the robot is not scanning, and the software takes it to stand here at
+# startup: it has no endstop, so leaving it open is the whole calibration
 TURRET_OPEN_ANGLE = -45.0
 
 # How long the ring takes to swing out to that angle and to come back. The turns inside a
@@ -225,14 +227,19 @@ async def detection_reporter(cams: CameraPair, detector: DetectorProcess, link: 
             await asyncio.sleep(OPEN_POLL if reached else plan.period)
             continue
 
-        # closed again, so the ring goes back to where a cycle starts
-        if not turret.at(TURRET_ANGLES[0]):
-            await turn_cameras(turret, TURRET_ANGLES[0], TURRET_OPEN_TURN_S)
-
-        # a standing robot sees the same bit of rope over and over, and inference keeps the Pi hot
+        # A standing robot sees the same bit of rope over and over, and inference keeps the
+        # Pi hot. The ring rests open while it stands: that covers every way the robot can
+        # come to a halt, a stop command as much as a lost link, and leaves it where the
+        # next start takes it to be
         if not drive.moving:
+            if not turret.at(TURRET_OPEN_ANGLE):
+                await turn_cameras(turret, TURRET_OPEN_ANGLE, TURRET_OPEN_TURN_S)
             await asyncio.sleep(plan.period)
             continue
+
+        # scanning again, so the ring goes to where a cycle starts
+        if not turret.at(TURRET_ANGLES[0]):
+            await turn_cameras(turret, TURRET_ANGLES[0], TURRET_OPEN_TURN_S)
 
         deadline = loop.time() + plan.period
         try:
@@ -243,8 +250,9 @@ async def detection_reporter(cams: CameraPair, detector: DetectorProcess, link: 
                 await turn_cameras(turret, angle, plan.turn_s)
                 await scan_round(cams, detector, link, drive, seq)
 
-            if not rope_socket.is_open:
-                # parked again, where the next cycle expects the cameras to be
+            # parked again, where the next cycle expects the cameras to be. A robot that
+            # stopped meanwhile is left alone, it belongs at the open angle now
+            if not rope_socket.is_open and drive.moving:
                 await turn_cameras(turret, TURRET_ANGLES[0], plan.turn_s)
         except Exception:
             log.exception("detection failed")
@@ -377,6 +385,7 @@ async def main():
         gear_ratio=TURRET_GEAR_RATIO,
         max_speed=TURRET_MAX_SPEED,
         accel=TURRET_ACCEL,
+        start_angle=TURRET_OPEN_ANGLE,
     )
 
     # Configure link to api 
