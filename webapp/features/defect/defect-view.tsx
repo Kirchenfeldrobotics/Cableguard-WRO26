@@ -137,16 +137,22 @@ export function DefectView({
         </thead>
         <tbody>
           {siblings.map((d) => (
-            <tr key={d.id} className={d.id === defect.id ? "bg-surface-hover" : undefined}>
-              <Td mono strong>
+            <tr
+              key={d.id}
+              aria-current={d.id === defect.id || undefined}
+              className={d.id === defect.id ? "bg-surface-hover" : undefined}
+            >
+              <Td mono strong phone="primary">
                 {formatMetres(d.pos_to_start)}
               </Td>
-              <Td>{defectClassLabel(d.label)}</Td>
-              <Td mono align="right">
+              <Td label="Flaw">{defectClassLabel(d.label)}</Td>
+              <Td mono align="right" label="Confidence">
                 {formatConfidence(d.confidence)}
               </Td>
-              <Td muted>{formatCamera(d.cam)}</Td>
-              <Td mono muted>
+              <Td muted label="Camera">
+                {formatCamera(d.cam)}
+              </Td>
+              <Td mono muted label="Detected">
                 {formatDateTime(d.created_at)}
               </Td>
             </tr>

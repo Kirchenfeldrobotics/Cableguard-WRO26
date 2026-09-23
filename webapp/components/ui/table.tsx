@@ -6,10 +6,17 @@ import { cn } from "@/lib/cn";
 
 type Align = "left" | "right";
 
+/**
+ * How a cell shows on a phone, where every row is a card (`.stack-table` in globals.css):
+ * `primary` spans the card as its title, `end` sits bottom right (row actions), `hide`
+ * leaves the cell out. Cells without it get their `label` as a caption.
+ */
+type Phone = "primary" | "end" | "hide";
+
 export function Table({ className, children }: { className?: string; children: React.ReactNode }) {
   return (
-    <div className="overflow-x-auto">
-      <table className={cn("w-full border-collapse", className)}>{children}</table>
+    <div className="lg:overflow-x-auto">
+      <table className={cn("stack-table w-full border-collapse", className)}>{children}</table>
     </div>
   );
 }
@@ -32,6 +39,8 @@ export function Td({
   mono = false,
   muted = false,
   strong = false,
+  label,
+  phone,
   className,
   children,
 }: {
@@ -39,11 +48,17 @@ export function Td({
   mono?: boolean;
   muted?: boolean;
   strong?: boolean;
+  /** Caption above the value on a phone, normally the column header. */
+  label?: string;
+  phone?: Phone;
   className?: string;
   children?: React.ReactNode;
 }) {
   return (
     <td
+      data-label={phone ? undefined : label}
+      data-primary={phone === "primary" || undefined}
+      data-phone={phone}
       className={cn(
         "border-b border-line py-3.5 pr-3.5 text-[13px] leading-[1.3]",
         align === "right" && "text-right",

@@ -1,6 +1,6 @@
 import { cn } from "@/lib/cn";
 
-const titleClass = "m-0 text-[30px] leading-none font-extrabold tracking-[-0.01em] uppercase";
+const titleClass = "m-0 text-2xl leading-none font-extrabold tracking-[-0.01em] uppercase sm:text-[30px]";
 
 /** Page heading row: title, then badges and meta text, optional actions on the right. */
 export function PageHeader({
@@ -28,7 +28,7 @@ export function SectionTitle({
   children: React.ReactNode;
   className?: string;
 }) {
-  return <h2 className={cn(titleClass, "mt-[38px] mb-[18px]", className)}>{children}</h2>;
+  return <h2 className={cn(titleClass, "mt-8 mb-3.5 sm:mt-[38px] sm:mb-[18px]", className)}>{children}</h2>;
 }
 
 /** Secondary text next to a heading. */

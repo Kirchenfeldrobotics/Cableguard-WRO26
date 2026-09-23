@@ -1,5 +1,7 @@
 import Image from "next/image";
 
+import { cn } from "@/lib/cn";
+
 /**
  * CableGuard wordmark (design asset `public/Logo_white_big.svg`).
  *
@@ -8,7 +10,7 @@ import Image from "next/image";
  * wordmark and the plate is blended away with `screen`. `unoptimized` keeps
  * the SVG out of the image optimiser, which refuses SVGs by default.
  */
-export function Logo() {
+export function Logo({ className }: { className?: string }) {
   return (
     <Image
       src="/Logo_white_big.svg"
@@ -17,7 +19,7 @@ export function Logo() {
       height={460}
       priority
       unoptimized
-      className="mx-1.5 block h-auto w-[150px] invert mix-blend-screen"
+      className={cn("mx-1.5 block h-auto w-[150px] invert mix-blend-screen", className)}
     />
   );
 }

@@ -3,6 +3,7 @@
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 
+import { MobileTopBar, TabBar } from "@/components/layout/mobile-nav";
 import { Sidebar } from "@/components/layout/sidebar";
 import { useAuth } from "@/lib/auth/auth-context";
 import { RobotLinkProvider } from "@/lib/robot/robot-link";
@@ -10,8 +11,10 @@ import { routes } from "@/lib/routes";
 
 /**
  * Decides what a page is allowed to show: the login screen on its own, or the
- * sidebar and the robot link once an operator is signed in. Nothing renders
+ * navigation and the robot link once an operator is signed in. Nothing renders
  * while the stored token is still being checked.
+ *
+ * Desktop gets the sidebar, phones a top bar and a bottom tab bar (below `lg`).
  */
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { status } = useAuth();
@@ -35,11 +38,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <RobotLinkProvider>
-      <div className="flex min-h-screen flex-col gap-3 bg-canvas p-3 lg:flex-row lg:gap-0">
+      <div className="flex min-h-screen flex-col bg-canvas lg:flex-row lg:p-3">
+        <MobileTopBar />
         <Sidebar />
-        <main className="min-w-0 flex-auto px-4 pt-[22px] pb-[60px] lg:max-w-[1280px] lg:px-[30px]">
+        <main className="min-w-0 flex-auto px-4 pt-5 pb-[calc(var(--tabbar-h)+env(safe-area-inset-bottom)+40px)] lg:max-w-[1280px] lg:px-[30px] lg:pt-[22px] lg:pb-[60px]">
           {children}
         </main>
+        <TabBar />
       </div>
     </RobotLinkProvider>
   );

@@ -57,7 +57,7 @@ export function RunView({ ropeId, runId }: { ropeId: string; runId: string }) {
         <FactCard value={detections.length} label="Detections" title="Every frame the detector fired on" />
       </CardGrid>
 
-      <Panel className="mt-[26px] px-[22px] py-5">
+      <Panel className="mt-[26px] px-3 py-4 sm:px-[22px] sm:py-5">
         <RopeStrip length={rope.length_m} marks={findingMarks(rope.id, findings)} />
       </Panel>
       <DefectLegend />
@@ -83,20 +83,24 @@ export function RunView({ ropeId, runId }: { ropeId: string; runId: string }) {
                 key={finding.best.id}
                 href={routes.defect(rope.id, finding.best.run_id, finding.best.id)}
               >
-                <Td mono strong>
+                <Td mono strong phone="primary">
                   {formatSpan(finding.from, finding.to)}
                 </Td>
-                <Td className="font-medium">{defectClassLabel(finding.best.label)}</Td>
-                <Td>
+                <Td className="font-medium" label="Flaw">
+                  {defectClassLabel(finding.best.label)}
+                </Td>
+                <Td label="Type">
                   <Pill tone={kindTone(finding.kind)}>{defectTypeLabel(finding.kind)}</Pill>
                 </Td>
-                <Td mono align="right">
+                <Td mono align="right" label="Confidence">
                   {formatConfidence(finding.confidence)}
                 </Td>
-                <Td mono muted align="right">
+                <Td mono muted align="right" label="Detections">
                   {finding.detections.length}
                 </Td>
-                <Td muted>{NOT_AVAILABLE}</Td>
+                <Td muted phone="hide">
+                  {NOT_AVAILABLE}
+                </Td>
               </LinkRow>
             ))}
           </tbody>
