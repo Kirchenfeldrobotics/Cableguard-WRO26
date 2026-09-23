@@ -48,7 +48,7 @@ TURRET_PUL_PIN   = 12
 TURRET_DIR_PIN   = 16
 TURRET_MICROSTEPS = 8
 TURRET_GEAR_RATIO = 1.0         # motor turns for one turn of the ring
-TURRET_MAX_SPEED  = 2000.0
+TURRET_MAX_DEG_S  = 120.0        # how fast the ring may swing, the cables decide this
 TURRET_ACCEL      = 20000.0     # the ring is light, it may be ramped harder than the drive
 
 # Where the cameras look from, degrees from the parked position. Two cameras facing each
@@ -61,16 +61,6 @@ TURRET_ANGLES = (0.0, 90.0)
 # rests here whenever the robot is not scanning, and the software takes it to stand here at
 # startup: it has no endstop, so leaving it open is the whole calibration
 TURRET_OPEN_ANGLE = -45.0
-
-# How long the ring takes to swing out to that angle and to come back. The camera cables do
-# not take the ring at the speed it could manage
-TURRET_OPEN_TURN_S = 0.6
-
-# The least a quarter turn inside a scan cycle may take. The cables set this, not the motor.
-# It is a floor rather than a duration: the turn runs alongside the detector and is stretched
-# to cover it whenever the net needs longer. Lower it and the whole cycle gets shorter, until
-# the detector becomes the slower half
-TURRET_SCAN_TURN_S = 0.8
 
 # Anything the distance sensor sees closer than this counts as a rope socket ahead. Far
 # enough that the robot is still open before it arrives, close enough that the rope itself
@@ -237,8 +227,7 @@ async def detection_reporter(cams: CameraPair, detector: DetectorProcess, link: 
         if rope_socket.is_open:
             # a turn that did not make it leaves the ring off its angle and is tried again,
             # at the pace of a cycle rather than of the poll
-            reached = turret.at(TURRET_OPEN_ANGLE) or await turn_cameras(
-                turret, TURRET_OPEN_ANGLE, TURRET_OPEN_TURN_S)
+            reached = turret.at(TURRET_OPEN_ANGLE) or await turn_cameras(turret, TURRET_OPEN_ANGLE)
             rope_socket.close_if_clear(drive.metres_done)
             await asyncio.sleep(OPEN_POLL if reached else plan.period)
             continue
@@ -249,13 +238,13 @@ async def detection_reporter(cams: CameraPair, detector: DetectorProcess, link: 
         # next start takes it to be
         if not drive.moving:
             if not turret.at(TURRET_OPEN_ANGLE):
-                await turn_cameras(turret, TURRET_OPEN_ANGLE, TURRET_OPEN_TURN_S)
+                await turn_cameras(turret, TURRET_OPEN_ANGLE)
             await asyncio.sleep(plan.period)
             continue
 
         # scanning again, so the ring goes to where a cycle starts
         if not turret.at(TURRET_ANGLES[0]):
-            await turn_cameras(turret, TURRET_ANGLES[0], TURRET_OPEN_TURN_S)
+            await turn_cameras(turret, TURRET_ANGLES[0])
 
         deadline = loop.time() + plan.period
         try:
@@ -400,7 +389,7 @@ async def main():
         dir_pin=TURRET_DIR_PIN,
         microsteps=TURRET_MICROSTEPS,
         gear_ratio=TURRET_GEAR_RATIO,
-        max_speed=TURRET_MAX_SPEED,
+        max_deg_s=TURRET_MAX_DEG_S,
         accel=TURRET_ACCEL,
         start_angle=TURRET_OPEN_ANGLE,
     )
@@ -422,9 +411,8 @@ async def main():
         cycle_s=cycle_s,
         camera_fps=CAMERA_FPS,
         speed_limits=(drive.to_metres(drive.start_speed), drive.to_metres(drive.max_speed)),
-        # the ring goes no quicker than its ramp allows, and no quicker than the cables take
-        min_turn_s=max(turret.min_turn_s(TURRET_ANGLES[1] - TURRET_ANGLES[0]),
-                       TURRET_SCAN_TURN_S),
+        # a quarter turn at the pace the ring is allowed to swing
+        min_turn_s=turret.min_turn_s(TURRET_ANGLES[1] - TURRET_ANGLES[0]),
     )
 
     stats = DetectionStats()
@@ -452,7 +440,7 @@ async def main():
     finally: 
         motion.emergency_stop()
         cams.close()
-        turret.close(TURRET_OPEN_TURN_S)
+        turret.close()
         motion.shutdown()
         screen.close()
         log.info("stopped")

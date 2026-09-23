@@ -12,6 +12,10 @@ GEAR_RATIO = 1.0
 # captured, otherwise the rope is smeared across it
 SETTLE_S = 0.05
 
+# The fastest the ring is swung, degrees per second. The camera cables set this, not the
+# motor: every move of the ring is paced by it
+MAX_DEG_S = 75.0
+
 # Slowest the ring is driven. A move that has more time than it needs runs at this speed and
 # is simply done early; below it the driver loses the feeling for where it is
 MIN_SPEED = 50.0
@@ -34,6 +38,7 @@ class Turret(Stepper):
                  pul_pin,
                  dir_pin,
                  gear_ratio=GEAR_RATIO,
+                 max_deg_s=MAX_DEG_S,
                  settle_s=SETTLE_S,
                  min_speed=MIN_SPEED,
                  ramp_segments=RAMP_SEGMENTS,
@@ -45,6 +50,11 @@ class Turret(Stepper):
         self.gear_ratio = gear_ratio
         self.settle_s   = settle_s
         self.min_speed  = min_speed
+
+        # What the cables take, in the microsteps per second the driver works in. Every move
+        # is bounded by it: one given no time runs at exactly this pace, and min_turn_s
+        # reports what a turn costs at it
+        self.max_speed = min(self.max_speed, max_deg_s * self.microsteps_per_deg)
 
         # The ring has no endstop, so its angle is the one it is told it has. Whoever sets
         # the robot up leaves it at start_angle, and the counter starts from there
@@ -132,13 +142,12 @@ class Turret(Stepper):
             self._speed = 0.0
             time.sleep(self.settle_s)
 
-    # Back to the angle the ring was calibrated at, unwinding its cables. Without a time it
-    # goes as fast as the ring allows, which is more than the cables take
-    def park(self, seconds=None):
-        self.turn_to(self.start_angle, seconds)
+    # back to the angle the ring was calibrated at, unwinding its cables
+    def park(self):
+        self.turn_to(self.start_angle)
 
-    def close(self, seconds=None):
+    def close(self):
         try:
-            self.park(seconds)
+            self.park()
         finally:
             super().close()
