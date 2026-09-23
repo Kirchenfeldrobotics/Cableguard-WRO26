@@ -80,21 +80,25 @@ export function RopesView() {
           <tbody>
             {overview.data?.map(({ rope, runs }) => (
               <LinkRow key={rope.id} href={routes.rope(rope.id)}>
-                <Td strong>{rope.name}</Td>
-                <Td mono muted>
+                <Td strong phone="primary">
+                  {rope.name}
+                </Td>
+                <Td mono muted phone="hide">
                   {NOT_AVAILABLE}
                 </Td>
-                <Td mono align="right">
+                <Td mono align="right" label="Length">
                   {formatMetres(rope.length_m)}
                 </Td>
-                <Td mono align="right">
+                <Td mono align="right" label="Runs">
                   {runs.length}
                 </Td>
-                <Td mono muted>
+                <Td mono muted label="Last inspected">
                   {formatDate(lastFinishedRun(runs)?.finished_at)}
                 </Td>
-                <Td muted>{NOT_AVAILABLE}</Td>
-                <Td align="right" className="pr-0">
+                <Td muted phone="hide">
+                  {NOT_AVAILABLE}
+                </Td>
+                <Td align="right" phone="end" className="pr-0">
                   <RemoveButton onConfirm={() => run(() => api.ropes.remove(rope.id))} />
                 </Td>
               </LinkRow>
@@ -134,7 +138,7 @@ function AddRopeForm({
         onChange={(e) => setName(e.target.value)}
         placeholder="Rope name"
         aria-label="Rope name"
-        className="min-w-[240px] flex-1 rounded-control border border-border bg-white px-3.5 py-3 text-sm"
+        className="min-w-0 basis-full rounded-control border border-border bg-white px-3.5 py-3 text-base sm:min-w-[240px] sm:flex-1 sm:basis-auto sm:text-sm"
       />
       <Button type="submit" disabled={saving || !name.trim()}>
         Save
@@ -162,8 +166,8 @@ function RemoveButton({ onConfirm }: { onConfirm: () => void }) {
       onKeyDown={(e) => e.stopPropagation()}
       className={
         armed
-          ? "text-xs leading-none font-semibold text-danger-strong"
-          : "text-xs leading-none font-medium text-text-subtle hover:text-danger-strong"
+          ? "text-xs leading-none font-semibold text-danger-strong max-lg:-m-2.5 max-lg:p-2.5"
+          : "text-xs leading-none font-medium text-text-subtle hover:text-danger-strong max-lg:-m-2.5 max-lg:p-2.5"
       }
     >
       {armed ? "Confirm remove" : "Remove"}

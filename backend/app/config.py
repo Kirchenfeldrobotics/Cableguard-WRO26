@@ -23,8 +23,8 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 12 * 60
 
     # The single operator account, created on first start if it does not exist.
-    DEFAULT_USERNAME: str = "user1"
-    DEFAULT_PASSWORD: str = "#wro"
+    DEFAULT_USERNAME: str = ""
+    DEFAULT_PASSWORD: str = ""
 
     # Secret stored on the NFC tag on the robot. Tapping the tag opens
     # /login#nfc=<key> and signs in as the operator above. Empty disables it.

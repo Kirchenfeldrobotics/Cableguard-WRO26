@@ -81,9 +81,30 @@ between cards, 12px outer padding around the app.
 ## Layout
 
 - `app/layout.tsx`: 236px sticky black sidebar on the left and main content up to 1280px
-  wide. Below the `lg` breakpoint the sidebar stacks on top with a scrollable nav.
+  wide.
 - The sidebar footer always shows the robot link (green or red dot), the time since the
   last packet and the local clock.
+- **Phones and tablets** (below `lg`): the sidebar is replaced by a sticky black top bar
+  (logo, robot link with the time since the last packet, sign out) and a fixed bottom tab
+  bar with the same destinations under short labels (Status, Live, Ropes, Compare, Robot).
+  The tab bar follows the sidebar's rules: Live only appears while a run is recording, and
+  carries a red dot then. Both bars pad themselves with the safe-area insets
+  (`viewportFit: "cover"`), and `--tabbar-h` is the tab bar's height for anything that
+  has to sit above it.
+
+### Phone rules
+
+- Below `sm`, headings drop to 24px, stat and fact cards go two to a row with a 20px
+  status circle, and main action buttons fill the row.
+- Tables become one card per row (`.stack-table` in `globals.css`). Give every `Td` a
+  `label` (its column header), mark the identifying cell `phone="primary"` and a row
+  action `phone="end"`. Columns that only ever show `—` because the backend has no data
+  for them get `phone="hide"`.
+- Inputs use 16px text below `sm`, otherwise iOS zooms the page when they are focused.
+- The live screen puts what is being tracked first (numbers, position on rope, cameras,
+  then drive, rope socket and log), the cameras swipe sideways, and the motion state with Stop is
+  pinned above the tab bar. That pinned Stop replaces the one in the drive panel, so
+  there is never more than one Stop on screen.
 
 ## Components
 
@@ -102,7 +123,9 @@ between cards, 12px outer padding around the app.
 | `CameraFeed` | `components/camera/camera-feed.tsx` | Live JPEG stream, dimmed with a "Not live" badge when frames stop, or striped placeholder |
 | `DetectionFrame` | `components/camera/detection-frame.tsx` | The stored JPEG a defect was found in, with its box on top; fetched as a blob because an `<img>` cannot send the token |
 | `RunStatePill` | `components/inspection/run-state-pill.tsx` | Link lost, Live or Idle |
-| `Sidebar` | `components/layout/sidebar.tsx` | Navigation and link status |
+| `Sidebar` | `components/layout/sidebar.tsx` | Desktop navigation and link status |
+| `MobileTopBar`, `TabBar` | `components/layout/mobile-nav.tsx` | Phone navigation and link status |
+| `useNavItems` | `components/layout/nav.tsx` | Destinations and icons shared by both |
 
 ## Patterns
 

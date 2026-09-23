@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Mono, Poppins } from "next/font/google";
 
 import { AppShell } from "@/components/layout/app-shell";
@@ -20,6 +20,15 @@ const plexMono = IBM_Plex_Mono({
 export const metadata: Metadata = {
   title: { default: "CableGuard", template: "%s · CableGuard" },
   description: "Rope inspection console for the CableGuard robot",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  // Draw under the notch and home indicator; the bars pad themselves with the safe-area insets.
+  viewportFit: "cover",
+  // Browser chrome on phones matches the ink top bar (`--color-ink`).
+  themeColor: "#0a0a0a",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

@@ -4,41 +4,26 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { Logo } from "@/components/brand/logo";
+import { isActive, useNavItems } from "@/components/layout/nav";
 import { useAuth } from "@/lib/auth/auth-context";
 import { cn } from "@/lib/cn";
 import { formatAgo } from "@/lib/format";
-import { useCurrentSelection } from "@/lib/hooks/use-inspection";
 import { useNow } from "@/lib/hooks/use-now";
 import { useRobotConnected, useRobotLink } from "@/lib/robot/robot-link";
 
-const NAV_ITEMS = [
-  { href: "/", label: "Dashboard" },
-  { href: "/live", label: "Live run" },
-  { href: "/ropes", label: "Ropes" },
-  { href: "/compare", label: "Compare runs" },
-  { href: "/settings", label: "Robot settings" },
-];
-
-function isActive(pathname: string, href: string) {
-  return href === "/" ? pathname === "/" : pathname.startsWith(href);
-}
-
+/** Desktop navigation. Phones get the top bar and tab bar in `mobile-nav.tsx` instead. */
 export function Sidebar() {
   const pathname = usePathname();
-  const current = useCurrentSelection();
-  // The live screen is the drive screen, and driving with no run recording stores nothing.
-  // With none selected it is not offered at all.
-  const recording = current.data?.run_id != null;
-  const items = NAV_ITEMS.filter((item) => item.href !== "/live" || recording);
+  const { items } = useNavItems();
 
   return (
-    <aside className="flex flex-col gap-[22px] rounded-shell bg-ink px-[18px] py-[26px] lg:sticky lg:top-3 lg:h-[calc(100vh-24px)] lg:w-[236px] lg:flex-none">
+    <aside className="sticky top-3 hidden h-[calc(100vh-24px)] w-[236px] flex-none flex-col gap-[22px] rounded-shell bg-ink px-[18px] py-[26px] lg:flex">
       <Link href="/" aria-label="CableGuard dashboard">
         <Logo />
       </Link>
       <div className="h-px bg-ink-soft" />
 
-      <nav className="flex gap-1 overflow-x-auto lg:flex-col">
+      <nav className="flex flex-col gap-1">
         {items.map((item) => {
           const active = isActive(pathname, item.href);
           return (
@@ -87,7 +72,8 @@ function Operator() {
   );
 }
 
-function LinkStatus() {
+/** Robot link in words: the headline state and how fresh the last packet is. */
+export function useLinkStatus() {
   const { socket, lastMessageAt } = useRobotLink();
   const connected = useRobotConnected();
   const now = useNow();
@@ -101,6 +87,12 @@ function LinkStatus() {
     : lastMessageAt && now
       ? `last packet ${formatAgo(Math.max(0, now - lastMessageAt))}`
       : "waiting for data";
+
+  return { connected, label, detail, now };
+}
+
+function LinkStatus() {
+  const { connected, label, detail, now } = useLinkStatus();
 
   return (
     <>

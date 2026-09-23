@@ -53,6 +53,11 @@
 }
 
 @layer base {
+  :root {
+    /* Phone tab bar, without the safe-area inset below it. */
+    --tabbar-h: 64px;
+  }
+
   body {
     background: var(--color-canvas);
     color: var(--color-ink);
@@ -68,6 +73,11 @@
     cursor: pointer;
   }
 
+  /* Taps give their own feedback through `active:` styles. */
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+
   :focus-visible {
     outline: 2px solid var(--color-ink);
     outline-offset: 2px;
@@ -80,4 +90,74 @@
     var(--color-video) 0 3px,
     var(--color-video-stripe) 3px 6px
   );
+}
+
+/*
+ * Phones: a table row becomes a card, each cell a label and value pair. The labels come
+ * from `Td label`, the header row is hidden. Left outside a layer on purpose, so it beats
+ * the utilities the cells carry for the desktop table.
+ */
+@media (width < 64rem) {
+  .stack-table,
+  .stack-table tbody,
+  .stack-table tr,
+  .stack-table td {
+    display: block;
+  }
+
+  .stack-table thead {
+    display: none;
+  }
+
+  .stack-table tbody {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .stack-table tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px 16px;
+    border-radius: var(--radius-card);
+    background: var(--color-surface);
+    padding: 16px 18px;
+  }
+
+  .stack-table tr[aria-current] {
+    outline: 2px solid var(--color-ink);
+    outline-offset: -2px;
+  }
+
+  .stack-table td {
+    border: 0;
+    padding: 0;
+    text-align: left;
+    white-space: normal;
+  }
+
+  .stack-table td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 6px;
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 1;
+    color: var(--color-text-subtle);
+  }
+
+  .stack-table td[data-primary] {
+    grid-column: 1 / -1;
+    font-size: 15px;
+  }
+
+  .stack-table td[data-phone="end"] {
+    align-self: end;
+    text-align: right;
+  }
+
+  .stack-table td[data-phone="hide"] {
+    display: none;
+  }
 }

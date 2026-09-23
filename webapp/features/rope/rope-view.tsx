@@ -57,7 +57,7 @@ export function RopeView({ ropeId }: { ropeId: string }) {
       </CardGrid>
 
       <SectionTitle>Unrolled rope</SectionTitle>
-      <Panel className="px-[22px] py-5">
+      <Panel className="px-3 py-4 sm:px-[22px] sm:py-5">
         <RopeStrip
           length={rope.length_m}
           marks={shownRun ? findingMarks(rope.id, findingsByRun[shownRun.id] ?? []) : []}
@@ -85,22 +85,22 @@ export function RopeView({ ropeId }: { ropeId: string }) {
           <tbody>
             {runs.map((run) => (
               <LinkRow key={run.id} href={routes.run(rope.id, run.id)}>
-                <Td mono strong>
+                <Td mono strong phone="primary">
                   {shortId(run.id)}
                 </Td>
-                <Td mono muted>
+                <Td mono muted label="Date">
                   {formatDateTime(run.started_at)}
                 </Td>
-                <Td mono align="right">
+                <Td mono align="right" label="Duration">
                   {formatRunDuration(run)}
                 </Td>
-                <Td mono align="right">
+                <Td mono align="right" phone="hide">
                   {NOT_AVAILABLE}
                 </Td>
-                <Td mono align="right">
+                <Td mono align="right" label="Findings">
                   {findingsByRun[run.id]?.length ?? 0}
                 </Td>
-                <Td mono muted align="right">
+                <Td mono muted align="right" phone="hide">
                   {NOT_AVAILABLE}
                 </Td>
               </LinkRow>

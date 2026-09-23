@@ -15,13 +15,21 @@ const DEFAULT_ASPECT = 4 / 3;
  * live JPEG stream, the last frame dimmed and marked stale once frames stop arriving, or the
  * striped placeholder before the first frame.
  */
-export function CameraFeed({ caption, feed }: { caption: string; feed: VideoFeed }) {
+export function CameraFeed({
+  caption,
+  feed,
+  className,
+}: {
+  caption: string;
+  feed: VideoFeed;
+  className?: string;
+}) {
   const [aspect, setAspect] = useState(DEFAULT_ASPECT);
   const now = useNow(500);
   const stale = feed.lastFrameAt !== null && now !== null && now - feed.lastFrameAt > VIDEO_STALE_MS;
 
   return (
-    <figure className="m-0 flex min-w-[290px] flex-[1_1_380px] flex-col gap-2.5">
+    <figure className={cn("m-0 flex min-w-[290px] flex-[1_1_380px] flex-col gap-2.5", className)}>
       <div className="relative overflow-hidden rounded-card bg-video-placeholder" style={{ aspectRatio: aspect }}>
         {feed.src ? (
           // Blob URLs from the socket cannot go through next/image.

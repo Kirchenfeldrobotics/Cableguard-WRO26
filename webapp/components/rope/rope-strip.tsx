@@ -53,11 +53,14 @@ export function RopeStrip({
   const share = (m: number) => (Math.max(0, Math.min(length, m)) / length) * 100;
   const pct = (m: number) => `${share(m)}%`;
   const step = length > 1600 ? 500 : 250;
-  const ticks: { left: string; label: string }[] = [];
-  for (let m = 0; m <= length - step * 0.4; m += step) {
-    ticks.push({ left: pct(m), label: m.toLocaleString("en-US") });
+  const ticks: { left: string; label: string; phone: boolean }[] = [];
+  for (let i = 0, m = 0; m <= length - step * 0.4; i++, m += step) {
+    // A phone is too narrow for every label: it keeps every second one, and drops one that
+    // would crowd the length label at the end.
+    const phone = i === 0 || (i % 2 === 0 && length - m > step);
+    ticks.push({ left: pct(m), label: m.toLocaleString("en-US"), phone });
   }
-  ticks.push({ left: pct(length), label: formatMetres(length) });
+  ticks.push({ left: pct(length), label: formatMetres(length), phone: true });
 
   return (
     <div className="w-full">
@@ -66,7 +69,10 @@ export function RopeStrip({
           <div
             key={t.label}
             style={{ left: t.left }}
-            className="absolute top-0 -translate-x-1/2 font-mono text-[11px] leading-none whitespace-nowrap text-text-subtle"
+            className={cn(
+              "absolute top-0 -translate-x-1/2 font-mono text-[11px] leading-none whitespace-nowrap text-text-subtle",
+              !t.phone && "max-sm:hidden",
+            )}
           >
             {t.label}
           </div>
@@ -96,7 +102,9 @@ export function RopeStrip({
                 )}
               />
             );
-            const className = "absolute top-0 flex h-[34px] -translate-x-1/2 items-center justify-center px-1.5";
+            // Wider padding on phones so a finger can hit a single detection.
+            const className =
+              "absolute top-0 flex h-[34px] -translate-x-1/2 items-center justify-center px-2.5 sm:px-1.5";
             const title = mark.title ?? formatMetres(mark.pos);
             const left = pct((mark.from + mark.to) / 2);
             return mark.href ? (
