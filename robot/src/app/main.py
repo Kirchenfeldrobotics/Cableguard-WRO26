@@ -403,13 +403,12 @@ async def main():
     # the detector sets the pace the drive runs at, there is no scanning without it
     detector = DetectorProcess()
     await asyncio.to_thread(detector.warmup)
-    cycle_s = await asyncio.to_thread(measure_cycle, cams, detector)
+    measured = await asyncio.to_thread(measure_cycle, cams, detector)
 
     # the drive can only be asked for speeds it can actually hold, and the cycle only for
     # turns the ring manages in the time it is given
     plan = plan_scan(
-        cycle_s=cycle_s,
-        camera_fps=CAMERA_FPS,
+        measured=measured,
         speed_limits=(drive.to_metres(drive.start_speed), drive.to_metres(drive.max_speed)),
         # the cycle decides how fast the cameras swing, unless the ring cannot manage it
         sweep_deg=TURRET_ANGLES[1] - TURRET_ANGLES[0],
