@@ -64,6 +64,10 @@ class Turret(Stepper):
     def _steps_at(self, degrees):
         return round(degrees * self.microsteps_per_deg)
 
+    # whether the ring stands on an angle, compared in steps so it is exact
+    def at(self, degrees):
+        return self.microsteps_done == self._steps_at(degrees)
+
     # Cruise speed that gets `steps` done in `seconds`, or the fastest the ramp allows when
     # there is no time to fill. Both ramps and the cruise between them add up to
     #   seconds = 2 * (v - v0) / a + (steps - (v^2 - v0^2) / a) / v

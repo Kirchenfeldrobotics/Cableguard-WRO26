@@ -36,6 +36,7 @@ import {
   useRobotConnected,
   useRobotLink,
 } from "@/lib/robot/robot-link";
+import { OPEN_ANGLE_DEG, SOCKET_CLEAR_M, SOCKET_TRIGGER_M } from "@/lib/robot/robot-config";
 import { useVideoFeeds } from "@/lib/robot/use-video-feeds";
 import { routes } from "@/lib/routes";
 
@@ -45,6 +46,7 @@ const CONFIRM_TIMEOUT_MS = 5_000;
 const NO_TELEMETRY = "No motion telemetry from the robot in the last 2 seconds";
 const NO_VISION = "The robot has not reported a detector frame recently";
 const NO_DISTANCE = "No distance reading from the robot in the last 2 seconds";
+const NO_OPEN_STATE = "No motion telemetry, so the robot has not confirmed whether it is open";
 
 const CAMERAS = [
   { code: "cam a", caption: "Camera A, upper rope surface" },
@@ -135,6 +137,12 @@ export function LiveView() {
     if (detectionVersion > 0) reload();
   }, [detectionVersion, reload]);
 
+  // The robot reports whether it is open, so the button says what it will do rather than
+  // what was clicked last. Stale telemetry still answers it, and the line below shows a dash
+  // for as long as it is stale.
+  const open = telemetry?.robot_open ?? false;
+  const watch = telemetry?.socket_watch ?? false;
+
   // Reversing a moving robot on one click is not something the operator should be able to do
   // by accident, so the direction is only picked while it stands still.
   const moving = fresh !== null && fresh.speed !== 0;
@@ -150,6 +158,9 @@ export function LiveView() {
     if (!send({ type: "stop" })) return;
     setSent({ expected: "stop", at: Date.now() });
   };
+
+  const toggleOpen = () => send({ type: open ? "close" : "open" });
+  const toggleWatch = () => send({ type: "socket_watch", enabled: !watch });
 
   // Hiding the sidebar entry does not stop anyone typing the address, so the screen turns
   // itself away too. Stop stays reachable while the robot reports movement: locking the
@@ -212,6 +223,14 @@ export function LiveView() {
             down to standstill by itself once it detects the lost link, which can take about 30 seconds.
           </Notice>
         )
+      )}
+
+      {fresh?.robot_open && (
+        <Notice>
+          The robot is open for a rope socket: the camera ring is parked at {OPEN_ANGLE_DEG}° and the
+          detector is off, so nothing is logged while it passes. The cameras keep streaming and the
+          drive keeps running.
+        </Notice>
       )}
 
       <CardGrid>
@@ -349,6 +368,50 @@ export function LiveView() {
           </div>
           <div className="text-text-muted" title={distance ? undefined : NO_DISTANCE}>
             Distance sensor · {distance ? formatDistance(distance.distance_m) : NOT_AVAILABLE}
+          </div>
+        </div>
+      </Panel>
+
+      <SectionTitle>Rope socket</SectionTitle>
+      <Panel className="flex flex-col gap-[18px] px-[22px] py-5">
+        <p className="m-0 text-xs leading-normal text-text-subtle">
+          The camera ring cannot turn past the fitting a rope ends in. Opening the robot parks the
+          ring at {OPEN_ANGLE_DEG}° and stops the detector until the socket is behind it; the drive and
+          the camera streams are not affected. An opening you ask for here stays until you close
+          it; one the robot makes itself ends after {formatMetres(SOCKET_CLEAR_M)} of driving.
+        </p>
+
+        <div className="flex flex-wrap items-center gap-3.5">
+          <Button
+            size="lg"
+            className="flex-[1_1_260px]"
+            disabled={socket !== "open"}
+            title={socket !== "open" ? "No connection to the server" : undefined}
+            onClick={toggleOpen}
+          >
+            {open ? "Close robot" : "Open robot"}
+          </Button>
+          <Button
+            variant="secondary"
+            aria-pressed={watch}
+            disabled={socket !== "open" || telemetry === null}
+            title={
+              telemetry === null
+                ? "The robot has not reported whether its distance sensor may open it"
+                : watch
+                  ? `A reading below ${formatMetres(SOCKET_TRIGGER_M)} opens the robot by itself`
+                  : "The robot only opens when you ask it to"
+            }
+            onClick={toggleWatch}
+          >
+            Sensor opening {watch ? "on" : "off"}
+          </Button>
+        </div>
+
+        <div className="flex flex-col gap-1.5 border-t border-surface-strong pt-4 font-mono text-[13px] leading-[1.4]">
+          <div className="text-text-muted" title={fresh ? undefined : NO_OPEN_STATE}>
+            Robot reports {fresh ? (fresh.robot_open ? "open" : "closed") : NOT_AVAILABLE} · sensor
+            opening {fresh ? (fresh.socket_watch ? "armed" : "off") : NOT_AVAILABLE}
           </div>
         </div>
       </Panel>
