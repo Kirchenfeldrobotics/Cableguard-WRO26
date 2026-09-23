@@ -11,9 +11,12 @@ from app.repository.ingest import store
 from app.auth import authenticate_robot, authenticate_ui
 from comm_protocols.messages import (
     Alive,
+    CloseCmd,
     Defect as DefectMsg,
     DistanceTelemetry,
     MotionTelemetry,
+    OpenCmd,
+    SocketWatchCmd,
     StartCmd,
     StopCmd,
     VisionTelemetry,
@@ -32,8 +35,14 @@ FromRobot = TypeAdapter(
         Field(discriminator="type"),
     ]
 )
-# The robot picks its own speed, the operator only starts, stops and sets the direction
-FromUi   = TypeAdapter(Annotated[StartCmd | StopCmd, Field(discriminator="type")])
+# The robot picks its own speed, the operator only starts, stops and sets the direction, and
+# opens the robot to let it pass a rope socket
+FromUi   = TypeAdapter(
+    Annotated[
+        StartCmd | StopCmd | OpenCmd | CloseCmd | SocketWatchCmd,
+        Field(discriminator="type"),
+    ]
+)
 
 # Route where robot can subscribe to socket ans send messages to, which are broadcasted to ui clients or persisted (or both)
 @router.websocket("/robot")

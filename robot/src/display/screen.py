@@ -8,28 +8,31 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
 
-from .st7789 import ST7789
+from .ssd1306 import SSD1306
 
 log = logging.getLogger(__name__)
 
-BLACK = (0, 0, 0)
-WHITE = (255, 255, 255)
-GREY  = (140, 140, 140)
-GREEN = (0, 190, 80)
-AMBER = (255, 170, 0)
-RED   = (220, 40, 40)
+# the panel is monochrome: a pixel is lit or it is not
+DARK = 0
+LIT  = 1
 
-# Pillow's built-in scalable font, no font file to install
-SMALL = ImageFont.load_default(15)
-FONT  = ImageFont.load_default(18)
-BIG   = ImageFont.load_default(40)
+# Pillow's built-in scalable font, no font file to install. Ten pixels is about as small as
+# this panel stays readable at arm's length
+SMALL = ImageFont.load_default(10)
+BIG   = ImageFont.load_default(17)
 
 # the Pi 5 throttles at 85 °C
 WARM_C = 70.0
-HOT_C  = 80.0
 
-# the 1.69" panel has rounded corners, text closer to the side than this gets cut off there
-MARGIN = 12
+# Rows, top down: the filled header, then network, outbox, position and finally the state
+# line. The position gets the big font, it is the number read from a distance
+BAR_H    = 13
+ROW_IP   = 14
+ROW_LINK = 25
+ROW_POS  = 34
+ROW_FOOT = 53
+
+MARGIN = 1
 
 
 # what the robot knows about itself, taken fresh for every frame
@@ -39,9 +42,6 @@ class Status:
     backlog_bytes: int              # outbox not delivered yet
     speed_mps: float                # signed, forward is positive
     metres: float                   # from the run origin
-    defects: int                    # found in the current run
-    last_defect: str | None         # label and confidence of the latest one
-    last_defect_at: float | None    # time.monotonic() of it
     cycle_ms: float | None          # last detector cycle
 
 
@@ -70,95 +70,98 @@ def _size(n):
     return f"{n / 1000:.0f} kB"
 
 
-def _age(seconds):
-    if seconds < 60:
-        return f"{seconds:.0f} s"
-    if seconds < 3600:
-        return f"{seconds / 60:.0f} min"
-    return f"{seconds / 3600:.0f} h"
+# there is no colour to warn with, so a hot CPU is marked with an exclamation mark
+def _system(temp, load):
+    reading = "--C" if temp is None else f"{temp:.0f}C{'!' if temp >= WARM_C else ''}"
+    return f"{reading} {load:.1f}"
 
 
-# One frame: link, motion, detections, system, each under a line of its own. Laid out for
-# the landscape 280x240, standing upright it keeps the same rows with room left below
+# One frame for the 128x64 panel: link and clock, network, outbox and detector, position,
+# then speed and system. Drawn white on black, the header the other way round
 def render(s: Status, ip, temp, load, width, height):
-    img = Image.new("RGB", (width, height), BLACK)
+    img = Image.new("1", (width, height), DARK)
     d = ImageDraw.Draw(img)
     left, right = MARGIN, width - MARGIN
 
-    # the bar turns red once the backend is out of reach, the clock shows a frozen screen
-    d.rectangle((0, 0, width, 26), fill=GREEN if s.online else RED)
-    d.text((left, 4), "ONLINE" if s.online else "OFFLINE", font=FONT, fill=WHITE)
-    d.text((right, 5), time.strftime("%H:%M:%S"), font=SMALL, fill=WHITE, anchor="ra")
-    d.text((left, 32), f"IP {ip or 'no network'}", font=SMALL, fill=WHITE)
-    if s.backlog_bytes:
-        d.text((left, 52), f"outbox {_size(s.backlog_bytes)} unsent", font=SMALL, fill=AMBER)
-    else:
-        d.text((left, 52), "outbox empty", font=SMALL, fill=GREY)
+    # a filled bar reads as link state from further away than any text can
+    d.rectangle((0, 0, width, BAR_H), fill=LIT)
+    d.text((left + 1, 0), "ONLINE" if s.online else "OFFLINE", font=SMALL, fill=DARK)
+    # the clock ticks, which is how a frozen screen gives itself away
+    d.text((right, 0), time.strftime("%H:%M:%S"), font=SMALL, fill=DARK, anchor="ra")
 
-    d.line((0, 76, width, 76), fill=GREY)
+    d.text((left, ROW_IP), ip or "no network", font=SMALL, fill=LIT)
+
+    d.text((left, ROW_LINK), f"out {_size(s.backlog_bytes)}" if s.backlog_bytes else "out empty",
+           font=SMALL, fill=LIT)
+    d.text((right, ROW_LINK), "cyc --" if s.cycle_ms is None else f"cyc {s.cycle_ms:.0f}ms",
+           font=SMALL, fill=LIT, anchor="ra")
+
+    d.text((left, ROW_POS), f"{s.metres:.2f} m", font=BIG, fill=LIT)
     if s.speed_mps > 0.0:
-        state, colour = "FORWARD", GREEN
+        state = "FWD"
     elif s.speed_mps < 0.0:
-        state, colour = "BACKWARD", AMBER
+        state = "REV"
     else:
-        state, colour = "STOPPED", GREY
-    d.text((left, 82), state, font=FONT, fill=colour)
-    d.text((right, 82), f"{abs(s.speed_mps):.3f} m/s", font=FONT, fill=WHITE, anchor="ra")
-    d.text((left, 104), f"{s.metres:.2f} m", font=BIG, fill=WHITE)
+        state = "STOP"
+    d.text((right, ROW_POS + 4), state, font=SMALL, fill=LIT, anchor="ra")
 
-    d.line((0, 152, width, 152), fill=GREY)
-    d.text((left, 158), f"defects {s.defects}", font=FONT, fill=AMBER if s.defects else WHITE)
-    if s.cycle_ms is not None:
-        d.text((right, 160), f"cycle {s.cycle_ms:.0f} ms", font=SMALL, fill=GREY, anchor="ra")
-    if s.last_defect:
-        age = _age(time.monotonic() - s.last_defect_at)
-        d.text((left, 182), f"{s.last_defect}  {age} ago", font=SMALL, fill=WHITE)
-    else:
-        d.text((left, 182), "none found yet", font=SMALL, fill=GREY)
-
-    d.line((0, 206, width, 206), fill=GREY)
-    if temp is None:
-        d.text((left, 214), "CPU --", font=FONT, fill=GREY)
-    else:
-        colour = RED if temp >= HOT_C else AMBER if temp >= WARM_C else WHITE
-        d.text((left, 214), f"CPU {temp:.0f} °C", font=FONT, fill=colour)
-    d.text((right, 214), f"load {load:.1f}", font=FONT, fill=WHITE, anchor="ra")
+    d.text((left, ROW_FOOT), f"{abs(s.speed_mps):.3f} m/s", font=SMALL, fill=LIT)
+    d.text((right, ROW_FOOT), _system(temp, load), font=SMALL, fill=LIT, anchor="ra")
     return img
 
 
 class StatusScreen:
-    # The robot runs without its display, a missing or unwired one costs a warning. SPI has to
-    # be enabled (dtparam=spi=on) for the panel to be found
-    def __init__(self, dc_pin, rst_pin, bl_pin, rotation=90):
+    # The robot runs without its display, a missing or unwired one costs a warning. I2C has
+    # to be enabled (dtparam=i2c_arm=on) for the panel to answer
+    def __init__(self, bus, address, flip=False):
         self._lock = threading.Lock()
+        self._failing = False
         try:
-            self._panel = ST7789(dc_pin, rst_pin, bl_pin, rotation=rotation)
+            self._panel = SSD1306(bus, address, flip=flip)
         except Exception as exc:
             log.warning("no status display: %s", exc)
             self._panel = None
+
+    # Put a frame on the panel. A display knocked off its header would otherwise log a
+    # stack trace every second, so it is reported once and then simply retried
+    def _draw(self, img):
+        with self._lock:
+            if self._panel is None:
+                return
+            try:
+                self._panel.show(img)
+            except OSError as exc:
+                if not self._failing:
+                    log.warning("status display not answering: %s", exc)
+                self._failing = True
+            else:
+                if self._failing:
+                    log.info("status display answers again")
+                self._failing = False
 
     def show(self, status: Status):
         panel = self._panel
         if panel is None:
             return
-        img = render(status, local_ip(), cpu_temp(), os.getloadavg()[0], panel.width, panel.height)
-        with self._lock:
-            if self._panel is not None:
-                self._panel.show(img)
+        self._draw(render(status, local_ip(), cpu_temp(), os.getloadavg()[0],
+                          panel.width, panel.height))
 
     # a single line in the middle, for while there is no status yet
     def message(self, text):
         panel = self._panel
         if panel is None:
             return
-        img = Image.new("RGB", (panel.width, panel.height), BLACK)
-        ImageDraw.Draw(img).text((panel.width // 2, panel.height // 2), text, font=FONT, fill=WHITE, anchor="mm")
-        with self._lock:
-            if self._panel is not None:
-                self._panel.show(img)
+        img = Image.new("1", (panel.width, panel.height), DARK)
+        ImageDraw.Draw(img).text((panel.width // 2, panel.height // 2), text, font=BIG, fill=LIT,
+                                 anchor="mm")
+        self._draw(img)
 
     def close(self):
         with self._lock:
-            if self._panel is not None:
+            if self._panel is None:
+                return
+            try:
                 self._panel.close()
-                self._panel = None
+            except OSError as exc:
+                log.warning("status display did not switch off: %s", exc)
+            self._panel = None

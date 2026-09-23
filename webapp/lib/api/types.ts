@@ -76,7 +76,7 @@ export interface AliveEvent {
 
 export interface MotionTelemetryEvent {
   type: "motion_telemetry";
-  /** Drive speed in microsteps per second (see robot/src/motion/stepper.py). */
+  /** Drive speed in microsteps per second (see robot/src/motion/drive.py). */
   speed: number;
   /** The same speed in metres per second. The robot owns the drive geometry. */
   speed_mps: number;
@@ -88,6 +88,10 @@ export interface MotionTelemetryEvent {
   scan_speed_mps: number;
   /** Detector cycles per second the scan is paced for. */
   detect_fps: number;
+  /** The camera ring is parked clear of a rope socket and the detector is off. */
+  robot_open: boolean;
+  /** The distance sensor is allowed to open the robot by itself. */
+  socket_watch: boolean;
   seq: number;
 }
 
@@ -155,4 +159,14 @@ export type ServerEvent =
  */
 export type DriveDirection = "forward" | "reverse";
 
-export type RobotCommand = { type: "start"; direction: DriveDirection } | { type: "stop" };
+/**
+ * Start and stop drive the run. `open` parks the camera ring clear of a rope socket and
+ * stops the detector until `close`; `socket_watch` arms or disarms the robot's own trigger
+ * for it, which opens on the distance sensor and closes once the socket is behind it.
+ */
+export type RobotCommand =
+  | { type: "start"; direction: DriveDirection }
+  | { type: "stop" }
+  | { type: "open" }
+  | { type: "close" }
+  | { type: "socket_watch"; enabled: boolean };

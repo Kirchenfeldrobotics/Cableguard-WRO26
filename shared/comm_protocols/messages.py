@@ -29,7 +29,11 @@ class MotionTelemetry(RobotMessage):
     metres: float               # the same position in metres
     scan_speed_mps: float       # what the scan plan asks the drive to hold while running
     detect_fps: float           # detector cycles per second the plan is built for
-    seq: int 
+    # both default to what a robot without the rope socket code does, so a server that is
+    # ahead of the robot still reads its telemetry
+    robot_open: bool = False    # camera ring parked clear of a rope socket, detector off
+    socket_watch: bool = False  # the distance sensor may open the robot by itself
+    seq: int
 
 # What the robot's distance sensor sees. Live only, a reading is worthless a second later
 class DistanceTelemetry(RobotMessage):
@@ -81,5 +85,19 @@ class StopCmd(BaseModel):
     type: Literal["stop"] = "stop"
 
 # A run is measured from where the robot sits when the run is selected
-class ResetOriginCmd(BaseModel): 
+class ResetOriginCmd(BaseModel):
     type: Literal["reset_origin"] = "reset_origin"
+
+# Open the robot so it can pass a rope socket: the camera ring parks at an angle that clears
+# the socket and the detector stops. What opened it decides what closes it again, so an
+# opening the operator asked for ends with CloseCmd and nothing else
+class OpenCmd(BaseModel):
+    type: Literal["open"] = "open"
+
+class CloseCmd(BaseModel):
+    type: Literal["close"] = "close"
+
+# Arm or disarm the distance sensor's own rope socket trigger
+class SocketWatchCmd(BaseModel):
+    type: Literal["socket_watch"] = "socket_watch"
+    enabled: bool

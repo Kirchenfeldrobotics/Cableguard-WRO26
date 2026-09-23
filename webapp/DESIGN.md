@@ -159,6 +159,14 @@ between cards, 12px outer padding around the app.
   robot is unreachable or already scanning, and the direction buttons are disabled while it
   moves, so no single click can reverse a moving machine. A command is reported as carried
   out only when telemetry shows it, never because the socket accepted it.
+- **Rope socket**: the camera ring cannot turn past the fitting a rope ends in, so the robot
+  *opens* — the ring parks clear of it and the detector stops, while the drive and the camera
+  streams carry on. The live view has the large Open/Close button and, beside it, the small
+  switch for the robot's own trigger on the distance sensor; both read their state from
+  `robot_open` and `socket_watch` in the motion telemetry, never from what was clicked. An
+  opening the operator asked for ends only on their click, one the sensor made closes itself
+  once the robot has driven clear. The angles and distances shown on the settings page are
+  copies of the robot's constants (`lib/robot/robot-config.ts`), not values it reported.
 - **Position** is metres since the origin, which the backend resets on the robot whenever a
   run is selected. The webapp never converts steps to metres, the robot owns the drive
   geometry and reports both.
