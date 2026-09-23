@@ -23,7 +23,7 @@ TURNS_PER_CYCLE = 2
 
 # Share of the cycle each of the two quarter turns gets. The ring carries the cameras and
 # their cables, so it is given room rather than driven at its limit
-TURN_SHARE = 0.15
+TURN_SHARE = 0.3
 
 # Cycles the benchmark averages over. The first one is thrown away, it still allocates
 BENCHMARK_CYCLES = 9
