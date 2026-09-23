@@ -48,7 +48,7 @@ TURRET_PUL_PIN   = 12
 TURRET_DIR_PIN   = 16
 TURRET_MICROSTEPS = 8
 TURRET_GEAR_RATIO = 1.0         # motor turns for one turn of the ring
-TURRET_MAX_DEG_S  = 120.0        # how fast the ring may swing, the cables decide this
+TURRET_MAX_DEG_S  = 200.0        # how fast the ring may swing, the cables decide this
 TURRET_ACCEL      = 20000.0     # the ring is light, it may be ramped harder than the drive
 
 # Where the cameras look from, degrees from the parked position. Two cameras facing each
@@ -411,7 +411,8 @@ async def main():
         cycle_s=cycle_s,
         camera_fps=CAMERA_FPS,
         speed_limits=(drive.to_metres(drive.start_speed), drive.to_metres(drive.max_speed)),
-        # a quarter turn at the pace the ring is allowed to swing
+        # the cycle decides how fast the cameras swing, unless the ring cannot manage it
+        sweep_deg=TURRET_ANGLES[1] - TURRET_ANGLES[0],
         min_turn_s=turret.min_turn_s(TURRET_ANGLES[1] - TURRET_ANGLES[0]),
     )
 

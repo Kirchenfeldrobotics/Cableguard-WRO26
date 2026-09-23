@@ -31,6 +31,7 @@ class ScanPlan:
     period: float           # seconds between two detector cycles
     speed_mps: float        # what the drive is asked to hold, already inside its limits
     turn_s: float           # seconds one quarter turn of the camera ring gets
+    turn_deg_s: float       # the speed that works out to, averaged over the whole move
     cycle_s: float          # what one cycle measured at startup
     metre_per_frame: float
 
@@ -80,38 +81,47 @@ def measure_cycle(cams, detector, rounds: int = ROUNDS_PER_CYCLE, cycles: int = 
     return cycle_s
 
 
-def plan_scan(cycle_s, camera_fps, speed_limits, min_turn_s, metre_per_frame=METRE_PER_FRAME,
-              headroom=HEADROOM, rounds=ROUNDS_PER_CYCLE):
+def plan_scan(cycle_s, camera_fps, speed_limits, sweep_deg, min_turn_s,
+              metre_per_frame=METRE_PER_FRAME, headroom=HEADROOM, rounds=ROUNDS_PER_CYCLE):
     """Speed and cadence for a scan that covers the rope once, all the way round.
 
-    A round is a frame from every camera and the net run on each of them. Only the shutter
-    needs the ring standing still, so the ring turns to the next angle while the detector
-    works on the frames just taken: a round lasts as long as the slower of the two, not as
-    long as both. Holding one frame of rope per cycle is what makes the frames line up end
-    to end.
+    The detector sets the cycle. A round is a frame from every camera and the net run on
+    each of them; only the shutter needs the ring standing still, so the ring swings to the
+    next angle while the net works on the frames just taken. That gives the cycle, and the
+    cycle gives both the drive speed, one frame of rope per cycle, and the speed the ring
+    has to swing at to be in place for the next round.
+
+    The ring is the one thing that can refuse: if it cannot swing that fast it takes the
+    time it needs and the cycle, and with it the robot, is slowed down to suit.
     """
     detect_s     = cycle_s * headroom
     detect_round = detect_s / rounds            # the net's share of one round
     capture_s    = 1.0 / camera_fps             # the camera has to deliver a fresh frame first
 
-    # the turn is never the thing that is rushed: it is stretched to cover the detector
-    turn_s = max(min_turn_s, detect_round)
+    # the cycle the detector asks for, and the time that leaves the ring to swing in
+    turn_s = detect_round
     period = rounds * (capture_s + turn_s)
+
+    if turn_s < min_turn_s:
+        # the ring cannot keep up, so it takes what it needs and the cycle grows around it
+        log.warning("ring cannot swing %.0f deg in %.0f ms (%.0f deg/s asked of it), it needs "
+                    "%.0f ms: the cycle grows from %.2f s to %.2f s and the drive slows to suit",
+                    sweep_deg, turn_s * 1000.0, sweep_deg / turn_s, min_turn_s * 1000.0,
+                    period, rounds * (capture_s + min_turn_s))
+        turn_s = min_turn_s
+        period = rounds * (capture_s + turn_s)
 
     min_mps, max_mps = speed_limits
     ideal_mps = metre_per_frame / period
     speed_mps = min(max(ideal_mps, min_mps), max_mps)
 
-    plan = ScanPlan(period=period, speed_mps=speed_mps, turn_s=turn_s, cycle_s=cycle_s,
+    plan = ScanPlan(period=period, speed_mps=speed_mps, turn_s=turn_s,
+                    turn_deg_s=sweep_deg / turn_s, cycle_s=cycle_s,
                     metre_per_frame=metre_per_frame)
 
-    if turn_s > detect_round:
-        # the detector is done before the ring arrives, so the ring sets the pace
-        log.info("camera ring sets the pace: %.0f ms per turn against %.0f ms of detector work",
-                 turn_s * 1000.0, detect_round * 1000.0)
-    else:
-        log.info("detector sets the pace: %.0f ms per round, the ring is done in %.0f ms",
-                 detect_round * 1000.0, min_turn_s * 1000.0)
+    log.info("cycle set by the %s: the ring swings %.0f deg in %.0f ms, %.0f deg/s",
+             "camera ring" if turn_s > detect_round else "detector",
+             sweep_deg, turn_s * 1000.0, plan.turn_deg_s)
     if plan.gap_m > 0.0:
         # the drive cannot crawl slowly enough to keep up with a detector this slow
         log.warning(
@@ -121,7 +131,7 @@ def plan_scan(cycle_s, camera_fps, speed_limits, min_turn_s, metre_per_frame=MET
         log.info("drive tops out at %.3f m/s, frames overlap by %.0f%%", max_mps, plan.overlap * 100.0)
 
     log.info("scan plan: %.2f cycles/s, %.3f m/s, %.0f mm per cycle of a %.0f mm frame, "
-             "%d rounds of %.0f ms capture plus %.0f ms turn",
+             "%d rounds of %.0f ms capture plus %.0f ms of net behind the turn",
              plan.detect_fps, plan.speed_mps, plan.advance_m * 1000.0, metre_per_frame * 1000.0,
-             rounds, capture_s * 1000.0, plan.turn_s * 1000.0)
+             rounds, capture_s * 1000.0, detect_round * 1000.0)
     return plan
