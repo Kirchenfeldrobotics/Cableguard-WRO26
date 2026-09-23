@@ -13,6 +13,7 @@ import {
   formatNumber,
 } from "@/lib/format";
 import { useNow } from "@/lib/hooks/use-now";
+import { OPEN_ANGLE_DEG, SOCKET_CLEAR_M, SOCKET_TRIGGER_M } from "@/lib/robot/robot-config";
 import { TELEMETRY_STALE_MS, useRobotConnected, useRobotLink } from "@/lib/robot/robot-link";
 
 /*
@@ -26,7 +27,48 @@ const DRIVE_PARAMS = [
   { label: "Acceleration", note: "Ramp applied on start and stop", unit: "m/s²" },
 ];
 
+/*
+ * What the robot is built with. It reports no configuration of its own, so these are copies
+ * of its constants (lib/robot/robot-config.ts), not values it confirmed.
+ */
+const SOCKET_PARAMS = [
+  { label: "Open angle", note: "Where the camera ring parks to clear a rope socket", unit: "°",
+    value: OPEN_ANGLE_DEG },
+  { label: "Sensor trigger", note: "A reading closer than this opens the robot by itself", unit: "m",
+    value: SOCKET_TRIGGER_M },
+  { label: "Clear distance", note: "Driven from the socket before the robot closes again", unit: "m",
+    value: SOCKET_CLEAR_M },
+];
+
 const NOT_CONFIGURABLE = "Not configurable from the webapp yet";
+
+/** Label, note and a disabled field: either a value the robot was built with, or nothing. */
+function ParamRow({ label, note, unit, value }: {
+  label: string;
+  note: string;
+  unit: string;
+  value?: number;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-5 border-b border-surface-strong py-4 last:border-b-0">
+      <div className="flex flex-col gap-[5px]">
+        <span className="text-sm leading-[1.3] font-semibold">{label}</span>
+        <span className="text-xs leading-[1.4] text-text-subtle">{note}</span>
+      </div>
+      <div className="flex items-center gap-2.5">
+        <input
+          disabled
+          defaultValue={value}
+          placeholder={NOT_AVAILABLE}
+          title={NOT_CONFIGURABLE}
+          aria-label={label}
+          className="w-24 rounded-control border border-border bg-white px-3 py-2.5 text-right font-mono text-[13px] leading-none font-medium text-ink disabled:cursor-not-allowed"
+        />
+        <span className="w-10 font-mono text-xs leading-none text-text-subtle">{unit}</span>
+      </div>
+    </div>
+  );
+}
 
 export function SettingsView() {
   const { telemetry, telemetryAt, lastMessageAt } = useRobotLink();
@@ -40,27 +82,20 @@ export function SettingsView() {
 
       <Panel className="mt-5 px-5 py-2">
         {DRIVE_PARAMS.map((param) => (
-          <div
-            key={param.label}
-            className="flex items-center justify-between gap-5 border-b border-surface-strong py-4 last:border-b-0"
-          >
-            <div className="flex flex-col gap-[5px]">
-              <span className="text-sm leading-[1.3] font-semibold">{param.label}</span>
-              <span className="text-xs leading-[1.4] text-text-subtle">{param.note}</span>
-            </div>
-            <div className="flex items-center gap-2.5">
-              <input
-                disabled
-                placeholder={NOT_AVAILABLE}
-                title={NOT_CONFIGURABLE}
-                aria-label={param.label}
-                className="w-24 rounded-control border border-border bg-white px-3 py-2.5 text-right font-mono text-[13px] leading-none font-medium text-ink disabled:cursor-not-allowed"
-              />
-              <span className="w-10 font-mono text-xs leading-none text-text-subtle">{param.unit}</span>
-            </div>
-          </div>
+          <ParamRow key={param.label} {...param} />
         ))}
       </Panel>
+
+      <SectionTitle className="mt-[34px] mb-4">Rope socket</SectionTitle>
+      <Panel className="px-5 py-2">
+        {SOCKET_PARAMS.map((param) => (
+          <ParamRow key={param.label} {...param} />
+        ))}
+      </Panel>
+      <div className="mt-2.5 text-xs leading-normal text-text-subtle">
+        The robot is opened from the live view. These are the values it was built with
+        (robot/src/app/main.py); it does not report them, and they cannot be changed from here.
+      </div>
 
       <SectionTitle className="mt-[34px] mb-4">Detection</SectionTitle>
       <Panel className="p-5">
