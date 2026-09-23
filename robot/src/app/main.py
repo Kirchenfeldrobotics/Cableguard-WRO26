@@ -83,17 +83,15 @@ TELEMETRY_PERIOD = 0.5
 # distance sensor, a TOF200C (VL53L0X) on I2C bus 1 (SDA GPIO2, SCL GPIO3)
 TOF_I2C_BUS = 1
 DISTANCE_PERIOD = 0.5
-# status display, a 1.69" 240x280 ST7789 on SPI0 (SCL GPIO11, SDA GPIO10, CS GPIO8)
-DISPLAY_DC_PIN = 25
-DISPLAY_RST_PIN = 27
-DISPLAY_BL_PIN = 24
-DISPLAY_ROTATION = 90       # 270 if the picture stands on its head
+# status display, a 0.96" 128x64 SSD1306 OLED. It shares I2C bus 1 with the distance sensor
+DISPLAY_I2C_BUS = 1
+DISPLAY_ADDRESS = 0x3C      # 0x3D on boards where the address pad is bridged
+DISPLAY_FLIP = False        # True if the panel is mounted upside down
 DISPLAY_PERIOD = 1.0
 
 # creates function that turns messages into roboter commands. The speed is not ours to
 # choose, the scan plan fixed it so that the detector sees every bit of rope once
-def make_command_handler(motion: MotionController, plan: ScanPlan, stats: DetectionStats,
-                         rope_socket: RopeSocket): 
+def make_command_handler(motion: MotionController, plan: ScanPlan, rope_socket: RopeSocket): 
     # the round trip through metres is not bit exact, and ramp_to reads anything below
     # start_speed as a stop, so a plan sitting on the lower limit must not fall through it
     scan_speed = max(motion.drive.to_microsteps(plan.speed_mps), motion.drive.start_speed)
@@ -116,7 +114,6 @@ def make_command_handler(motion: MotionController, plan: ScanPlan, stats: Detect
             motion.drive.reset_steps_done()
             # the clear distance is measured from a position that just became zero
             rope_socket.rebase(motion.drive.metres_done)
-            stats.new_run()
 
         elif isinstance(cmd, OpenCmd): 
             rope_socket.open_by_user()
@@ -143,19 +140,10 @@ async def frame_producer(cams: CameraPair, video: VideoLink, fps: float):
             log.exception("capture failed")
         await asyncio.sleep(max(0.0, deadline - loop.time()))
 
-# what the detector has found in the current run, for the status display
+# how the detector is keeping up, for the status display
 @dataclass
 class DetectionStats:
-    count: int = 0
-    last: str | None = None           # label and confidence of the latest defect
-    last_at: float | None = None      # time.monotonic() of it
     cycle_ms: float | None = None     # how long the last detector cycle took
-
-    # a run starts at its origin, the detector timing carries over
-    def new_run(self):
-        self.count = 0
-        self.last = None
-        self.last_at = None
 
 # Turn the cameras and report if the ring does not make it. A jammed ring costs the two
 # sides it was meant to show, not the run, so the scan carries on either way
@@ -170,7 +158,7 @@ async def turn_cameras(turret: Turret, degrees: float, seconds: float | None = N
 # One look at the rope: a frame from every camera, the detector on each of them, and a
 # report for every frame, empty ones included
 async def scan_round(cams: CameraPair, detector: DetectorProcess, link: RobotLink, drive: Drive,
-                     stats: DetectionStats, seq):
+                     seq):
     loop = asyncio.get_running_loop()
 
     frames = await asyncio.to_thread(cams.capture)
@@ -193,10 +181,6 @@ async def scan_round(cams: CameraPair, detector: DetectorProcess, link: RobotLin
                 for det in found
             )
             log.info("cam%d: %d detection(s) in %.0f ms: %s", idx, len(found), millis, summary)
-            best = max(found, key=lambda det: det.confidence)
-            stats.count += len(found)
-            stats.last = f"{best.label} {best.confidence:.2f}"
-            stats.last_at = time.monotonic()
         else:
             log.info("cam%d: nothing detected (%.0f ms)", idx, millis)
 
@@ -251,7 +235,7 @@ async def detection_reporter(cams: CameraPair, detector: DetectorProcess, link: 
                 if rope_socket.is_open:
                     break
                 await turn_cameras(turret, angle, plan.turn_s)
-                await scan_round(cams, detector, link, drive, stats, seq)
+                await scan_round(cams, detector, link, drive, seq)
 
             if not rope_socket.is_open:
                 # parked again, where the next cycle expects the cameras to be
@@ -349,9 +333,6 @@ async def display_updater(screen: StatusScreen, link: RobotLink, outbox: Outbox,
             backlog_bytes=outbox.backlog_bytes,
             speed_mps=drive.speed_mps,
             metres=drive.metres_done,
-            defects=stats.count,
-            last_defect=stats.last,
-            last_defect_at=stats.last_at,
             cycle_ms=stats.cycle_ms,
         )
         try:
@@ -369,7 +350,7 @@ async def main():
         loop.add_signal_handler(sig, task.cancel)
 
     # first up, so that the model loading and benchmark below are not a dark screen
-    screen = StatusScreen(DISPLAY_DC_PIN, DISPLAY_RST_PIN, DISPLAY_BL_PIN, rotation=DISPLAY_ROTATION)
+    screen = StatusScreen(DISPLAY_I2C_BUS, DISPLAY_ADDRESS, flip=DISPLAY_FLIP)
     screen.message("starting")
 
     # configure the drive along the rope
@@ -414,7 +395,7 @@ async def main():
 
     stats = DetectionStats()
     rope_socket = RopeSocket(SOCKET_DISTANCE_M, SOCKET_CLEAR_M)
-    link.on_command(make_command_handler(motion, plan, stats, rope_socket))
+    link.on_command(make_command_handler(motion, plan, rope_socket))
 
     log.info("steppers, detector and link configured")
 

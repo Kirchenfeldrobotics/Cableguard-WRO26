@@ -7,5 +7,4 @@ ultralytics
 ncnn
 pyyaml
 smbus2
-spidev
 pillow>=10.1
