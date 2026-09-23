@@ -213,8 +213,9 @@ export function LiveView() {
   }
 
   // On a phone the sections are reordered so what is tracked comes first: numbers, where the
-  // robot is on the rope, what the cameras see, then the drive controls and the log. Stop and
-  // the motion state stay pinned above the tab bar. Desktop keeps the order of the markup.
+  // robot is on the rope, what the cameras see, then the drive and rope socket controls and the
+  // log. Stop and the motion state stay pinned above the tab bar. Desktop keeps the order of
+  // the markup.
   return (
     <div className="flex flex-col">
       <PageHeader title="Inspection data">
@@ -237,7 +238,6 @@ export function LiveView() {
         )
       )}
 
-      <CardGrid className="max-lg:order-1">
       {fresh?.robot_open && (
         <Notice>
           The robot is open for a rope socket: the camera ring is parked at {OPEN_ANGLE_DEG}° and the
@@ -246,7 +246,7 @@ export function LiveView() {
         </Notice>
       )}
 
-      <CardGrid>
+      <CardGrid className="max-lg:order-1">
         <StatCard
           value={fresh ? formatMetres(fresh.metres) : NOT_AVAILABLE}
           label={`Position on rope of ${formatMetres(rope?.length_m)}`}
@@ -298,7 +298,7 @@ export function LiveView() {
         </Panel>
       </section>
 
-      <section className="max-lg:order-5">
+      <section className="max-lg:order-6">
         <SectionTitle>Log</SectionTitle>
         <Panel className="flex flex-col gap-[7px] p-4">
           {rope &&
@@ -402,6 +402,53 @@ export function LiveView() {
         </Panel>
       </section>
 
+      <section className="max-lg:order-5">
+        <SectionTitle>Rope socket</SectionTitle>
+        <Panel className="flex flex-col gap-[18px] px-4 py-5 sm:px-[22px]">
+          <p className="m-0 text-xs leading-normal text-text-subtle">
+            The camera ring cannot turn past the fitting a rope ends in. Opening the robot parks the
+            ring at {OPEN_ANGLE_DEG}° and stops the detector until the socket is behind it; the drive and
+            the camera streams are not affected. An opening you ask for here stays until you close
+            it; one the robot makes itself ends after {formatMetres(SOCKET_CLEAR_M)} of driving.
+          </p>
+
+          <div className="flex flex-wrap items-center gap-3.5">
+            <Button
+              size="lg"
+              className="flex-[1_1_260px]"
+              disabled={socket !== "open"}
+              title={socket !== "open" ? "No connection to the server" : undefined}
+              onClick={toggleOpen}
+            >
+              {open ? "Close robot" : "Open robot"}
+            </Button>
+            <Button
+              variant="secondary"
+              aria-pressed={watch}
+              className="max-sm:grow"
+              disabled={socket !== "open" || telemetry === null}
+              title={
+                telemetry === null
+                  ? "The robot has not reported whether its distance sensor may open it"
+                  : watch
+                    ? `A reading below ${formatMetres(SOCKET_TRIGGER_M)} opens the robot by itself`
+                    : "The robot only opens when you ask it to"
+              }
+              onClick={toggleWatch}
+            >
+              Sensor opening {watch ? "on" : "off"}
+            </Button>
+          </div>
+
+          <div className="flex flex-col gap-1.5 border-t border-surface-strong pt-4 font-mono text-[13px] leading-[1.4]">
+            <div className="text-text-muted" title={fresh ? undefined : NO_OPEN_STATE}>
+              Robot reports {fresh ? (fresh.robot_open ? "open" : "closed") : NOT_AVAILABLE} · sensor
+              opening {fresh ? (fresh.socket_watch ? "armed" : "off") : NOT_AVAILABLE}
+            </div>
+          </div>
+        </Panel>
+      </section>
+
       <div className="max-lg:hidden">
         <div
           title={motion === "unknown" ? NO_TELEMETRY : undefined}
@@ -418,7 +465,7 @@ export function LiveView() {
       </div>
 
       {/* Room for the pinned drive bar, so the end of the page scrolls clear of it. */}
-      <div aria-hidden className="h-32 max-lg:order-6 lg:hidden" />
+      <div aria-hidden className="h-32 max-lg:order-7 lg:hidden" />
 
       <div className="fixed inset-x-0 bottom-[calc(var(--tabbar-h)+env(safe-area-inset-bottom))] z-20 border-t border-line-strong bg-canvas/95 px-4 py-2.5 backdrop-blur lg:hidden">
         <div className="flex items-center gap-2.5">
@@ -456,72 +503,6 @@ export function LiveView() {
           >
             {status.text}
           </p>
-
-        <div className="flex flex-col gap-1.5 border-t border-surface-strong pt-4 font-mono text-[13px] leading-[1.4]">
-          <div className={fresh ? "text-text-muted" : "text-danger-strong"}>
-            {fresh
-              ? `Robot reports ${formatDriveSpeed(fresh.speed_mps)} · ${formatMetres(fresh.metres)} · ${formatNumber(fresh.microsteps)} microsteps · seq ${formatNumber(fresh.seq)}`
-              : telemetry && telemetryAt !== null && now !== null
-                ? `No fresh telemetry. Last report ${formatAgo(Math.max(0, now - telemetryAt))}: ${formatDriveSpeed(telemetry.speed_mps)}`
-                : "No telemetry from the robot yet"}
-          </div>
-          <div className="text-text-muted" title={distance ? undefined : NO_DISTANCE}>
-            Distance sensor · {distance ? formatDistance(distance.distance_m) : NOT_AVAILABLE}
-          </div>
-        </div>
-      </Panel>
-
-      <SectionTitle>Rope socket</SectionTitle>
-      <Panel className="flex flex-col gap-[18px] px-[22px] py-5">
-        <p className="m-0 text-xs leading-normal text-text-subtle">
-          The camera ring cannot turn past the fitting a rope ends in. Opening the robot parks the
-          ring at {OPEN_ANGLE_DEG}° and stops the detector until the socket is behind it; the drive and
-          the camera streams are not affected. An opening you ask for here stays until you close
-          it; one the robot makes itself ends after {formatMetres(SOCKET_CLEAR_M)} of driving.
-        </p>
-
-        <div className="flex flex-wrap items-center gap-3.5">
-          <Button
-            size="lg"
-            className="flex-[1_1_260px]"
-            disabled={socket !== "open"}
-            title={socket !== "open" ? "No connection to the server" : undefined}
-            onClick={toggleOpen}
-          >
-            {open ? "Close robot" : "Open robot"}
-          </Button>
-          <Button
-            variant="secondary"
-            aria-pressed={watch}
-            disabled={socket !== "open" || telemetry === null}
-            title={
-              telemetry === null
-                ? "The robot has not reported whether its distance sensor may open it"
-                : watch
-                  ? `A reading below ${formatMetres(SOCKET_TRIGGER_M)} opens the robot by itself`
-                  : "The robot only opens when you ask it to"
-            }
-            onClick={toggleWatch}
-          >
-            Sensor opening {watch ? "on" : "off"}
-          </Button>
-        </div>
-
-        <div className="flex flex-col gap-1.5 border-t border-surface-strong pt-4 font-mono text-[13px] leading-[1.4]">
-          <div className="text-text-muted" title={fresh ? undefined : NO_OPEN_STATE}>
-            Robot reports {fresh ? (fresh.robot_open ? "open" : "closed") : NOT_AVAILABLE} · sensor
-            opening {fresh ? (fresh.socket_watch ? "armed" : "off") : NOT_AVAILABLE}
-          </div>
-        </div>
-      </Panel>
-
-      <div
-        title={motion === "unknown" ? NO_TELEMETRY : undefined}
-        className={cn(
-          "mt-[38px] flex h-[58px] items-center justify-center gap-2.5 rounded-control border text-base leading-none font-semibold",
-          motion === "scanning"
-            ? "border-success-line bg-linear-to-r from-success-soft to-[#d3f0dd] text-success-ink"
-            : "border-line-strong bg-surface text-text-muted",
         )}
       </div>
     </div>

@@ -102,7 +102,7 @@ between cards, 12px outer padding around the app.
   for them get `phone="hide"`.
 - Inputs use 16px text below `sm`, otherwise iOS zooms the page when they are focused.
 - The live screen puts what is being tracked first (numbers, position on rope, cameras,
-  then drive and log), the cameras swipe sideways, and the motion state with Stop is
+  then drive, rope socket and log), the cameras swipe sideways, and the motion state with Stop is
   pinned above the tab bar. That pinned Stop replaces the one in the drive panel, so
   there is never more than one Stop on screen.
 
