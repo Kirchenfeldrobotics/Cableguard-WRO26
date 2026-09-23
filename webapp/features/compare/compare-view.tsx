@@ -57,22 +57,26 @@ export function CompareView({
 
     return (
       <>
-        <div className="mt-5 flex flex-wrap gap-3.5">
+        <div className="mt-5 grid grid-cols-1 gap-3.5 sm:flex sm:flex-wrap">
           <RunSelect label="Reference run" value={runB.id} runs={finished} onChange={(v) => select("b", v)} />
           <RunSelect label="Compared run" value={runA.id} runs={finished} onChange={(v) => select("a", v)} />
         </div>
 
         <CardGrid className="mt-[22px]">
-          <FactCard value={added.length} label="New findings" className="text-[26px] leading-none text-danger-strong" />
-          <FactCard value={unchanged.length} label="Unchanged" className="text-[26px] leading-none" />
+          <FactCard
+            value={added.length}
+            label="New findings"
+            className="text-[22px] leading-none text-danger-strong sm:text-[26px]"
+          />
+          <FactCard value={unchanged.length} label="Unchanged" className="text-[22px] leading-none sm:text-[26px]" />
           <FactCard
             value={resolved.length}
             label="No longer detected"
-            className="text-[26px] leading-none text-text-muted"
+            className="text-[22px] leading-none text-text-muted sm:text-[26px]"
           />
         </CardGrid>
 
-        <Panel className="mt-[26px] flex flex-col gap-7 px-[22px] py-5">
+        <Panel className="mt-[26px] flex flex-col gap-7 px-4 py-5 sm:px-[22px]">
           <StripBlock label={runLabel(runB)} count={bFindings.length}>
             <RopeStrip length={rope.length_m} marks={findingMarks(rope.id, bFindings, "unchanged")} />
           </StripBlock>
@@ -130,7 +134,7 @@ function RunSelect({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="min-w-[230px] rounded-control border border-border bg-white px-3.5 py-3 font-mono text-[13px] leading-none font-medium text-ink"
+        className="w-full rounded-control border border-border bg-white px-3.5 py-3 font-mono text-base leading-none font-medium text-ink sm:w-auto sm:min-w-[230px] sm:text-[13px]"
       >
         {runs.map((run) => (
           <option key={run.id} value={run.id}>

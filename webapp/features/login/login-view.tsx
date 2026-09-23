@@ -48,7 +48,7 @@ export function LoginView() {
           <Logo />
         </div>
 
-        <form className="mt-3.5 rounded-card bg-surface p-[26px]" onSubmit={submit}>
+        <form className="mt-3.5 rounded-card bg-surface p-5 sm:p-[26px]" onSubmit={submit}>
           <PageHeader title="Sign in" />
           <p className="mt-[18px] text-sm leading-normal text-text-muted">
             Operator access to the rope inspection console.
@@ -112,7 +112,7 @@ function Field({
         required
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="rounded-control border border-border bg-white px-3.5 py-3 text-sm"
+        className="rounded-control border border-border bg-white px-3.5 py-3 text-base sm:text-sm"
         {...props}
       />
     </div>

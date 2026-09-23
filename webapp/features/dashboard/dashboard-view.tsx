@@ -145,7 +145,7 @@ export function DashboardView() {
       <div className="mt-[18px] flex flex-wrap items-center gap-3">
         <Dropdown
           label="Selected rope"
-          className="min-w-[240px] flex-[0_1_320px]"
+          className="w-full sm:w-auto sm:min-w-[240px] sm:flex-[0_1_320px]"
           options={(ropes.data ?? []).map((r) => ({ value: r.id, label: r.name }))}
           value={ropeId}
           onChange={selectRope}
@@ -182,7 +182,7 @@ export function DashboardView() {
         </StatusMessage>
       ) : (
         <>
-          <Panel className="mt-[18px] px-[22px] py-5">
+          <Panel className="mt-[18px] px-3 py-4 sm:px-[22px] sm:py-5">
             <RopeStrip length={rope.length_m} marks={findingMarks(rope.id, lastFindings)} />
           </Panel>
           <DefectLegend />
@@ -192,14 +192,14 @@ export function DashboardView() {
       <div className="mt-[38px] flex flex-wrap gap-3.5">
         {currentRunId ? (
           <>
-            <ButtonLink href={routes.live} size="md" className="flex-[0_1_260px] py-[15px] text-[15px]">
+            <ButtonLink href={routes.live} size="md" className="flex-[0_1_260px] py-[15px] text-[15px] max-sm:grow">
               Open live view
             </ButtonLink>
             <Button
               variant="secondary"
               disabled={busy}
               onClick={finishRun}
-              className="flex-[0_1_200px] py-[15px] text-[15px]"
+              className="flex-[0_1_200px] py-[15px] text-[15px] max-sm:grow"
             >
               {busy ? "Finishing…" : "Finish run"}
             </Button>
@@ -215,7 +215,7 @@ export function DashboardView() {
                   ? "The robot has to be reachable so it can zero its position for the new run"
                   : undefined
             }
-            className="flex-[0_1_260px] py-[15px] text-[15px]"
+            className="flex-[0_1_260px] py-[15px] text-[15px] max-sm:grow"
           >
             {busy ? "Starting…" : "Start run"}
           </Button>
