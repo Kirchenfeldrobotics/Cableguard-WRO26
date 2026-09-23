@@ -58,7 +58,7 @@ TURRET_ANGLES = (0.0, 90.0)
 
 # Where the ring parks while the robot is open. A rope socket is the fitting the rope ends
 # in, and the robot only clears one with the cameras swung out of the way
-TURRET_OPEN_ANGLE = -20.0
+TURRET_OPEN_ANGLE = 20.0
 
 # Anything the distance sensor sees closer than this counts as a rope socket ahead. Far
 # enough that the robot is still open before it arrives, close enough that the rope itself
