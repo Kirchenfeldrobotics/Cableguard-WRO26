@@ -40,12 +40,19 @@ class RobotSettings(BaseModel):
     drive_microsteps: int = setting(
         8, group="drive", label="Microstepping", unit="/step", ge=1, le=256, step=1,
         note="Microsteps the driver makes of one full step, as the DIP switches on the driver "
-             "are set. Change it together with the microsteps per metre below: the two "
-             "describe the same gearing, and only that one is what distances are measured in.")
-    drive_microsteps_per_metre: float = setting(
-        10186.0, group="drive", label="Microsteps per metre", unit="/m", ge=1.0, le=1e6, step=1.0,
-        note="How far the robot travels for one microstep. Every distance it reports is "
-             "measured with this number, so it is the one to check against a tape measure.")
+             "are set. It divides the motor turn, so a wrong value here scales every distance "
+             "the robot reports.")
+    drive_gear_ratio: float = setting(
+        1.0, group="drive", label="Gear ratio", unit="x", ge=0.01, le=1000.0, step=0.1,
+        note="Motor turns for one turn of the drive wheel. 1.0 means the motor sits on the "
+             "wheel axis; a reduction between the two makes it larger, and the robot then "
+             "travels that much less for the same number of steps.")
+    drive_metres_per_rev: float = setting(
+        0.15708, group="drive", label="Travel per wheel turn", unit="m", ge=0.001, le=10.0,
+        step=0.001,
+        note="How far the robot travels for one full turn of the drive wheel: the wheel's "
+             "circumference. Mark the wheel, roll it round once and measure. Together with "
+             "the two above this is what every distance the robot reports is built from.")
     drive_start_speed: float = setting(
         200.0, group="drive", label="Start speed", unit="1/s", ge=1.0, le=20000.0, step=10.0,
         note="Slowest the drive is pulsed, in microsteps per second. Every ramp starts and "

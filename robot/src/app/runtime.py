@@ -92,7 +92,8 @@ class Runtime:
     def _apply(self, s):
         self.drive.configure(
             microsteps=s.drive_microsteps,
-            microsteps_per_metre=s.drive_microsteps_per_metre,
+            gear_ratio=s.drive_gear_ratio,
+            metres_per_rev=s.drive_metres_per_rev,
             start_speed=s.drive_start_speed,
             max_speed=s.drive_max_speed,
             accel=s.drive_accel,

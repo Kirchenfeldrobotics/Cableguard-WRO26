@@ -3,9 +3,13 @@ import time
 
 from motion.stepper import Stepper
 
-# How far the rope moves per microstep. Placeholder until the drive is measured:
-# 1600 microsteps per turn on a 50 mm wheel. Every metre in the system comes from here
-MICROSTEPS_PER_METRE = 10186.0
+# Motor turns for one turn of the drive wheel. Placeholder until the drive is measured:
+# 1.0 means the motor sits on the wheel axis, a reduction between the two makes it larger
+GEAR_RATIO = 1.0
+
+# How far the robot travels for one turn of the drive wheel. Placeholder until the drive is
+# measured: the circumference of a 50 mm wheel
+METRES_PER_REV = 0.15708
 
 
 # The stepper that moves the robot along the rope. It runs at a speed the scan plan picks
@@ -15,15 +19,18 @@ class Drive(Stepper):
     def __init__(self,
                  pul_pin,
                  dir_pin,
-                 microsteps_per_metre=MICROSTEPS_PER_METRE,
+                 gear_ratio=GEAR_RATIO,
+                 metres_per_rev=METRES_PER_REV,
                  cruise_block_s=0.02,
                  cruise_blocks_ahead=3,
                  **kwargs):                 # the rest is the base driver's, see stepper.py
 
         super().__init__(pul_pin, dir_pin, **kwargs)
 
-        # drive geometry, the only place microsteps and metres meet
-        self.microsteps_per_metre = microsteps_per_metre
+        # Drive geometry: what the motor turns, and how far that carries the robot. Both
+        # are measured on their own, the microsteps and the metres only meet below
+        self.gear_ratio     = gear_ratio
+        self.metres_per_rev = metres_per_rev
 
         # One cruise block = one word to the PIO. Enough blocks stay queued to ride out a
         # busy CPU, few enough that a stop is not stuck behind them for long
@@ -36,14 +43,22 @@ class Drive(Stepper):
         self._feeder.start()
 
     # Take a new set of the operator's numbers. Only safe while the drive stands: all of
-    # them are read inside a running ramp, and the scale turns the microsteps already
+    # them are read inside a running ramp, and the geometry turns the microsteps already
     # counted into a different number of metres
-    def configure(self, microsteps, microsteps_per_metre, start_speed, max_speed, accel):
-        self.microsteps           = microsteps
-        self.microsteps_per_metre = microsteps_per_metre
-        self.start_speed          = start_speed
-        self.max_speed            = max_speed
-        self.accel                = accel
+    def configure(self, microsteps, gear_ratio, metres_per_rev, start_speed, max_speed, accel):
+        self.microsteps     = microsteps
+        self.gear_ratio     = gear_ratio
+        self.metres_per_rev = metres_per_rev
+        self.start_speed    = start_speed
+        self.max_speed      = max_speed
+        self.accel          = accel
+
+    # Microsteps the motor makes for one metre along the rope: the whole drive train in one
+    # number, and the only place microsteps and metres meet. Microstepping divides the motor
+    # turn, the gearing divides it again, and one turn of the wheel is one metres_per_rev
+    @property
+    def microsteps_per_metre(self):
+        return self.steps_per_rev * self.gear_ratio / self.metres_per_rev
 
     # metres for a microstep count. Speeds convert with the same factor, microsteps per
     # second over microsteps per metre is metres per second
