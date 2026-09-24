@@ -105,5 +105,4 @@ disabled or as `—`:
 - Defect confidence, severity and review status (Mark reviewed, Flag false positive)
 - Rope installation date and condition rating
 - Session planning, run report export
-- Drive parameters and confidence threshold on the settings screen
 - Stored camera frame for a defect

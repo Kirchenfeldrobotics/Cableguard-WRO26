@@ -3,6 +3,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
+from comm_protocols.settings import RobotSettings, SettingGroup, SettingInfo
+
 # TODO: Create schemas for data that is persisted
 
 # Credentials sent by the webapp login form
@@ -63,6 +65,21 @@ class RunOut(BaseModel):
 class CurrentSelection(BaseModel): 
     rope_id: str | None 
     run_id: str | None 
+
+# Schema for the robot settings page. The values are only half of it: the page also needs
+# to know what every setting means and what it may be set to, and that is read off the
+# settings model rather than repeated in the webapp
+class SettingsOut(BaseModel): 
+    version: int 
+    updated_at: datetime
+    values: RobotSettings
+    fields: list[SettingInfo]
+    groups: list[SettingGroup]
+
+# Schema for a settings change. Only the settings named here move, the rest keep the value
+# they have, so the page can send one field or all of them
+class SettingsUpdate(BaseModel): 
+    values: dict[str, float]
 
 # Schema for defect output
 class DefectOut(BaseModel): 

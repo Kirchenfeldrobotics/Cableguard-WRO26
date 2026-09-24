@@ -8,7 +8,15 @@ import websockets
 from pydantic import Field, TypeAdapter, ValidationError
 
 from .outbox import Outbox
-from comm_protocols.messages import CloseCmd, OpenCmd, ResetOriginCmd, SocketWatchCmd, StartCmd, StopCmd
+from comm_protocols.messages import (
+    CloseCmd,
+    OpenCmd,
+    ResetOriginCmd,
+    SettingsCmd,
+    SocketWatchCmd,
+    StartCmd,
+    StopCmd,
+)
 
 log = logging.getLogger(__name__)
 
@@ -17,7 +25,7 @@ TOKEN = os.environ["CABLEGUARD_ROBOT_TOKEN"]
 
 FromServer = TypeAdapter(
     Annotated[
-        StartCmd | StopCmd | ResetOriginCmd | OpenCmd | CloseCmd | SocketWatchCmd,
+        StartCmd | StopCmd | ResetOriginCmd | OpenCmd | CloseCmd | SocketWatchCmd | SettingsCmd,
         Field(discriminator="type"),
     ]
 )

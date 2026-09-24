@@ -29,6 +29,7 @@ import {
 } from "@/lib/format";
 import { useCurrentSelection, useRopeHistory } from "@/lib/hooks/use-inspection";
 import { useNow } from "@/lib/hooks/use-now";
+import { useRobotSettings } from "@/lib/hooks/use-settings";
 import {
   useFreshDistance,
   useFreshTelemetry,
@@ -36,7 +37,6 @@ import {
   useRobotConnected,
   useRobotLink,
 } from "@/lib/robot/robot-link";
-import { OPEN_ANGLE_DEG, SOCKET_CLEAR_M, SOCKET_TRIGGER_M } from "@/lib/robot/robot-config";
 import { useVideoFeeds } from "@/lib/robot/use-video-feeds";
 import { routes } from "@/lib/routes";
 
@@ -124,6 +124,11 @@ export function LiveView() {
 
   const [direction, setDirection] = useState<DriveDirection>("forward");
   const [sent, setSent] = useState<SentCommand | null>(null);
+
+  // The rope socket wording names the robot's own angles and distances, so they are read
+  // from the settings the server holds rather than copied into the webapp.
+  const settings = useRobotSettings().data?.values;
+  const openAngle = settings ? `${settings.turret_open_angle}°` : NOT_AVAILABLE;
 
   const current = useCurrentSelection();
   const ropeId = current.data?.rope_id ?? null;
@@ -240,7 +245,7 @@ export function LiveView() {
 
       {fresh?.robot_open && (
         <Notice>
-          The robot is open for a rope socket: the camera ring is parked at {OPEN_ANGLE_DEG}° and the
+          The robot is open for a rope socket: the camera ring is parked at {openAngle} and the
           detector is off, so nothing is logged while it passes. The cameras keep streaming and the
           drive keeps running.
         </Notice>
@@ -407,9 +412,10 @@ export function LiveView() {
         <Panel className="flex flex-col gap-[18px] px-4 py-5 sm:px-[22px]">
           <p className="m-0 text-xs leading-normal text-text-subtle">
             The camera ring cannot turn past the fitting a rope ends in. Opening the robot parks the
-            ring at {OPEN_ANGLE_DEG}° and stops the detector until the socket is behind it; the drive and
+            ring at {openAngle} and stops the detector until the socket is behind it; the drive and
             the camera streams are not affected. An opening you ask for here stays until you close
-            it; one the robot makes itself ends after {formatMetres(SOCKET_CLEAR_M)} of driving.
+            it; one the robot makes itself ends after {formatMetres(settings?.socket_clear_m)} of
+            driving.
           </p>
 
           <div className="flex flex-wrap items-center gap-3.5">
@@ -431,7 +437,7 @@ export function LiveView() {
                 telemetry === null
                   ? "The robot has not reported whether its distance sensor may open it"
                   : watch
-                    ? `A reading below ${formatMetres(SOCKET_TRIGGER_M)} opens the robot by itself`
+                    ? `A reading below ${formatMetres(settings?.socket_distance_m)} opens the robot by itself`
                     : "The robot only opens when you ask it to"
               }
               onClick={toggleWatch}

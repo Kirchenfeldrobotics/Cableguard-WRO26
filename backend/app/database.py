@@ -39,7 +39,7 @@ class Base(DeclarativeBase):
 # Bump this whenever a model changes. The database records the version it was built for,
 # and one built for any other is dropped and rebuilt from the models. The data is expendable,
 # a schema that only half matches the code is not: every missing column is a 500 on a page.
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 
 def _rebuild_if_stale() -> None:

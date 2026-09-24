@@ -12,7 +12,9 @@ adding screens: use these tokens and components rather than new one-off styles.
   white or light grey.
 - **Never invent data.** If the robot or backend does not provide a value, show `—`
   (`NOT_AVAILABLE` in `lib/format.ts`) and explain it in a `title` tooltip. Controls for
-  features that do not exist yet are rendered **disabled**, never wired to fake state.
+  features that do not exist yet are rendered **disabled**, never wired to fake state. The
+  webapp keeps no copy of the robot's constants: anything it names is read from
+  `GET /api/settings` (`useRobotSettings`).
 
 ## Tokens
 
@@ -165,8 +167,17 @@ between cards, 12px outer padding around the app.
   switch for the robot's own trigger on the distance sensor; both read their state from
   `robot_open` and `socket_watch` in the motion telemetry, never from what was clicked. An
   opening the operator asked for ends only on their click, one the sensor made closes itself
-  once the robot has driven clear. The angles and distances shown on the settings page are
-  copies of the robot's constants (`lib/robot/robot-config.ts`), not values it reported.
+  once the robot has driven clear. The angles and distances it names come from the settings
+  the server holds, and the trigger distance itself is set on the settings page. Arming the
+  sensor is not a setting: it is a command like Start and Stop, and lives only in the live view.
+- **Settings** are the robot's own constants (`shared/comm_protocols/settings.py`), kept in
+  the backend's database and sent to the robot as a `SettingsCmd`. The page draws itself from
+  what `GET /api/settings` returns: the label, the explanation, the unit and the bounds of
+  every setting come from the server, so no setting is ever described twice. A change is a
+  `PUT` of only the settings that moved, and the server refuses one while the robot reports
+  movement, so the page disables its inputs then. The robot echoes the version it is running
+  on in every motion telemetry packet, and the page says a change is **in force** only when
+  that version matches the stored one, never because the `PUT` came back 200.
 - **Position** is metres since the origin, which the backend resets on the robot whenever a
   run is selected. The webapp never converts steps to metres, the robot owns the drive
   geometry and reports both.

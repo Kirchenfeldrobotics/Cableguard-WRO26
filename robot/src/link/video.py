@@ -24,8 +24,10 @@ class LatestFrame:
         return self._frame
 
 class VideoLink: 
-    def __init__(self, fps=8): 
-        self._period = 1.0/fps
+    # The rate is the frame producer's, it is the only thing that fills the buffers and it
+    # paces itself off the operator's stream setting. A pump waits on its buffer, so it can
+    # never run ahead of that
+    def __init__(self): 
         self.buffers = {0: LatestFrame(), 1: LatestFrame()}
 
     # add jpeg to the buffer 
@@ -47,4 +49,3 @@ class VideoLink:
         while True: 
             jpeg = await self.buffers[idx].get()
             await sock.send(bytes([idx]) + jpeg)
-            await asyncio.sleep(self._period)

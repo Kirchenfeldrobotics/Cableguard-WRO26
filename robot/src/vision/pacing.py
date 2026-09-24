@@ -15,7 +15,7 @@ HEADROOM = 1.5
 
 # Rounds of frames in one cycle: the cameras look once, the ring turns them a quarter turn
 # onto the two sides they cannot see, and they look again. One round, one turn, so this is
-# the number of angles the cycle visits as well (app/main.py TURRET_ANGLES)
+# the number of angles the cycle visits as well (app/runtime.py Runtime.angles)
 ROUNDS_PER_CYCLE = 2
 
 # Cycles the benchmark averages over. The first one is thrown away, it still allocates

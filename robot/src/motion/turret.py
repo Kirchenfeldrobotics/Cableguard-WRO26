@@ -13,8 +13,9 @@ GEAR_RATIO = 1.0
 SETTLE_S = 0.05
 
 # The fastest the ring is swung, degrees per second. The camera cables set this, not the
-# motor: every move of the ring is paced by it
-MAX_DEG_S = 75.0
+# motor: every move of the ring is paced by it. The robot passes the operator's own value
+# from comm_protocols/settings.py, this is what a script that drives the ring alone gets
+MAX_DEG_S = 200.0
 
 # Slowest the ring is driven. A move that has more time than it needs runs at this speed and
 # is simply done early; below it the driver loses the feeling for where it is
@@ -51,10 +52,11 @@ class Turret(Stepper):
         self.settle_s   = settle_s
         self.min_speed  = min_speed
 
-        # What the cables take, in the microsteps per second the driver works in. Every move
-        # is bounded by it: one given no time runs at exactly this pace, and min_turn_s
-        # reports what a turn costs at it
-        self.max_speed = min(self.max_speed, max_deg_s * self.microsteps_per_deg)
+        # What the motor itself takes, kept because the cable pace below is worked out
+        # against it again whenever the ring's geometry changes
+        self._motor_max_speed = self.max_speed
+        self.max_deg_s        = max_deg_s
+        self._cap_speed()
 
         # The ring has no endstop, so its angle is the one it is told it has. Whoever sets
         # the robot up leaves it at start_angle, and the counter starts from there
@@ -65,6 +67,30 @@ class Turret(Stepper):
         # task waiting on it without stopping the thread, so close() can arrive while the
         # ring is still going; two moves interleaving would leave it anywhere
         self._turning = threading.Lock()
+
+    # What the cables take, in the microsteps per second the driver works in. Every move is
+    # bounded by it: one given no time runs at exactly this pace, and min_turn_s reports
+    # what a turn costs at it
+    def _cap_speed(self):
+        self.max_speed = min(self._motor_max_speed, self.max_deg_s * self.microsteps_per_deg)
+
+    # Take a new set of the operator's numbers. The ring has to be standing at the angle it
+    # is calibrated against, because none of this moves it: only the numbers that describe
+    # it change, so the counter is seated again at the angle the robot is set up to rest at
+    def configure(self, microsteps, gear_ratio, max_deg_s, accel, settle_s, start_angle):
+        with self._turning:
+            self._wait_idle()          # the counter is only ours to set once nothing is queued
+
+            self.microsteps  = microsteps
+            self.gear_ratio  = gear_ratio
+            self.max_deg_s   = max_deg_s
+            self.accel       = accel
+            self.settle_s    = settle_s
+            self.start_angle = start_angle
+            self._cap_speed()
+
+            with self._lock:
+                self._accum = self._steps_at(start_angle)
 
     # microsteps for one degree of the ring, not of the motor
     @property

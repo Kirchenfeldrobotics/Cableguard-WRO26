@@ -1,13 +1,23 @@
 import asyncio 
+import time
 from fastapi import WebSocket
 
 SEND_TIMEOUT = 1.0
+
+# The robot reports its motion twice a second. Past this the last report says nothing about
+# what it is doing now, and a connected robot that has gone quiet is not one to reconfigure
+MOTION_STALE_S = 5.0
 
 class Hub:
     def __init__(self): 
         self._robot = None   # Robot Websocket
         self._uis   = set()  # Browser Websockets
         self._lock  = asyncio.Lock()
+
+        # last motion the robot reported, and when. Only the settings route reads it, to
+        # refuse a change to a robot that is driving
+        self._speed    = None
+        self._speed_at = 0.0
 
     # set _robot to websocket
     async def attach_robot(self, sock): 
@@ -26,7 +36,27 @@ class Hub:
             if self._robot is not sock:
                 return
             self._robot = None
+            # what the robot was doing before it went is no guide to what the next one does
+            self._speed = None
         await self.broadcast({"type": "robot_status", "online": False})
+
+    # the speed out of the last motion telemetry, kept for the settings route
+    def note_motion(self, speed): 
+        self._speed    = speed
+        self._speed_at = time.monotonic()
+
+    # Why the settings may not be changed right now, or None. The robot takes a whole set
+    # at once and some of it redefines the position it is counting in, so a change is only
+    # offered to a robot that stands still. One that is offline moves nothing and gets the
+    # new set the moment it connects
+    def settings_locked(self): 
+        if self._robot is None: 
+            return None
+        if self._speed is None or time.monotonic() - self._speed_at > MOTION_STALE_S: 
+            return "the robot has not reported whether it is moving"
+        if self._speed != 0.0: 
+            return "the robot is moving, stop it before changing its settings"
+        return None
 
     # add a ui client to the set 
     async def add_ui(self, sock): 

@@ -35,6 +35,16 @@ class Drive(Stepper):
         self._feeder       = threading.Thread(target=self._feeder_loop, daemon=True)
         self._feeder.start()
 
+    # Take a new set of the operator's numbers. Only safe while the drive stands: all of
+    # them are read inside a running ramp, and the scale turns the microsteps already
+    # counted into a different number of metres
+    def configure(self, microsteps, microsteps_per_metre, start_speed, max_speed, accel):
+        self.microsteps           = microsteps
+        self.microsteps_per_metre = microsteps_per_metre
+        self.start_speed          = start_speed
+        self.max_speed            = max_speed
+        self.accel                = accel
+
     # metres for a microstep count. Speeds convert with the same factor, microsteps per
     # second over microsteps per metre is metres per second
     def to_metres(self, microsteps):

@@ -62,6 +62,8 @@ export interface RobotLinkValue {
   lastError: string | null;
   /** Increments on every `current_changed` event, use it to refetch. */
   currentVersion: number;
+  /** Increments on every `settings_changed` event, use it to refetch. */
+  settingsVersion: number;
   /** Sends a command to the robot. Returns false if the socket is not open. */
   send: (command: RobotCommand) => boolean;
 }
@@ -86,6 +88,7 @@ export function RobotLinkProvider({ children }: { children: React.ReactNode }) {
   const [lastMessageAt, setLastMessageAt] = useState<number | null>(null);
   const [lastError, setLastError] = useState<string | null>(null);
   const [currentVersion, setCurrentVersion] = useState(0);
+  const [settingsVersion, setSettingsVersion] = useState(0);
   const sockRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
@@ -139,6 +142,9 @@ export function RobotLinkProvider({ children }: { children: React.ReactNode }) {
           case "current_changed":
             setCurrentVersion((v) => v + 1);
             break;
+          case "settings_changed":
+            setSettingsVersion((v) => v + 1);
+            break;
           case "error":
             setLastError(event.detail.trim());
             break;
@@ -188,6 +194,7 @@ export function RobotLinkProvider({ children }: { children: React.ReactNode }) {
         lastMessageAt,
         lastError,
         currentVersion,
+        settingsVersion,
         send,
       }}
     >

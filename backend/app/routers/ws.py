@@ -8,6 +8,7 @@ from pydantic import Field, ValidationError, TypeAdapter
 from app.ws.hub import hub 
 from app.database import session_scope
 from app.repository.ingest import store
+from app.repository import settings as settings_repo
 from app.auth import authenticate_robot, authenticate_ui
 from comm_protocols.messages import (
     Alive,
@@ -16,6 +17,7 @@ from comm_protocols.messages import (
     DistanceTelemetry,
     MotionTelemetry,
     OpenCmd,
+    SettingsCmd,
     SocketWatchCmd,
     StartCmd,
     StopCmd,
@@ -44,6 +46,15 @@ FromUi   = TypeAdapter(
     ]
 )
 
+# The robot boots on the constants it is built with, so the operator's settings are the
+# first thing it is told. It reports the version back in its motion telemetry once they are
+# really in force, which is what the settings page reads
+async def send_settings(): 
+    with session_scope() as db: 
+        row = settings_repo.get_row(db)
+        cmd = SettingsCmd(version=row.version, settings=settings_repo.settings_of(row))
+    await hub.to_robot(cmd.model_dump())
+
 # Route where robot can subscribe to socket ans send messages to, which are broadcasted to ui clients or persisted (or both)
 @router.websocket("/robot")
 async def robot_link(sock: WebSocket): 
@@ -52,6 +63,7 @@ async def robot_link(sock: WebSocket):
 
     await sock.accept()
     await hub.attach_robot(sock)
+    await send_settings()
 
     try: 
         async for raw in sock.iter_text(): 
@@ -60,6 +72,10 @@ async def robot_link(sock: WebSocket):
             except ValidationError: 
                 log.warning("bad robot message: %s", raw[:200])
                 continue 
+
+            if isinstance(msg, MotionTelemetry): 
+                # the settings route refuses a change to a robot that is driving
+                hub.note_motion(msg.speed)
 
             if msg.persist: 
                 try: 

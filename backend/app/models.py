@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Literal
 
-from sqlalchemy import ForeignKey, LargeBinary, String, UniqueConstraint, func
+from sqlalchemy import JSON, ForeignKey, LargeBinary, String, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -88,6 +88,21 @@ class Defect(Base):
     run: Mapped["Run"] = relationship(back_populates="defects")
     # without it the frame and its defects are flushed in any order and the foreign key fails
     frame: Mapped["Frame | None"] = relationship()
+
+# The robot's configuration as the operator set it. One row, because there is one robot.
+# The values are kept as a JSON blob rather than a column each: a new setting in
+# comm_protocols/settings.py then needs no migration, and a row written before it still
+# reads back with that setting on its default. Always assign a fresh dict, SQLAlchemy does
+# not notice one changed in place
+class RobotSettingsRow(Base): 
+    __tablename__ = "robot_settings"
+
+    id: Mapped[int]              = mapped_column(primary_key=True, default=1)
+    # counts changes, never resets. The robot echoes the version it is running on in its
+    # motion telemetry, which is the only proof a change has taken
+    version: Mapped[int]         = mapped_column(default=0)
+    values: Mapped[dict]         = mapped_column(JSON, default=dict)
+    updated_at: Mapped[datetime] = mapped_column(default=utcnow, onupdate=utcnow)
 
 class AppState(Base): 
     __tablename__ = "app_state"

@@ -1,6 +1,14 @@
 import { clearToken, getToken } from "@/lib/auth/session";
 import { apiUrl } from "@/lib/config";
-import type { AuthUser, CurrentSelection, Defect, LoginResult, Rope, Run } from "./types";
+import type {
+  AuthUser,
+  CurrentSelection,
+  Defect,
+  LoginResult,
+  Rope,
+  Run,
+  SettingsDocument,
+} from "./types";
 
 export class ApiError extends Error {
   constructor(
@@ -88,6 +96,14 @@ export const api = {
     /** JPEG of the frame the defect was found in. Fetched, not linked: an <img> cannot send the token. */
     frame: (defectId: string) =>
       send(`/api/defects/${encodeURIComponent(defectId)}/frame`).then((res) => res.blob()),
+  },
+  settings: {
+    get: () => request<SettingsDocument>("/api/settings"),
+    /** Only the settings named here move, the rest keep the value they have. */
+    update: (values: Record<string, number>) =>
+      request<SettingsDocument>("/api/settings", { method: "PUT", body: json({ values }) }),
+    /** Back to the constants the robot is built with. */
+    reset: () => request<SettingsDocument>("/api/settings/reset", { method: "POST" }),
   },
   current: {
     get: () => request<CurrentSelection>("/api/current"),

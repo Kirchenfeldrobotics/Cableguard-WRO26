@@ -55,6 +55,11 @@ class Detector:
         log.info("ncnn model loaded: %s, imgsz=%d, classes=%s",
                  model_dir.name, self.imgsz, list(self.names.values()))
 
+    # thresholds the operator may move while the robot runs
+    def configure(self, conf, iou):
+        self.conf = conf
+        self.iou  = iou
+
     def _infer(self, frame):
         return self._model.predict(
             frame, imgsz=self.imgsz, conf=self.conf, iou=self.iou, verbose=False)[0]
@@ -131,3 +136,6 @@ class DetectorProcess:
 
     def warmup(self):
         self._call("warmup")
+
+    def configure(self, conf, iou):
+        self._call("configure", conf, iou)

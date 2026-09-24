@@ -3,6 +3,7 @@
  *   backend/app/schemas.py            (REST)
  *   backend/app/ws/hub.py             (UI socket events)
  *   shared/comm_protocols/messages.py (robot telemetry and commands)
+ *   shared/comm_protocols/settings.py (the robot's settings)
  */
 
 export type DefectKind = "lf" | "lma";
@@ -62,6 +63,62 @@ export interface CurrentSelection {
   run_id: string | null;
 }
 
+/**
+ * One robot setting, exactly as `shared/comm_protocols/settings.py` defines it. The label,
+ * the explanation and the bounds come from the server, so the settings page never has to
+ * carry a second copy of them.
+ */
+export interface SettingField {
+  key: string;
+  /** Section it belongs to, see `SettingGroup`. */
+  group: string;
+  label: string;
+  /** Shown after the input, e.g. `m` or `°/s`. Empty for a plain count. */
+  unit: string;
+  note: string;
+  default: number;
+  minimum: number;
+  maximum: number;
+  /** Increment of the number input. */
+  step: number;
+  /** Whole numbers only. */
+  integer: boolean;
+  /** Takes effect the next time the robot starts, not on the one that is running. */
+  restart: boolean;
+}
+
+export interface SettingGroup {
+  key: string;
+  title: string;
+  note: string;
+}
+
+/**
+ * Every setting by name. The three the rest of the app reads directly are spelled out;
+ * the settings page draws the others from `SettingsDocument.fields`.
+ */
+export interface RobotSettings {
+  /** Angle the camera ring parks at while the robot is open for a rope socket. */
+  turret_open_angle: number;
+  /** A distance reading below this opens the robot by itself, in metres. */
+  socket_distance_m: number;
+  /** Metres the robot drives from the socket before it closes again. */
+  socket_clear_m: number;
+  [key: string]: number;
+}
+
+export interface SettingsDocument {
+  /**
+   * Counts changes on the server. The robot reports the version it is actually running on
+   * in its motion telemetry, and the two only match once a change has really taken.
+   */
+  version: number;
+  updated_at: string;
+  values: RobotSettings;
+  fields: SettingField[];
+  groups: SettingGroup[];
+}
+
 // Server -> UI over /api/ws/ui
 
 export interface RobotStatusEvent {
@@ -92,6 +149,8 @@ export interface MotionTelemetryEvent {
   robot_open: boolean;
   /** The distance sensor is allowed to open the robot by itself. */
   socket_watch: boolean;
+  /** Version of the settings the robot is really running on, see `SettingsDocument`. */
+  settings_version: number;
   seq: number;
 }
 
@@ -137,6 +196,12 @@ export interface CurrentChangedEvent {
   run_id: string | null;
 }
 
+/** Someone changed the robot's settings; reload them. */
+export interface SettingsChangedEvent {
+  type: "settings_changed";
+  version: number;
+}
+
 export interface ErrorEvent {
   type: "error";
   detail: string;
@@ -149,6 +214,7 @@ export type ServerEvent =
   | DistanceTelemetryEvent
   | VisionTelemetryEvent
   | CurrentChangedEvent
+  | SettingsChangedEvent
   | ErrorEvent;
 
 // UI -> Server over /api/ws/ui (forwarded to the robot)

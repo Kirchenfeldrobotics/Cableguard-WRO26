@@ -1,4 +1,4 @@
-from __future__ import annotations 
+from __future__ import annotations
 
 import asyncio
 import itertools
@@ -13,12 +13,15 @@ from comm_protocols.messages import (
     MotionTelemetry,
     OpenCmd,
     ResetOriginCmd,
+    SettingsCmd,
     SocketWatchCmd,
     StartCmd,
     StopCmd,
 )
+from comm_protocols.settings import RobotSettings
 
 from app.ropesocket import RopeSocket
+from app.runtime import Runtime
 from camera.camera import CameraPair, encode
 from display.screen import Status, StatusScreen
 from link.client import RobotLink
@@ -29,115 +32,85 @@ from motion.drive import Drive
 from motion.turret import Turret
 from tof.vl53l0x import VL53L0X
 from vision.detector import DetectorProcess
-from vision.pacing import ScanPlan, measure_cycle, plan_scan
+from vision.pacing import measure_cycle
 from vision.report import vision_telemetry
 
 log = logging.getLogger("cableguard")
 
-# configuration
+# How the robot is wired. Everything else the robot runs on is a setting the operator owns
+# from the webapp, see comm_protocols/settings.py: this is what a screwdriver changes, not
+# a browser, and the software cannot tell whether a pin was rewired anyway
 
 # the stepper that moves the robot along the rope
-DRIVE_PUL_PIN   = 18
-DRIVE_DIR_PIN   = 23
-DRIVE_MICROSTEPS = 8
-DRIVE_MAX_SPEED = 2000.0
-DRIVE_ACCEL     = 4000.0
+DRIVE_PUL_PIN = 18
+DRIVE_DIR_PIN = 23
 
 # the stepper that swings both cameras around the rope
-TURRET_PUL_PIN   = 12
-TURRET_DIR_PIN   = 16
-TURRET_MICROSTEPS = 8
-TURRET_GEAR_RATIO = 1.0         # motor turns for one turn of the ring
-TURRET_MAX_DEG_S  = 200.0        # how fast the ring may swing, the cables decide this
-TURRET_ACCEL      = 20000.0     # the ring is light, it may be ramped harder than the drive
-
-# Where the cameras look from, degrees from the parked position. Two cameras facing each
-# other cover two sides of the rope, a quarter turn puts them on the other two. The ring
-# starts and ends every cycle parked, so it never winds up the camera cables
-TURRET_ANGLES = (0.0, 90.0)
-
-# Where the ring parks while the robot is open. A rope socket is the fitting the rope ends
-# in, and the robot only clears one with the cameras swung out of the way. The ring also
-# rests here whenever the robot is not scanning, and the software takes it to stand here at
-# startup: it has no endstop, so leaving it open is the whole calibration
-TURRET_OPEN_ANGLE = -45.0
-
-# Anything the distance sensor sees closer than this counts as a rope socket ahead. Far
-# enough that the robot is still open before it arrives, close enough that the rope itself
-# and the odd branch do not keep opening it
-SOCKET_DISTANCE_M = 0.30
-
-# Driven from where the sensor last saw the socket, this puts it behind the robot
-SOCKET_CLEAR_M = 0.50
-
-# How often an open robot looks at whether it may close again
-OPEN_POLL = 0.25
-
-STEAM_FPS = 8.0
-CAMERA_FPS = 15.0
-
-# the frame a defect was found in is kept as evidence, sharp enough to see a single wire
-DEFECT_JPEG_QUALITY = 85
-
-GUARD_PERIOD = 0.5
-TELEMETRY_PERIOD = 0.5
+TURRET_PUL_PIN = 12
+TURRET_DIR_PIN = 16
 
 # distance sensor, a TOF200C (VL53L0X) on I2C bus 1 (SDA GPIO2, SCL GPIO3)
 TOF_I2C_BUS = 1
-DISTANCE_PERIOD = 0.5
+
 # status display, a 0.96" 128x64 SSD1306 OLED. It shares I2C bus 1 with the distance sensor
 DISPLAY_I2C_BUS = 1
 DISPLAY_ADDRESS = 0x3C      # 0x3D on boards where the address pad is bridged
 DISPLAY_FLIP = False        # True if the panel is mounted upside down
-DISPLAY_PERIOD = 1.0
 
-# creates function that turns messages into roboter commands. The speed is not ours to
-# choose, the scan plan fixed it so that the detector sees every bit of rope once
-def make_command_handler(motion: MotionController, plan: ScanPlan, rope_socket: RopeSocket): 
-    # the round trip through metres is not bit exact, and ramp_to reads anything below
-    # start_speed as a stop, so a plan sitting on the lower limit must not fall through it
-    scan_speed = max(motion.drive.to_microsteps(plan.speed_mps), motion.drive.start_speed)
+# the frame a defect was found in travels as a JPEG, the live stream at a lower quality
+STREAM_JPEG_QUALITY = 95
 
-    def handle(cmd): 
-        if isinstance(cmd, StopCmd): 
+
+# creates function that turns messages into roboter commands
+def make_command_handler(rt: Runtime, motion: MotionController):
+    def handle(cmd):
+        if isinstance(cmd, StopCmd):
             log.info("stop requested")
             motion.emergency_stop()
 
-        elif isinstance(cmd, StartCmd): 
+        elif isinstance(cmd, StartCmd):
+            # The speed is not ours to choose, the scan plan fixed it so that the detector
+            # sees every bit of rope once. The round trip through metres is not bit exact,
+            # and ramp_to reads anything below start_speed as a stop, so a plan sitting on
+            # the drive's lower limit must not fall through it
+            scan_speed = max(motion.drive.to_microsteps(rt.plan.speed_mps), motion.drive.start_speed)
             target = scan_speed if cmd.direction == "forward" else -scan_speed
             log.info("start requested: %s at %.3f m/s (%.0f microsteps/s)",
-                     cmd.direction, plan.speed_mps, scan_speed)
+                     cmd.direction, rt.plan.speed_mps, scan_speed)
             motion.request("speed", target)
 
-        elif isinstance(cmd, ResetOriginCmd): 
+        elif isinstance(cmd, ResetOriginCmd):
             if motion.drive.moving:
                 log.warning("origin reset while moving, the run starts from here anyway")
             log.info("origin reset at %.2f m", motion.drive.metres_done)
             motion.drive.reset_steps_done()
             # the clear distance is measured from a position that just became zero
-            rope_socket.rebase(motion.drive.metres_done)
+            rt.rope_socket.rebase(motion.drive.metres_done)
 
-        elif isinstance(cmd, OpenCmd): 
-            rope_socket.open_by_user()
+        elif isinstance(cmd, OpenCmd):
+            rt.rope_socket.open_by_user()
 
-        elif isinstance(cmd, CloseCmd): 
-            rope_socket.close_by_user()
+        elif isinstance(cmd, CloseCmd):
+            rt.rope_socket.close_by_user()
 
-        elif isinstance(cmd, SocketWatchCmd): 
-            rope_socket.set_watch(cmd.enabled)
+        elif isinstance(cmd, SocketWatchCmd):
+            rt.rope_socket.set_watch(cmd.enabled)
+
+        elif isinstance(cmd, SettingsCmd):
+            # queued here, put in force by the detection cycle once the robot rests
+            rt.accept(cmd.version, cmd.settings)
 
     return handle
 
-# capture frames (streaming res.), encode, hand them to the video link 
-async def frame_producer(cams: CameraPair, video: VideoLink, fps: float): 
-    period = 1.0 / fps
+# capture frames (streaming res.), encode, hand them to the video link
+async def frame_producer(rt: Runtime, video: VideoLink):
     loop = asyncio.get_running_loop()
 
     while True:
-        deadline = loop.time() + period
+        deadline = loop.time() + 1.0 / rt.settings.stream_fps
         try:
-            for idx, lores in await asyncio.to_thread(cams.capture_lores):
-                video.submit(idx, encode(lores))
+            for idx, lores in await asyncio.to_thread(rt.cams.capture_lores):
+                video.submit(idx, encode(lores, STREAM_JPEG_QUALITY))
         except Exception:
             log.exception("capture failed")
         await asyncio.sleep(max(0.0, deadline - loop.time()))
@@ -168,23 +141,24 @@ class Round:
 
 # One look at the rope: a frame from every camera. This is the only part of a round that
 # needs the ring standing still
-async def capture_round(cams: CameraPair, drive: Drive) -> Round:
-    frames = await asyncio.to_thread(cams.capture)
+async def capture_round(rt: Runtime) -> Round:
+    frames = await asyncio.to_thread(rt.cams.capture)
     # every frame of a round is from the same moment, taking the position per camera would
     # charge cam1 with the inference time of cam0
-    return Round(frames, time.time(), drive.microsteps_done, drive.metres_done)
+    return Round(frames, time.time(), rt.drive.microsteps_done, rt.drive.metres_done)
 
 
 # The detector on what a round saw, and a report for every frame, empty ones included. It
 # runs while the ring is already turning: the shutter needs the cameras still, the net does not
-async def report_round(detector: DetectorProcess, link: RobotLink, look: Round, seq):
+async def report_round(rt: Runtime, link: RobotLink, look: Round, seq):
     loop = asyncio.get_running_loop()
+    quality = rt.settings.defect_jpeg_quality
 
     for idx, frame in look.frames:
         started = loop.time()
-        found = await asyncio.to_thread(detector.detect, frame)
+        found = await asyncio.to_thread(rt.detector.detect, frame)
         # only a frame with something in it is worth storing
-        jpeg = await asyncio.to_thread(encode, frame, DEFECT_JPEG_QUALITY) if found else None
+        jpeg = await asyncio.to_thread(encode, frame, quality) if found else None
         millis = (loop.time() - started) * 1000.0
 
         if found:
@@ -215,57 +189,63 @@ async def report_round(detector: DetectorProcess, link: RobotLink, look: Round, 
 # The drive holds a speed that covers exactly one frame of rope per cycle. While the robot is
 # open for a rope socket the ring waits at the angle that clears it and the detector is idle;
 # the cycle picks up again where it left off once the robot closes
-async def detection_reporter(cams: CameraPair, detector: DetectorProcess, link: RobotLink, drive: Drive,
-                             turret: Turret, rope_socket: RopeSocket, stats: DetectionStats,
-                             plan: ScanPlan):
+async def detection_reporter(rt: Runtime, link: RobotLink, stats: DetectionStats):
     loop = asyncio.get_running_loop()
     seq = itertools.count(1)
 
     while True:
+        # New settings wait for the robot to rest, and this loop is where it does. Between
+        # cycles, drive stopped and ring parked, is the one moment at which the numbers all
+        # of the below reads may be swapped out from under it
+        rt.flush()
+        plan = rt.plan
+        open_angle = rt.open_angle
+
         # Open for a rope socket: the ring waits at the angle that clears it and no frame
         # goes through the detector. Driving and the video stream carry on
-        if rope_socket.is_open:
+        if rt.rope_socket.is_open:
             # a turn that did not make it leaves the ring off its angle and is tried again,
             # at the pace of a cycle rather than of the poll
-            reached = turret.at(TURRET_OPEN_ANGLE) or await turn_cameras(turret, TURRET_OPEN_ANGLE)
-            rope_socket.close_if_clear(drive.metres_done)
-            await asyncio.sleep(OPEN_POLL if reached else plan.period)
+            reached = rt.turret.at(open_angle) or await turn_cameras(rt.turret, open_angle)
+            rt.rope_socket.close_if_clear(rt.drive.metres_done)
+            await asyncio.sleep(rt.settings.open_poll if reached else plan.period)
             continue
 
         # A standing robot sees the same bit of rope over and over, and inference keeps the
         # Pi hot. The ring rests open while it stands: that covers every way the robot can
         # come to a halt, a stop command as much as a lost link, and leaves it where the
         # next start takes it to be
-        if not drive.moving:
-            if not turret.at(TURRET_OPEN_ANGLE):
-                await turn_cameras(turret, TURRET_OPEN_ANGLE)
+        if not rt.drive.moving:
+            if not rt.turret.at(open_angle):
+                await turn_cameras(rt.turret, open_angle)
             await asyncio.sleep(plan.period)
             continue
 
         # scanning again, so the ring goes to where a cycle starts
-        if not turret.at(TURRET_ANGLES[0]):
-            await turn_cameras(turret, TURRET_ANGLES[0])
+        angles = rt.angles
+        if not rt.turret.at(angles[0]):
+            await turn_cameras(rt.turret, angles[0])
 
         deadline = loop.time() + plan.period
         try:
             # The ring already stands at the first angle. Every round is taken where it
             # stands and the ring then moves on to the next, the last one back to the first,
             # so the cycle ends where it began with no turn of its own
-            for nxt in TURRET_ANGLES[1:] + TURRET_ANGLES[:1]:
+            for nxt in angles[1:] + angles[:1]:
                 # a socket ahead ends the cycle here, no quarter turn is started into it
-                if rope_socket.is_open:
+                if rt.rope_socket.is_open:
                     break
-                look = await capture_round(cams, drive)
+                look = await capture_round(rt)
                 await asyncio.gather(
-                    turn_cameras(turret, nxt, plan.turn_s),
-                    report_round(detector, link, look, seq),
+                    turn_cameras(rt.turret, nxt, plan.turn_s),
+                    report_round(rt, link, look, seq),
                 )
         except Exception:
             log.exception("detection failed")
 
         # the cycle was cut short for a rope socket: the ring is wanted at the angle that
         # clears it now, not after the rest of a cycle that is not being run
-        if rope_socket.is_open:
+        if rt.rope_socket.is_open:
             continue
 
         slack = deadline - loop.time()
@@ -276,42 +256,44 @@ async def detection_reporter(cams: CameraPair, detector: DetectorProcess, link: 
         await asyncio.sleep(max(0.0, slack))
 
 # stop robot when the control link is down
-async def link_guard(link: RobotLink, motion: MotionController):
-    while True: 
-        if not link.connected and motion.drive.moving:
-            log.warning("control link down while moving => stopping") 
+async def link_guard(rt: Runtime, link: RobotLink, motion: MotionController):
+    while True:
+        if not link.connected and rt.drive.moving:
+            log.warning("control link down while moving => stopping")
             motion.emergency_stop()
-        await asyncio.sleep(GUARD_PERIOD)
+        await asyncio.sleep(rt.settings.guard_period)
 
 # send motion telemetry
-async def telemetry_sender(link: RobotLink, drive: Drive, plan: ScanPlan, rope_socket: RopeSocket,
-                           period: float):
+async def telemetry_sender(rt: Runtime, link: RobotLink):
     seq = 0
     while True:
         if link.connected:
             seq += 1
             try:
                 msg = MotionTelemetry(
-                    speed=drive.speed,
-                    speed_mps=drive.speed_mps,
-                    microsteps=drive.microsteps_done,
-                    metres=drive.metres_done,
-                    scan_speed_mps=plan.speed_mps,
-                    detect_fps=plan.detect_fps,
-                    robot_open=rope_socket.is_open,
-                    socket_watch=rope_socket.watch,
+                    speed=rt.drive.speed,
+                    speed_mps=rt.drive.speed_mps,
+                    microsteps=rt.drive.microsteps_done,
+                    metres=rt.drive.metres_done,
+                    scan_speed_mps=rt.plan.speed_mps,
+                    detect_fps=rt.plan.detect_fps,
+                    robot_open=rt.rope_socket.is_open,
+                    socket_watch=rt.rope_socket.watch,
+                    # the settings really in force, not the ones last received: that is what
+                    # lets the webapp say whether a change has taken
+                    settings_version=rt.version,
                     seq=seq,
                 )
                 await link.send_live(msg.model_dump())
             except Exception:
                 log.exception("telemetry failed")
-        await asyncio.sleep(period)
+        await asyncio.sleep(rt.settings.telemetry_period)
 
 # Read the distance sensor: it watches for the rope socket ahead and its reading is sent on
 # as telemetry, live only. The sensor is opened here rather than at startup, so one that was
 # not there yet or had a loose contact is picked up later. It is read whether or not the link
 # is up, the robot opens for a socket on its own
-async def distance_sender(link: RobotLink, drive: Drive, rope_socket: RopeSocket, bus: int, period: float):
+async def distance_sender(rt: Runtime, link: RobotLink, bus: int):
     tof = None
     seq = 0
     failing = False
@@ -334,32 +316,32 @@ async def distance_sender(link: RobotLink, drive: Drive, rope_socket: RopeSocket
                 if failing:
                     log.info("distance sensor answers again")
                 failing = False
-                rope_socket.saw(distance, drive.metres_done)
+                rt.rope_socket.saw(distance, rt.drive.metres_done)
 
                 if link.connected:
                     seq += 1
                     await link.send_live(DistanceTelemetry(distance_m=distance, seq=seq).model_dump())
-            await asyncio.sleep(period)
+            await asyncio.sleep(rt.settings.distance_period)
     finally:
         if tof is not None:
             tof.close()
 
 # redraw the status display
-async def display_updater(screen: StatusScreen, link: RobotLink, outbox: Outbox, drive: Drive,
-                          stats: DetectionStats, period: float):
+async def display_updater(rt: Runtime, screen: StatusScreen, link: RobotLink, outbox: Outbox,
+                          stats: DetectionStats):
     while True:
         status = Status(
             online=link.connected,
             backlog_bytes=outbox.backlog_bytes,
-            speed_mps=drive.speed_mps,
-            metres=drive.metres_done,
+            speed_mps=rt.drive.speed_mps,
+            metres=rt.drive.metres_done,
             cycle_ms=stats.cycle_ms,
         )
         try:
             await asyncio.to_thread(screen.show, status)
         except Exception:
             log.exception("display update failed")
-        await asyncio.sleep(period)
+        await asyncio.sleep(rt.settings.display_period)
 
 async def main():
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -373,13 +355,20 @@ async def main():
     screen = StatusScreen(DISPLAY_I2C_BUS, DISPLAY_ADDRESS, flip=DISPLAY_FLIP)
     screen.message("starting")
 
+    # What the robot boots on. The operator's own values arrive from the server as a
+    # SettingsCmd once the link is up; until then, and without a server at all, these are
+    # the numbers it runs on
+    cfg = RobotSettings()
+
     # configure the drive along the rope
     drive = Drive(
         pul_pin=DRIVE_PUL_PIN,
         dir_pin=DRIVE_DIR_PIN,
-        microsteps=DRIVE_MICROSTEPS,
-        max_speed=DRIVE_MAX_SPEED,
-        accel=DRIVE_ACCEL
+        microsteps=cfg.drive_microsteps,
+        microsteps_per_metre=cfg.drive_microsteps_per_metre,
+        start_speed=cfg.drive_start_speed,
+        max_speed=cfg.drive_max_speed,
+        accel=cfg.drive_accel,
     )
     motion = MotionController(drive)
 
@@ -387,57 +376,55 @@ async def main():
     turret = Turret(
         pul_pin=TURRET_PUL_PIN,
         dir_pin=TURRET_DIR_PIN,
-        microsteps=TURRET_MICROSTEPS,
-        gear_ratio=TURRET_GEAR_RATIO,
-        max_deg_s=TURRET_MAX_DEG_S,
-        accel=TURRET_ACCEL,
-        start_angle=TURRET_OPEN_ANGLE,
+        microsteps=cfg.turret_microsteps,
+        gear_ratio=cfg.turret_gear_ratio,
+        max_deg_s=cfg.turret_max_deg_s,
+        accel=cfg.turret_accel,
+        settle_s=cfg.turret_settle_s,
+        start_angle=cfg.turret_open_angle,
     )
 
-    # Configure link to api 
+    # Configure link to api
     outbox = Outbox("outbox.jsonl")
     link = RobotLink(outbox)
     video = VideoLink()
-    cams = CameraPair(fps=CAMERA_FPS).start()
+    cams = CameraPair(
+        fps=cfg.camera_fps,
+        exposure_us=cfg.camera_exposure_us,
+        gain=cfg.camera_gain,
+        focus_distance_m=cfg.camera_focus_distance_m,
+    ).start()
 
     # the detector sets the pace the drive runs at, there is no scanning without it
     detector = DetectorProcess()
     await asyncio.to_thread(detector.warmup)
-    measured = await asyncio.to_thread(measure_cycle, cams, detector)
+    detector.configure(cfg.detect_confidence, cfg.detect_iou)
+    measured = await asyncio.to_thread(measure_cycle, cams, detector, cycles=cfg.benchmark_cycles)
 
-    # the drive can only be asked for speeds it can actually hold, and the cycle only for
-    # turns the ring manages in the time it is given
-    plan = plan_scan(
-        measured=measured,
-        speed_limits=(drive.to_metres(drive.start_speed), drive.to_metres(drive.max_speed)),
-        # the cycle decides how fast the cameras swing, unless the ring cannot manage it
-        sweep_deg=TURRET_ANGLES[1] - TURRET_ANGLES[0],
-        min_turn_s=turret.min_turn_s(TURRET_ANGLES[1] - TURRET_ANGLES[0]),
-    )
+    rope_socket = RopeSocket(cfg.socket_distance_m, cfg.socket_clear_m)
+    # holds the settings and everything they decide: the scan plan, the hardware, the pace
+    # of every task below
+    rt = Runtime(cfg, measured, drive, turret, cams, detector, rope_socket)
 
     stats = DetectionStats()
-    rope_socket = RopeSocket(SOCKET_DISTANCE_M, SOCKET_CLEAR_M)
-    link.on_command(make_command_handler(motion, plan, rope_socket))
+    link.on_command(make_command_handler(rt, motion))
 
     log.info("steppers, detector and link configured")
 
     # kick off tasks, accept signals (shutdown if received)
-    try: 
-        async with asyncio.TaskGroup() as tg: 
+    try:
+        async with asyncio.TaskGroup() as tg:
             tg.create_task(link.run(), name="control-link")
             tg.create_task(video.run(), name="video-link")
-            tg.create_task(frame_producer(cams, video, STEAM_FPS), name="frame-stream")
-            tg.create_task(detection_reporter(cams, detector, link, drive, turret, rope_socket,
-                                              stats, plan), name="detection")
-            tg.create_task(link_guard(link, motion), name="guard")
-            tg.create_task(telemetry_sender(link, drive, plan, rope_socket, TELEMETRY_PERIOD),
-                           name="telemetry")
-            tg.create_task(distance_sender(link, drive, rope_socket, TOF_I2C_BUS, DISTANCE_PERIOD),
-                           name="distance")
-            tg.create_task(display_updater(screen, link, outbox, drive, stats, DISPLAY_PERIOD), name="display")
+            tg.create_task(frame_producer(rt, video), name="frame-stream")
+            tg.create_task(detection_reporter(rt, link, stats), name="detection")
+            tg.create_task(link_guard(rt, link, motion), name="guard")
+            tg.create_task(telemetry_sender(rt, link), name="telemetry")
+            tg.create_task(distance_sender(rt, link, TOF_I2C_BUS), name="distance")
+            tg.create_task(display_updater(rt, screen, link, outbox, stats), name="display")
     except* asyncio.CancelledError:
         log.info("shutting down")
-    finally: 
+    finally:
         motion.emergency_stop()
         cams.close()
         turret.close()
@@ -445,5 +432,5 @@ async def main():
         screen.close()
         log.info("stopped")
 
-if __name__ == "__main__": 
+if __name__ == "__main__":
     asyncio.run(main())

@@ -1,6 +1,8 @@
 from typing import ClassVar, Literal 
 from pydantic import BaseModel, Field 
 
+from .settings import RobotSettings
+
 
 
 # lf = local fault (broken wires), lma = loss of metallic area (corrosion and wear)
@@ -33,6 +35,7 @@ class MotionTelemetry(RobotMessage):
     # ahead of the robot still reads its telemetry
     robot_open: bool = False    # camera ring parked clear of a rope socket, detector off
     socket_watch: bool = False  # the distance sensor may open the robot by itself
+    settings_version: int = 0   # the settings the robot is actually running on, see SettingsCmd
     seq: int
 
 # What the robot's distance sensor sees. Live only, a reading is worthless a second later
@@ -101,3 +104,12 @@ class CloseCmd(BaseModel):
 class SocketWatchCmd(BaseModel):
     type: Literal["socket_watch"] = "socket_watch"
     enabled: bool
+
+# The operator's settings, the whole set of them at once. Sent when the robot connects and
+# again on every change, so the robot never has to piece a configuration together. The
+# version is the server's count of changes and comes straight back in the motion telemetry:
+# that, not the command being accepted, is what says the robot is running on these values
+class SettingsCmd(BaseModel):
+    type: Literal["settings"] = "settings"
+    version: int
+    settings: RobotSettings

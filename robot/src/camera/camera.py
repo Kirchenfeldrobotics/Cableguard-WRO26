@@ -14,7 +14,10 @@ def lens_position(distance_m):
     return 1.0 / distance_m
 
 class CameraPair: 
-    def __init__(self, main_size=(640, 640), lores_size=(640, 480), fps=15, focus_distance_m=FOCUS_DISTANCE_M):
+    # The image sizes are fixed here for the run, everything else is a sensor control the
+    # operator may change later, see configure()
+    def __init__(self, main_size=(640, 640), lores_size=(640, 480), fps=15, exposure_us=20000,
+                 gain=2.0, focus_distance_m=FOCUS_DISTANCE_M):
         self.lores_size = lores_size
         self.focus_distance_m = focus_distance_m
         self._cams: list[Picamera2] = []
@@ -25,8 +28,8 @@ class CameraPair:
             cam_controls = {
                 "FrameRate": fps,
                 "AeEnable": False,
-                "ExposureTime": 20000,     
-                "AnalogueGain": 2.0,
+                "ExposureTime": exposure_us,
+                "AnalogueGain": gain,
                 "AwbEnable": False,
                 "ColourGains": (1.8, 2.2), 
                 "NoiseReductionMode": 1,  
@@ -54,6 +57,15 @@ class CameraPair:
             "AfMode": AF_MODE_MANUAL,
             "LensPosition": position,
         }
+
+    # Exposure, gain, focus and rate on both running cameras. The sensor takes these live,
+    # so nothing has to be torn down and the video stream does not break
+    def configure(self, fps, exposure_us, gain, focus_distance_m):
+        self.focus_distance_m = focus_distance_m
+        for cam in self._cams:
+            controls = {"FrameRate": fps, "ExposureTime": exposure_us, "AnalogueGain": gain}
+            controls.update(self._focus_controls(cam))
+            cam.set_controls(controls)
 
     # start the cameras
     def start(self): 
