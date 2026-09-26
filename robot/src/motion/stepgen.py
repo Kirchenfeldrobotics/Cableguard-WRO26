@@ -10,6 +10,12 @@ _lib.stepgen_done.argtypes  = [ctypes.c_int]
 _lib.stepgen_close.argtypes = [ctypes.c_int]
 _lib.stepgen_close.restype  = None
 
+# Shortest a step may be, microseconds. The PIO program spends this long on the pulse itself
+# (STEP_CYCLES in stepgen.c), so it is also the fastest train it can play: a put below it is
+# refused
+MIN_PERIOD_US = 12
+
+
 # Blocks a channel may have outstanding, counted from the last one the PIO reported played.
 # The RP1's FIFOs hold eight words each way (piolib declares fifo_depth 8 for this chip),
 # and an outstanding block sits in exactly one of them: waiting in the TX FIFO, on the state

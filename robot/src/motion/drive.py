@@ -45,7 +45,9 @@ class Drive(Stepper):
     # Take a new set of the operator's numbers. Only safe while the drive stands: all of
     # them are read inside a running ramp, and the geometry turns the microsteps already
     # counted into a different number of metres
-    def configure(self, microsteps, gear_ratio, metres_per_rev, start_speed, max_speed, accel):
+    def configure(self, full_steps, microsteps, gear_ratio, metres_per_rev, start_speed,
+                  max_speed, accel):
+        self.full_steps_per_rev = full_steps
         self.microsteps     = microsteps
         self.gear_ratio     = gear_ratio
         self.metres_per_rev = metres_per_rev

@@ -91,6 +91,7 @@ class Runtime:
 
     def _apply(self, s):
         self.drive.configure(
+            full_steps=s.drive_full_steps,
             microsteps=s.drive_microsteps,
             gear_ratio=s.drive_gear_ratio,
             metres_per_rev=s.drive_metres_per_rev,
@@ -99,10 +100,12 @@ class Runtime:
             accel=s.drive_accel,
         )
         self.turret.configure(
+            full_steps=s.turret_full_steps,
             microsteps=s.turret_microsteps,
             gear_ratio=s.turret_gear_ratio,
+            start_deg_s=s.turret_start_deg_s,
             max_deg_s=s.turret_max_deg_s,
-            accel=s.turret_accel,
+            accel_deg_s2=s.turret_accel_deg_s2,
             settle_s=s.turret_settle_s,
             start_angle=s.turret_open_angle,
         )
