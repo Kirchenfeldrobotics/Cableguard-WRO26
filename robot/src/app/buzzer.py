@@ -29,8 +29,8 @@ class Buzzer:
         self.h = lgpio.gpiochip_open(chip)
         lgpio.gpio_claim_output(self.h, pin, 0)
 
-    # Safe to call from any thread. A sound the driver has no room for is dropped: a beep is
-    # never worth an exception where the robot is being told what to do
+    # Safe to call from any thread, and it swallows whatever the driver makes of it: this is
+    # called from the middle of telling the robot what to do, and a beep is worth nothing there
     def play(self, sound):
         try:
             for hz, seconds in sound:
@@ -39,7 +39,7 @@ class Buzzer:
                 else:
                     # a gap is one cycle of a wave that is never pulled high
                     lgpio.tx_pwm(self.h, self.pin, 1.0 / seconds, 0, 0, 1)
-        except lgpio.error:
+        except Exception:
             log.exception("the buzzer did not take a sound")
 
     def close(self):
@@ -48,7 +48,7 @@ class Buzzer:
         # calls a cancel with nothing playing a bad request, which is no reason to fail a stop
         try:
             lgpio.tx_pwm(self.h, self.pin, 0, 0, 0, 0)
-        except lgpio.error:
+        except Exception:
             pass
         lgpio.gpio_write(self.h, self.pin, 0)
         lgpio.gpiochip_close(self.h)

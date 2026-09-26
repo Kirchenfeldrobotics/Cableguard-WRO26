@@ -15,6 +15,10 @@ _lib.stepgen_close.restype  = None
 # refused
 MIN_PERIOD_US = 12
 
+# Longest a step may be: the PIO holds the low time in sixteen bits, on top of the pulse. A
+# block slower than this is refused, so nothing may ask for a pace below it
+MAX_PERIOD_US = 0xffff + MIN_PERIOD_US
+
 
 # Blocks a channel may have outstanding, counted from the last one the PIO reported played.
 # The RP1's FIFOs hold eight words each way (piolib declares fifo_depth 8 for this chip),

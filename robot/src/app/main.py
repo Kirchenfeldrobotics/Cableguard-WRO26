@@ -413,7 +413,9 @@ async def main():
     )
     motion = MotionController(drive)
 
-    # configure the ring that turns the cameras. It is parked where it stands now
+    # Configure the ring that turns the cameras. It has no endstop, so where it stands when
+    # the robot is started is taken to be the open angle: whoever puts the robot on the rope
+    # leaves it there, and every angle after that is counted from it
     turret = Turret(
         pul_pin=TURRET_PUL_PIN,
         dir_pin=TURRET_DIR_PIN,
@@ -458,6 +460,8 @@ async def main():
     buttons = (Button(START_BUTTON_PIN, lambda: press(StartCmd())),
                Button(STOP_BUTTON_PIN, lambda: press(StopCmd())))
 
+    log.info("the camera ring is taken to stand at its open angle, %.0f deg",
+             cfg.turret_open_angle)
     log.info("steppers, buttons, detector and link configured")
     # the startup takes long enough that the operator needs telling when it is over
     buzzer.play(Sound.READY)

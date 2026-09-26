@@ -88,14 +88,18 @@ class Turret(Stepper):
     def _scale(self):
         per_deg = self.microsteps_per_deg
 
-        # The operator's pace is the pace. Nothing else may quietly cap the ring: a reduction
-        # between motor and ring multiplies the microsteps a degree costs, and a ceiling in
-        # microsteps would then turn the speed that was asked for into some fraction of it
-        self.max_speed = min(self.max_deg_s * per_deg, self.max_pulse_speed)
+        # A pace the step generator cannot play is refused block by block, which would leave a
+        # turn half done, so every speed is held inside what it can put out. Beyond that the
+        # operator's pace is the pace: nothing hidden may cap the ring, since a reduction
+        # between motor and ring multiplies the microsteps a degree costs
+        def playable(microsteps_s):
+            return min(max(microsteps_s, self.min_pulse_speed), self.max_pulse_speed)
+
+        self.max_speed = playable(self.max_deg_s * per_deg)
         # a start above the cap would be a move that ignores the cap altogether
-        self.start_speed = min(self.start_deg_s, self.max_deg_s) * per_deg
+        self.start_speed = playable(min(self.start_deg_s, self.max_deg_s) * per_deg)
         self.accel       = self.accel_deg_s2 * per_deg
-        self.min_speed   = self.min_deg_s * per_deg
+        self.min_speed   = playable(self.min_deg_s * per_deg)
 
     # Take a new set of the operator's numbers. The ring has to be standing at the angle it
     # is calibrated against, because none of this moves it: only the numbers that describe
@@ -106,13 +110,13 @@ class Turret(Stepper):
             self._wait_idle()          # the counter is only ours to set once nothing is queued
 
             self.full_steps_per_rev = full_steps
-            self.microsteps   = microsteps
-            self.gear_ratio   = gear_ratio
-            self.start_deg_s  = start_deg_s
-            self.max_deg_s    = max_deg_s
-            self.accel_deg_s2 = accel_deg_s2
-            self.settle_s     = settle_s
-            self.start_angle  = start_angle
+            self.microsteps         = microsteps
+            self.gear_ratio         = gear_ratio
+            self.start_deg_s        = start_deg_s
+            self.max_deg_s          = max_deg_s
+            self.accel_deg_s2       = accel_deg_s2
+            self.settle_s           = settle_s
+            self.start_angle        = start_angle
             self._scale()
 
             with self._lock:

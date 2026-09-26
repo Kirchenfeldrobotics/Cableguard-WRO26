@@ -94,6 +94,11 @@ class Stepper():
     def max_pulse_speed(self):
         return 1e6 / stepgen.MIN_PERIOD_US
 
+    # and the slowest. A block below it is refused too, which would leave a move half played
+    @property
+    def min_pulse_speed(self):
+        return 1e6 / stepgen.MAX_PERIOD_US
+
     # returns moving state
     @property
     def moving(self):
