@@ -20,6 +20,8 @@ from comm_protocols.messages import (
 )
 from comm_protocols.settings import RobotSettings
 
+from app.buttons import Button
+from app.buzzer import Buzzer, Sound
 from app.ropesocket import RopeSocket
 from app.runtime import Runtime
 from camera.camera import CameraPair, encode
@@ -49,6 +51,15 @@ DRIVE_DIR_PIN = 23
 TURRET_PUL_PIN = 12
 TURRET_DIR_PIN = 16
 
+# the two buttons on the robot, each wired from its pin to ground. Both pins are pulled up
+# by the pi at boot, so a button held before the software claims it cannot start anything
+START_BUTTON_PIN = 5        # red
+STOP_BUTTON_PIN  = 6        # white
+
+# the buzzer, wired from its pin to ground. It sits away from the two stepper pulse pins so
+# that its own switching has nothing fast to couple into
+BUZZER_PIN = 26
+
 # distance sensor, a TOF200C (VL53L0X) on I2C bus 1 (SDA GPIO2, SCL GPIO3)
 TOF_I2C_BUS = 1
 
@@ -62,10 +73,11 @@ STREAM_JPEG_QUALITY = 95
 
 
 # creates function that turns messages into roboter commands
-def make_command_handler(rt: Runtime, motion: MotionController):
+def make_command_handler(rt: Runtime, motion: MotionController, buzzer: Buzzer):
     def handle(cmd):
         if isinstance(cmd, StopCmd):
             log.info("stop requested")
+            buzzer.play(Sound.STOP)
             motion.emergency_stop()
 
         elif isinstance(cmd, StartCmd):
@@ -77,6 +89,7 @@ def make_command_handler(rt: Runtime, motion: MotionController):
             target = scan_speed if cmd.direction == "forward" else -scan_speed
             log.info("start requested: %s at %.3f m/s (%.0f microsteps/s)",
                      cmd.direction, rt.plan.speed_mps, scan_speed)
+            buzzer.play(Sound.START)
             motion.request("speed", target)
 
         elif isinstance(cmd, ResetOriginCmd):
@@ -101,6 +114,16 @@ def make_command_handler(rt: Runtime, motion: MotionController):
             rt.accept(cmd.version, cmd.settings)
 
     return handle
+
+# The buttons stand for the two commands the webapp sends most, so they are handed the same
+# messages and run through the handler above: whatever a start comes to mean, the button
+# follows. lgpio reports the press on its own thread, the command runs on the event loop
+def make_button_press(loop, handle):
+    def press(cmd):
+        log.info("%s button pressed", cmd.type)
+        loop.call_soon_threadsafe(handle, cmd)
+
+    return press
 
 # capture frames (streaming res.), encode, hand them to the video link
 async def frame_producer(rt: Runtime, video: VideoLink):
@@ -189,9 +212,11 @@ async def report_round(rt: Runtime, link: RobotLink, look: Round, seq):
 # The drive holds a speed that covers exactly one frame of rope per cycle. While the robot is
 # open for a rope socket the ring waits at the angle that clears it and the detector is idle;
 # the cycle picks up again where it left off once the robot closes
-async def detection_reporter(rt: Runtime, link: RobotLink, stats: DetectionStats):
+async def detection_reporter(rt: Runtime, link: RobotLink, stats: DetectionStats,
+                             buzzer: Buzzer):
     loop = asyncio.get_running_loop()
     seq = itertools.count(1)
+    was_open = rt.rope_socket.is_open
 
     while True:
         # New settings wait for the robot to rest, and this loop is where it does. Between
@@ -200,6 +225,12 @@ async def detection_reporter(rt: Runtime, link: RobotLink, stats: DetectionStats
         rt.flush()
         plan = rt.plan
         open_angle = rt.open_angle
+
+        # the sensor opens the robot on its own, so the sound follows the state and not the
+        # command that may never have come
+        if rt.rope_socket.is_open != was_open:
+            was_open = rt.rope_socket.is_open
+            buzzer.play(Sound.OPEN if was_open else Sound.CLOSE)
 
         # Open for a rope socket: the ring waits at the angle that clears it and no frame
         # goes through the detector. Driving and the video stream carry on
@@ -256,11 +287,18 @@ async def detection_reporter(rt: Runtime, link: RobotLink, stats: DetectionStats
         await asyncio.sleep(max(0.0, slack))
 
 # stop robot when the control link is down
-async def link_guard(rt: Runtime, link: RobotLink, motion: MotionController):
+async def link_guard(rt: Runtime, link: RobotLink, motion: MotionController, buzzer: Buzzer):
+    stopped = False       # a drive still ramping down is the same fault, not the next one
     while True:
         if not link.connected and rt.drive.moving:
-            log.warning("control link down while moving => stopping")
+            if not stopped:
+                log.warning("control link down while moving => stopping")
+                # nobody is watching the webapp for this one, it is the robot's own doing
+                buzzer.play(Sound.FAULT)
+                stopped = True
             motion.emergency_stop()
+        else:
+            stopped = False
         await asyncio.sleep(rt.settings.guard_period)
 
 # send motion telemetry
@@ -354,6 +392,7 @@ async def main():
     # first up, so that the model loading and benchmark below are not a dark screen
     screen = StatusScreen(DISPLAY_I2C_BUS, DISPLAY_ADDRESS, flip=DISPLAY_FLIP)
     screen.message("starting")
+    buzzer = Buzzer(BUZZER_PIN)
 
     # What the robot boots on. The operator's own values arrive from the server as a
     # SettingsCmd once the link is up; until then, and without a server at all, these are
@@ -408,9 +447,17 @@ async def main():
     rt = Runtime(cfg, measured, drive, turret, cams, detector, rope_socket)
 
     stats = DetectionStats()
-    link.on_command(make_command_handler(rt, motion))
+    handle = make_command_handler(rt, motion, buzzer)
+    link.on_command(handle)
 
-    log.info("steppers, detector and link configured")
+    # a button has no direction of its own, so the red one scans the way StartCmd defaults to
+    press = make_button_press(loop, handle)
+    buttons = (Button(START_BUTTON_PIN, lambda: press(StartCmd())),
+               Button(STOP_BUTTON_PIN, lambda: press(StopCmd())))
+
+    log.info("steppers, buttons, detector and link configured")
+    # the startup takes long enough that the operator needs telling when it is over
+    buzzer.play(Sound.READY)
 
     # kick off tasks, accept signals (shutdown if received)
     try:
@@ -418,8 +465,8 @@ async def main():
             tg.create_task(link.run(), name="control-link")
             tg.create_task(video.run(), name="video-link")
             tg.create_task(frame_producer(rt, video), name="frame-stream")
-            tg.create_task(detection_reporter(rt, link, stats), name="detection")
-            tg.create_task(link_guard(rt, link, motion), name="guard")
+            tg.create_task(detection_reporter(rt, link, stats, buzzer), name="detection")
+            tg.create_task(link_guard(rt, link, motion, buzzer), name="guard")
             tg.create_task(telemetry_sender(rt, link), name="telemetry")
             tg.create_task(distance_sender(rt, link, TOF_I2C_BUS), name="distance")
             tg.create_task(display_updater(rt, screen, link, outbox, stats), name="display")
@@ -427,6 +474,10 @@ async def main():
         log.info("shutting down")
     finally:
         motion.emergency_stop()
+        # then the buttons, so that nothing more can be asked of a robot being torn down
+        for button in buttons:
+            button.close()
+        buzzer.close()
         cams.close()
         turret.close()
         motion.shutdown()

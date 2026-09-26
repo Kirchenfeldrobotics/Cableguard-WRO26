@@ -1,12 +1,15 @@
+app/__pycache__/
+app/ws/__pycache__/
+app/routers/__pycache__/
+app/repository/__pycache__/
+
 data/*.db
 data/*.db-wal
 data/*.db-shm
 
+scripts/__pycache__/
 
 .env
 
 .venv
 
-app/__pycache__/
-app/ws/__pycache__/
-app/routers/__pycache__/
