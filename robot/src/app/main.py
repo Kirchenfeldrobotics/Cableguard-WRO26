@@ -403,7 +403,6 @@ async def main():
     drive = Drive(
         pul_pin=DRIVE_PUL_PIN,
         dir_pin=DRIVE_DIR_PIN,
-        full_steps=cfg.drive_full_steps,
         microsteps=cfg.drive_microsteps,
         gear_ratio=cfg.drive_gear_ratio,
         metres_per_rev=cfg.drive_metres_per_rev,
@@ -413,18 +412,14 @@ async def main():
     )
     motion = MotionController(drive)
 
-    # Configure the ring that turns the cameras. It has no endstop, so where it stands when
-    # the robot is started is taken to be the open angle: whoever puts the robot on the rope
-    # leaves it there, and every angle after that is counted from it
+    # configure the ring that turns the cameras. It is parked where it stands now
     turret = Turret(
         pul_pin=TURRET_PUL_PIN,
         dir_pin=TURRET_DIR_PIN,
-        full_steps=cfg.turret_full_steps,
         microsteps=cfg.turret_microsteps,
         gear_ratio=cfg.turret_gear_ratio,
-        start_deg_s=cfg.turret_start_deg_s,
         max_deg_s=cfg.turret_max_deg_s,
-        accel_deg_s2=cfg.turret_accel_deg_s2,
+        accel=cfg.turret_accel,
         settle_s=cfg.turret_settle_s,
         start_angle=cfg.turret_open_angle,
     )
@@ -460,8 +455,6 @@ async def main():
     buttons = (Button(START_BUTTON_PIN, lambda: press(StartCmd())),
                Button(STOP_BUTTON_PIN, lambda: press(StopCmd())))
 
-    log.info("the camera ring is taken to stand at its open angle, %.0f deg",
-             cfg.turret_open_angle)
     log.info("steppers, buttons, detector and link configured")
     # the startup takes long enough that the operator needs telling when it is over
     buzzer.play(Sound.READY)

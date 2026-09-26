@@ -17,7 +17,7 @@ class Stepper():
                  ena_settle_s=0.2,
                  invert_dir=False,
                  ena_active_high=False,
-                 full_steps=200,
+                 steps_per_rev=200,
                  microsteps=8,
                  ramp_segments=40,
                  start_speed=200.0,
@@ -38,8 +38,8 @@ class Stepper():
         self.ena_active_high = ena_active_high   # stepper active on enabled high
 
         # specify steps
-        self.full_steps_per_rev = full_steps    # what one turn of the shaft takes
-        self.microsteps         = microsteps    # what the driver makes of each of them
+        self.full_steps_per_rev = steps_per_rev  # full steps per revolution
+        self.microsteps         = microsteps     # microsteps per full step
 
         # how many constant-speed segments a ramp is approximated with
         self.n_ramp_segments = ramp_segments
@@ -81,23 +81,10 @@ class Stepper():
     def __exit__(self, exc_type, exc, tb):
         self.close()
 
-    # Microsteps for one turn of the shaft: the motor's own steps times what the driver makes
-    # of each. It has to be what the hardware really does, or every angle and distance the
-    # robot reports is out by the same factor
+    # total amount of steps per revolution
     @property
     def steps_per_rev(self):
         return self.full_steps_per_rev * self.microsteps
-
-    # fastest train the step generator can play, microsteps per second. Nothing above this
-    # reaches the motor: the PIO refuses the block instead
-    @property
-    def max_pulse_speed(self):
-        return 1e6 / stepgen.MIN_PERIOD_US
-
-    # and the slowest. A block below it is refused too, which would leave a move half played
-    @property
-    def min_pulse_speed(self):
-        return 1e6 / stepgen.MAX_PERIOD_US
 
     # returns moving state
     @property

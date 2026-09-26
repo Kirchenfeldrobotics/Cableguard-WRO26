@@ -37,11 +37,6 @@ def setting(default, *, group: GroupKey, label: str, unit: str, note: str,
 
 class RobotSettings(BaseModel):
     # -- drive -------------------------------------------------------------------------
-    drive_full_steps: int = setting(
-        200, group="drive", label="Motor steps per turn", unit="/turn", ge=4, le=10000, step=1,
-        note="Full steps the motor itself takes for one turn of its shaft: 200 for the usual "
-             "1.8° stepper, 400 for a 0.9° one, and whatever the data sheet says for a motor "
-             "with a gearbox of its own built in.")
     drive_microsteps: int = setting(
         8, group="drive", label="Microstepping", unit="/step", ge=1, le=256, step=1,
         note="Microsteps the driver makes of one full step, as the DIP switches on the driver "
@@ -72,43 +67,22 @@ class RobotSettings(BaseModel):
              "motor slips, which loses the position the whole run is measured against.")
 
     # -- camera ring -------------------------------------------------------------------
-    turret_full_steps: int = setting(
-        200, group="turret", label="Motor steps per turn", unit="/turn", ge=4, le=10000, step=1,
-        note="Full steps the motor itself takes for one turn of its shaft: 200 for the usual "
-             "1.8° stepper, 400 for a 0.9° one, and whatever the data sheet says for a motor "
-             "with a gearbox of its own built in. Together with the microstepping below this is "
-             "what the robot believes one turn of the shaft costs, so a wrong figure here turns "
-             "the ring by that fraction of every angle it is given.")
     turret_microsteps: int = setting(
         8, group="turret", label="Microstepping", unit="/step", ge=1, le=256, step=1,
-        note="Microsteps the ring's driver makes of one full step, as its DIP switches are set. "
-             "Set to less than the driver really makes and the ring falls short of every angle: "
-             "half the microstepping is half the turn.")
+        note="Microsteps the ring's driver makes of one full step, as its DIP switches are set.")
     turret_gear_ratio: float = setting(
         1.0, group="turret", label="Gear ratio", unit="x", ge=0.01, le=100.0, step=0.1,
         note="Motor turns for one turn of the ring. 1.0 means the motor sits on the ring axis, "
-             "a reduction between the two makes it larger. The ring has no endstop to check "
-             "itself against, so this is measured by hand: scripts/turret_probe.py turns it a "
-             "known angle and works the number out from what you measure.")
-    turret_start_deg_s: float = setting(
-        10.0, group="turret", label="Start speed", unit="°/s", ge=0.5, le=200.0, step=0.5,
-        note="How fast the ring is already moving the moment a turn begins. A stepper cannot be "
-             "asked for its full speed out of nowhere: too much here and the motor slips rather "
-             "than turns, which leaves the ring short of the angle the robot counts it at. With "
-             "a reduction between motor and ring, a degree here is several times as much motor.")
+             "a reduction between the two makes it larger.")
     turret_max_deg_s: float = setting(
-        200.0, group="turret", label="Maximum rotation speed", unit="°/s", ge=1.0, le=500.0,
+        200.0, group="turret", label="Maximum rotation speed", unit="°/s", ge=1.0, le=2000.0,
         step=5.0,
         note="Fastest the ring may swing. The camera cables set this, not the motor: asked for "
-             "more, the robot slows its whole scan down rather than hurry the ring. A ring that "
-             "ends up short of its angle was asked for more than the motor can hold.")
-    turret_accel_deg_s2: float = setting(
-        500.0, group="turret", label="Acceleration", unit="°/s²", ge=10.0, le=100000.0,
-        step=50.0,
-        note="How hard the ring ramps up to its speed. In degrees, so changing the microstepping "
-             "or the gearing does not quietly rescale it. Kept gentle on purpose: with the motor "
-             "on the ring itself there is no gearing to make its weight easier to start, and a "
-             "motor asked for more than it can pull slips instead, leaving the ring short.")
+             "more, the robot slows its whole scan down rather than hurry the ring.")
+    turret_accel: float = setting(
+        20000.0, group="turret", label="Acceleration", unit="1/s²", ge=1.0, le=1000000.0, step=500.0,
+        note="How hard the ring ramps, in microsteps per second squared. The ring is light and "
+             "takes far more of it than the drive.")
     turret_settle_s: float = setting(
         0.05, group="turret", label="Settle time", unit="s", ge=0.0, le=2.0, step=0.01,
         note="Time the cameras get to stop swinging after a turn. Cut it too fine and the rope "

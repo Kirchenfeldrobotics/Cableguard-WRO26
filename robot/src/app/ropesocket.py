@@ -18,9 +18,6 @@ class RopeSocket:
         self.trigger_m  = trigger_m    # a reading closer than this is a socket ahead
         self.clear_m    = clear_m      # driven from the last sighting, the socket is behind
         self.watch      = watch        # the sensor may open the robot by itself
-        # Closed, so the robot scans as soon as it is driven. The camera ring does start at
-        # the angle that clears a socket, but that is the ring's position and nothing more:
-        # opening the robot is what stops the detector, and only a socket or the operator does
         self._opened_by = None         # "sensor", "user", or None while the robot is closed
         self._mark      = 0.0          # metres where the sensor last saw something
 

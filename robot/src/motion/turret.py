@@ -13,23 +13,13 @@ GEAR_RATIO = 1.0
 SETTLE_S = 0.05
 
 # The fastest the ring is swung, degrees per second. The camera cables set this, not the
-# motor: every move of the ring is paced by it, and the scan cycle asks for all of it. The
-# robot passes the operator's own value from comm_protocols/settings.py, this is what a script
-# that drives the ring alone gets
+# motor: every move of the ring is paced by it. The robot passes the operator's own value
+# from comm_protocols/settings.py, this is what a script that drives the ring alone gets
 MAX_DEG_S = 200.0
-
-# Where a turn starts from and ends at, degrees per second. A stepper cannot be asked for its
-# full speed out of nowhere. It is low on purpose: with a reduction between motor and ring,
-# a degree of the ring is several times as much motor, and the ramp makes the time up anyway
-START_DEG_S = 10.0
-
-# How hard the ring ramps, degrees per second squared. Gentle on purpose: the motor carries
-# the ring itself, and one asked for more than it can pull slips instead of turning
-ACCEL_DEG_S2 = 500.0
 
 # Slowest the ring is driven. A move that has more time than it needs runs at this speed and
 # is simply done early; below it the driver loses the feeling for where it is
-MIN_DEG_S = 5.0
+MIN_SPEED = 50.0
 
 # Segments a ramp is cut into. The whole move is ramp, so it is kept short enough that the
 # PIO holds most of it at once and plays the segments back to back
@@ -43,20 +33,15 @@ RAMP_SEGMENTS = 6
 #
 # Where the ring stands is its own step counter, and the counter only grows by blocks the
 # PIO reports as played. A move that is cut short therefore leaves the angle correct, and
-# every target is absolute, so nothing drifts over a run.
-#
-# Its whole pace is set in the degrees the operator can measure rather than in the microsteps
-# the driver counts: see _scale, the only place the two meet
+# every target is absolute, so nothing drifts over a run
 class Turret(Stepper):
     def __init__(self,
                  pul_pin,
                  dir_pin,
                  gear_ratio=GEAR_RATIO,
-                 start_deg_s=START_DEG_S,
                  max_deg_s=MAX_DEG_S,
-                 accel_deg_s2=ACCEL_DEG_S2,
                  settle_s=SETTLE_S,
-                 min_deg_s=MIN_DEG_S,
+                 min_speed=MIN_SPEED,
                  ramp_segments=RAMP_SEGMENTS,
                  start_angle=0.0,
                  **kwargs):                 # the rest is the base driver's, see stepper.py
@@ -65,12 +50,13 @@ class Turret(Stepper):
 
         self.gear_ratio = gear_ratio
         self.settle_s   = settle_s
+        self.min_speed  = min_speed
 
-        self.start_deg_s  = start_deg_s
-        self.max_deg_s    = max_deg_s
-        self.accel_deg_s2 = accel_deg_s2
-        self.min_deg_s    = min_deg_s
-        self._scale()
+        # What the motor itself takes, kept because the cable pace below is worked out
+        # against it again whenever the ring's geometry changes
+        self._motor_max_speed = self.max_speed
+        self.max_deg_s        = max_deg_s
+        self._cap_speed()
 
         # The ring has no endstop, so its angle is the one it is told it has. Whoever sets
         # the robot up leaves it at start_angle, and the counter starts from there
@@ -82,42 +68,26 @@ class Turret(Stepper):
         # ring is still going; two moves interleaving would leave it anywhere
         self._turning = threading.Lock()
 
-    # The ring's pace in the microsteps per second the base driver works in. One place, so a
-    # change of microstepping or gearing carries all of them with it. A move given no time of
-    # its own runs at max_speed, and min_turn_s reports what a turn costs at it
-    def _scale(self):
-        per_deg = self.microsteps_per_deg
-
-        # A pace the step generator cannot play is refused block by block, which would leave a
-        # turn half done, so every speed is held inside what it can put out. Beyond that the
-        # operator's pace is the pace: nothing hidden may cap the ring, since a reduction
-        # between motor and ring multiplies the microsteps a degree costs
-        def playable(microsteps_s):
-            return min(max(microsteps_s, self.min_pulse_speed), self.max_pulse_speed)
-
-        self.max_speed = playable(self.max_deg_s * per_deg)
-        # a start above the cap would be a move that ignores the cap altogether
-        self.start_speed = playable(min(self.start_deg_s, self.max_deg_s) * per_deg)
-        self.accel       = self.accel_deg_s2 * per_deg
-        self.min_speed   = playable(self.min_deg_s * per_deg)
+    # What the cables take, in the microsteps per second the driver works in. Every move is
+    # bounded by it: one given no time runs at exactly this pace, and min_turn_s reports
+    # what a turn costs at it
+    def _cap_speed(self):
+        self.max_speed = min(self._motor_max_speed, self.max_deg_s * self.microsteps_per_deg)
 
     # Take a new set of the operator's numbers. The ring has to be standing at the angle it
     # is calibrated against, because none of this moves it: only the numbers that describe
     # it change, so the counter is seated again at the angle the robot is set up to rest at
-    def configure(self, full_steps, microsteps, gear_ratio, start_deg_s, max_deg_s,
-                  accel_deg_s2, settle_s, start_angle):
+    def configure(self, microsteps, gear_ratio, max_deg_s, accel, settle_s, start_angle):
         with self._turning:
             self._wait_idle()          # the counter is only ours to set once nothing is queued
 
-            self.full_steps_per_rev = full_steps
-            self.microsteps         = microsteps
-            self.gear_ratio         = gear_ratio
-            self.start_deg_s        = start_deg_s
-            self.max_deg_s          = max_deg_s
-            self.accel_deg_s2       = accel_deg_s2
-            self.settle_s           = settle_s
-            self.start_angle        = start_angle
-            self._scale()
+            self.microsteps  = microsteps
+            self.gear_ratio  = gear_ratio
+            self.max_deg_s   = max_deg_s
+            self.accel       = accel
+            self.settle_s    = settle_s
+            self.start_angle = start_angle
+            self._cap_speed()
 
             with self._lock:
                 self._accum = self._steps_at(start_angle)
