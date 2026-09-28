@@ -100,8 +100,8 @@ export interface SettingGroup {
 export interface RobotSettings {
   /** Angle the camera ring parks at while the robot is open for a rope socket. */
   turret_open_angle: number;
-  /** A distance reading below this opens the robot by itself, in metres. */
-  socket_distance_m: number;
+  /** How far below its calibrated reading the sensor opens the robot by itself, in metres. */
+  socket_trigger_diff_m: number;
   /** Metres the robot drives from the socket before it closes again. */
   socket_clear_m: number;
   [key: string]: number;
@@ -149,6 +149,12 @@ export interface MotionTelemetryEvent {
   robot_open: boolean;
   /** The distance sensor is allowed to open the robot by itself. */
   socket_watch: boolean;
+  /**
+   * What the distance sensor reads with no socket in front of it, measured at startup.
+   * Null until it is calibrated, and after a calibration that found nothing: the robot
+   * turns `socket_watch` off in that case, since it has nothing to compare against.
+   */
+  socket_baseline_m?: number | null;
   /** Version of the settings the robot is really running on, see `SettingsDocument`. */
   settings_version: number;
   seq: number;

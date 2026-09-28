@@ -9,17 +9,42 @@ log = logging.getLogger(__name__)
 # stream carry on, the robot has to get past the socket after all.
 #
 # Two things open the robot, and whichever did decides what closes it again. The distance
-# sensor opens it when something is close ahead and closes it once the robot has driven
-# clear; the operator opens it from the webapp, and only the operator closes that again.
+# sensor opens it when what it sees changes, and closes it once the robot has driven clear;
+# the operator opens it from the webapp, and only the operator closes that again.
+#
+# The sensor knows a socket by how far its reading has come in from the one it was calibrated
+# on, not by the reading itself: where the beam lands and what it finds there depends on how
+# the sensor sits and which rope it is, so an absolute distance would mean something different
+# on every run.
 #
 # Every caller runs on the robot's event loop, so the state needs no lock.
 class RopeSocket:
-    def __init__(self, trigger_m, clear_m, watch=True):
-        self.trigger_m  = trigger_m    # a reading closer than this is a socket ahead
-        self.clear_m    = clear_m      # driven from the last sighting, the socket is behind
-        self.watch      = watch        # the sensor may open the robot by itself
-        self._opened_by = None         # "sensor", "user", or None while the robot is closed
-        self._mark      = 0.0          # metres where the sensor last saw something
+    def __init__(self, trigger_diff_m, clear_m, watch=True):
+        self.trigger_diff_m = trigger_diff_m  # this much nearer than normal is a socket ahead
+        self.clear_m        = clear_m   # driven from the last sighting, the socket is behind
+        self.watch          = watch     # the sensor may open the robot by itself
+        self.baseline_m     = None      # what the sensor reads with no socket in front of it
+        self._opened_by     = None      # "sensor", "user", or None while the robot is closed
+        self._mark          = 0.0       # metres where the sensor last saw something
+
+    # What the sensor sees along the rope with nothing in the way, taken while the robot still
+    # stands where it was put on. Readings that found no target say nothing about the distance
+    # and are left out; a burst that is half of those is not a normal to measure against, so
+    # the sensor's own opening is switched off rather than left to guess
+    def calibrate(self, readings):
+        seen = [r for r in readings if r is not None]
+
+        if len(seen) * 2 <= len(readings):
+            self.watch = False
+            log.warning("the distance sensor found nothing to calibrate on in %d readings, "
+                        "it will not open the robot by itself", len(readings))
+            return False
+
+        self.baseline_m = sum(seen) / len(seen)
+        log.info("distance sensor calibrated at %.2f m over %d of %d readings, a socket is "
+                 "%.2f m nearer than that", self.baseline_m, len(seen), len(readings),
+                 self.trigger_diff_m)
+        return True
 
     @property
     def is_open(self):
@@ -30,11 +55,17 @@ class RopeSocket:
     # socket rather than the first: a long socket would otherwise let the ring turn while
     # the robot is still beside it
     def saw(self, distance_m, position):
-        if not self.watch or distance_m is None or distance_m > self.trigger_m:
+        if not self.watch or distance_m is None or self.baseline_m is None:
+            return
+
+        # A socket is something the beam meets nearer than what it was calibrated on. Only
+        # nearer: a reading that runs long has lost its target, which is not a socket
+        if self.baseline_m - distance_m < self.trigger_diff_m:
             return
 
         if self._opened_by is None:
-            log.info("something %.2f m ahead, opening the robot for a rope socket", distance_m)
+            log.info("%.2f m where %.2f m is normal, opening the robot for a rope socket",
+                     distance_m, self.baseline_m)
             self._opened_by = "sensor"
 
         if self._opened_by == "sensor":

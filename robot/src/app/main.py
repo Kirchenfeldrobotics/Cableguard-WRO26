@@ -317,6 +317,7 @@ async def telemetry_sender(rt: Runtime, link: RobotLink):
                     detect_fps=rt.plan.detect_fps,
                     robot_open=rt.rope_socket.is_open,
                     socket_watch=rt.rope_socket.watch,
+                    socket_baseline_m=rt.rope_socket.baseline_m,
                     # the settings really in force, not the ones last received: that is what
                     # lets the webapp say whether a change has taken
                     settings_version=rt.version,
@@ -326,6 +327,12 @@ async def telemetry_sender(rt: Runtime, link: RobotLink):
             except Exception:
                 log.exception("telemetry failed")
         await asyncio.sleep(rt.settings.telemetry_period)
+
+# The readings the sensor's normal is averaged from. They are taken back to back rather than
+# at the rate the loop below polls: the sensor takes its own time over each one anyway, and
+# nothing else happens until the robot knows what it is looking at
+def sample_baseline(tof: VL53L0X, count: int) -> list:
+    return [tof.read_m() for _ in range(count)]
 
 # Read the distance sensor: it watches for the rope socket ahead and its reading is sent on
 # as telemetry, live only. The sensor is opened here rather than at startup, so one that was
@@ -344,6 +351,18 @@ async def distance_sender(rt: Runtime, link: RobotLink, bus: int):
                 elif failing:
                     # a sensor that dropped out has lost its setup, it has to be set up again
                     await asyncio.to_thread(tof.reset)
+
+                # What the sensor sees while the robot stands is the normal every later
+                # reading is measured against, so it is taken at a standstill: a sensor that
+                # only turned up mid run would otherwise take its normal from whatever the
+                # robot is passing. An armed watch without a baseline is one still to be
+                # calibrated, which is also how arming it again asks for another go
+                if (rt.rope_socket.watch and rt.rope_socket.baseline_m is None
+                        and not rt.drive.moving):
+                    readings = await asyncio.to_thread(sample_baseline, tof,
+                                                       rt.settings.socket_baseline_samples)
+                    rt.rope_socket.calibrate(readings)
+
                 distance = await asyncio.to_thread(tof.read_m)
             except (OSError, RuntimeError) as exc:
                 # logged once, a loose wire would otherwise fill the journal twice a second
@@ -441,7 +460,7 @@ async def main():
     detector.configure(cfg.detect_confidence, cfg.detect_iou)
     measured = await asyncio.to_thread(measure_cycle, cams, detector, cycles=cfg.benchmark_cycles)
 
-    rope_socket = RopeSocket(cfg.socket_distance_m, cfg.socket_clear_m)
+    rope_socket = RopeSocket(cfg.socket_trigger_diff_m, cfg.socket_clear_m)
     # holds the settings and everything they decide: the scan plan, the hardware, the pace
     # of every task below
     rt = Runtime(cfg, measured, drive, turret, cams, detector, rope_socket)

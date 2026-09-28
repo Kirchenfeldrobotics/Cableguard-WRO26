@@ -168,8 +168,11 @@ between cards, 12px outer padding around the app.
   `robot_open` and `socket_watch` in the motion telemetry, never from what was clicked. An
   opening the operator asked for ends only on their click, one the sensor made closes itself
   once the robot has driven clear. The angles and distances it names come from the settings
-  the server holds, and the trigger distance itself is set on the settings page. Arming the
-  sensor is not a setting: it is a command like Start and Stop, and lives only in the live view.
+  the server holds, and the opening threshold itself is set on the settings page. The sensor
+  triggers on a *departure* from what it read at startup, not on a distance, so the panel also
+  shows the reading it calibrated on: a dash there means it found nothing to measure against,
+  which is why the robot will not open by itself. Arming the sensor is not a setting: it is a
+  command like Start and Stop, and lives only in the live view.
 - **Settings** are the robot's own constants (`shared/comm_protocols/settings.py`), kept in
   the backend's database and sent to the robot as a `SettingsCmd`. The page draws itself from
   what `GET /api/settings` returns: the label, the explanation, the unit and the bounds of

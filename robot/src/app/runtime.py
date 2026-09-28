@@ -107,8 +107,8 @@ class Runtime:
             start_angle=s.turret_open_angle,
         )
 
-        self.rope_socket.trigger_m = s.socket_distance_m
-        self.rope_socket.clear_m   = s.socket_clear_m
+        self.rope_socket.trigger_diff_m = s.socket_trigger_diff_m
+        self.rope_socket.clear_m        = s.socket_clear_m
         # a new drive scale turns the microsteps already counted into a different number of
         # metres, and the clear distance is measured in metres from a mark
         self.rope_socket.rebase(self.drive.metres_done)

@@ -35,6 +35,9 @@ class MotionTelemetry(RobotMessage):
     # ahead of the robot still reads its telemetry
     robot_open: bool = False    # camera ring parked clear of a rope socket, detector off
     socket_watch: bool = False  # the distance sensor may open the robot by itself
+    # what the distance sensor reads with no socket in front of it, None until it is
+    # calibrated and after a calibration that found nothing
+    socket_baseline_m: float | None = None
     settings_version: int = 0   # the settings the robot is actually running on, see SettingsCmd
     seq: int
 

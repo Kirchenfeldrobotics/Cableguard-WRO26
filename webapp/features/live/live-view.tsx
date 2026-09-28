@@ -155,6 +155,9 @@ export function LiveView() {
   // for as long as it is stale.
   const open = telemetry?.robot_open ?? false;
   const watch = telemetry?.socket_watch ?? false;
+  // Null is an answer of its own: the sensor has nothing to measure against, which is why
+  // the robot will not open by itself. Undefined is a robot too old to report it at all.
+  const baseline = telemetry?.socket_baseline_m ?? null;
 
   // Reversing a moving robot on one click is not something the operator should be able to do
   // by accident, so the direction is only picked while it stands still.
@@ -415,7 +418,9 @@ export function LiveView() {
             ring at {openAngle} and stops the detector until the socket is behind it; the drive and
             the camera streams are not affected. An opening you ask for here stays until you close
             it; one the robot makes itself ends after {formatMetres(settings?.socket_clear_m)} of
-            driving.
+            driving. The robot measures what its distance sensor normally sees when it starts, and
+            opens when a reading comes in {formatMetres(settings?.socket_trigger_diff_m)} nearer
+            than that.
           </p>
 
           <div className="flex flex-wrap items-center gap-3.5">
@@ -437,8 +442,10 @@ export function LiveView() {
                 telemetry === null
                   ? "The robot has not reported whether its distance sensor may open it"
                   : watch
-                    ? `A reading below ${formatMetres(settings?.socket_distance_m)} opens the robot by itself`
-                    : "The robot only opens when you ask it to"
+                    ? `A reading ${formatMetres(settings?.socket_trigger_diff_m)} nearer than normal opens the robot by itself`
+                    : baseline === null
+                      ? "The sensor could not be calibrated, so it cannot open the robot by itself"
+                      : "The robot only opens when you ask it to"
               }
               onClick={toggleWatch}
             >
@@ -450,6 +457,18 @@ export function LiveView() {
             <div className="text-text-muted" title={fresh ? undefined : NO_OPEN_STATE}>
               Robot reports {fresh ? (fresh.robot_open ? "open" : "closed") : NOT_AVAILABLE} · sensor
               opening {fresh ? (fresh.socket_watch ? "armed" : "off") : NOT_AVAILABLE}
+            </div>
+            <div
+              className="text-text-muted"
+              title={
+                fresh === null
+                  ? NO_OPEN_STATE
+                  : baseline === null
+                    ? "The robot found nothing steady to measure against when it started"
+                    : "Measured at startup, openings are judged against this"
+              }
+            >
+              Calibrated at {fresh === null ? NOT_AVAILABLE : formatMetres(baseline)}
             </div>
           </div>
         </Panel>

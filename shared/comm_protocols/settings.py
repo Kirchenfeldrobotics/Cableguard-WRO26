@@ -123,11 +123,17 @@ class RobotSettings(BaseModel):
              "the finding, so it has to stay sharp enough to show a single wire.")
 
     # -- rope socket -------------------------------------------------------------------
-    socket_distance_m: float = setting(
-        0.30, group="socket", label="Sensor trigger", unit="m", ge=0.02, le=2.0, step=0.01,
-        note="A distance reading closer than this counts as a rope socket ahead. Far enough "
-             "that the robot opens before it arrives, close enough that the rope itself and the "
-             "odd branch do not keep opening it.")
+    socket_trigger_diff_m: float = setting(
+        0.10, group="socket", label="Opening threshold", unit="m", ge=0.01, le=2.0, step=0.01,
+        note="How much nearer than its calibrated reading the sensor has to see before the "
+             "robot opens. The robot measures what the sensor normally sees when it starts, so "
+             "this is a change, not a distance: small enough to catch a socket before the robot "
+             "reaches it, large enough that the sensor's own noise does not keep opening it.")
+    socket_baseline_samples: int = setting(
+        10, group="socket", label="Calibration readings", unit="", ge=3, le=100, step=1,
+        note="Readings the robot averages at startup to learn what the sensor normally sees. "
+             "More of them steady the figure the opening is measured against; if half of them "
+             "find nothing at all, the sensor is left unable to open the robot on its own.")
     socket_clear_m: float = setting(
         0.50, group="socket", label="Clear distance", unit="m", ge=0.05, le=10.0, step=0.05,
         note="Driven from where the sensor last saw the socket before the robot closes again. "
