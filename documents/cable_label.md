@@ -2,6 +2,8 @@
 All cables have a label. 
 The first two digits corresponds to an electronic component. 
 The third digit corresponds to a specifc pin of such a component. 
+## Generell: (add common gnd)
+* GND: GND (common Ground)
 
 ## Components 
 ### 00 - Raspberry Pi 5 
@@ -58,3 +60,7 @@ The third digit corresponds to a specifc pin of such a component.
 ### 10 - Buzzer 
 * 0: GND 
 * 1: SIG
+
+## Groups
+Description: Groups are connected cables that from the same interface to have less cable mess to connect to the RPI 5.
+
