@@ -62,5 +62,9 @@ The third digit corresponds to a specifc pin of such a component.
 * 1: SIG
 
 ## Groups
-Description: Groups are connected cables that from the same interface to have less cable mess to connect to the RPI 5.
+* BTN: all Button signals connected: 070, 080, 090
+
+
+# Notes
+I^2C: display stuff connected from tof to display cable round
 
