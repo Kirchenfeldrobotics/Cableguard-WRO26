@@ -23,3 +23,9 @@ Description of cable purpose: RPI pin; cable legend
 * I2C Vin: 1; 003 
 * SDA: 3; 001 
 * SCL: 5; 002
+
+03 - Display
+0: GND
+1: VDD => I2C Vin
+2: SCK => SCL
+3: SDA => SDA
