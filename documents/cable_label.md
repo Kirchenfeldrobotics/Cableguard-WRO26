@@ -68,3 +68,4 @@ The third digit corresponds to a specifc pin of such a component.
 # Notes
 I^2C: display stuff connected from tof to display cable round
 
+think about: vcc 3.3v, 5v, 12v ezt
