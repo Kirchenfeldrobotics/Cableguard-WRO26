@@ -30,7 +30,7 @@ The third digit corresponds to a specifc pin of such a component.
 ### 03 - Display 
 * 0: GND 
 * 1: VDD
-* 2: SCL 
+* 2: SCK
 * 3: SDA
 
 ### 04 - ToF Sensor 
