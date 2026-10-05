@@ -11,10 +11,14 @@ adding screens: use these tokens and components rather than new one-off styles.
 - **Black, white, one red.** Colour is reserved for status. Everything else is ink on
   white or light grey.
 - **Never invent data.** If the robot or backend does not provide a value, show `—`
-  (`NOT_AVAILABLE` in `lib/format.ts`) and explain it in a `title` tooltip. Controls for
-  features that do not exist yet are rendered **disabled**, never wired to fake state. The
-  webapp keeps no copy of the robot's constants: anything it names is read from
-  `GET /api/settings` (`useRobotSettings`).
+  (`NOT_AVAILABLE` in `lib/format.ts`). Controls for features that do not exist yet are
+  rendered **disabled**, never wired to fake state. The webapp keeps no copy of the robot's
+  constants: anything it names is read from `GET /api/settings` (`useRobotSettings`).
+- **Say it once, in a few words.** No text explains how a feature works, and no text repeats
+  what a badge, a card, a button label or the sidebar already shows. What is left is a note
+  of a few words. A `title` tooltip is only for a disabled button whose reason is not on the
+  screen (`Stop first`, `Not available yet`) and for data (the label on a rope mark). The
+  settings page is the exception: its explanations come from the server with each setting.
 
 ## Tokens
 
@@ -148,7 +152,8 @@ between cards, 12px outer padding around the app.
   new ones are wider and keep full opacity. The black vertical line is the robot position
   (only drawn when a position is known).
 - **States**: every data view handles loading (`Loading…`), error (red text) and empty
-  (a sentence saying what is missing and what to do).
+  (a few words saying what is missing). An empty list whose count already shows as 0 on a
+  card is not drawn at all, heading included.
 - **Destructive actions** need a second click (`Remove` becomes `Confirm remove`).
 - **Stop** is never disabled while the server socket is open, even if the robot is reported
   offline. The server answers with an error if it cannot forward it. There is no separate
@@ -167,12 +172,12 @@ between cards, 12px outer padding around the app.
   switch for the robot's own trigger on the distance sensor; both read their state from
   `robot_open` and `socket_watch` in the motion telemetry, never from what was clicked. An
   opening the operator asked for ends only on their click, one the sensor made closes itself
-  once the robot has driven clear. The angles and distances it names come from the settings
-  the server holds, and the opening threshold itself is set on the settings page. The sensor
-  triggers on a *departure* from what it read at startup, not on a distance, so the panel also
-  shows the reading it calibrated on: a dash there means it found nothing to measure against,
-  which is why the robot will not open by itself. Arming the sensor is not a setting: it is a
-  command like Start and Stop, and lives only in the live view.
+  once the robot has driven clear. The opening threshold itself is set on the settings page.
+  The sensor triggers on a *departure* from what it read at startup, not on a distance, so
+  the panel also shows the reading it calibrated on: `Not calibrated` there means it found
+  nothing to measure against, which is why the robot will not open by itself. Arming the
+  sensor is not a setting: it is a command like Start and Stop, and lives only in the live
+  view.
 - **Settings** are the robot's own constants (`shared/comm_protocols/settings.py`), kept in
   the backend's database and sent to the robot as a `SettingsCmd`. The page draws itself from
   what `GET /api/settings` returns: the label, the explanation, the unit and the bounds of

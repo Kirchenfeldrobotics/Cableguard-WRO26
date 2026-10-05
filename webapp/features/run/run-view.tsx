@@ -42,7 +42,7 @@ export function RunView({ ropeId, runId }: { ropeId: string; runId: string }) {
       <PageHeader
         title={shortId(run.id)}
         actions={
-          <Button variant="secondary" disabled title="Run reports are not available yet" className="py-3">
+          <Button variant="secondary" disabled title="Not available yet" className="py-3">
             Export run report
           </Button>
         }
@@ -54,7 +54,7 @@ export function RunView({ ropeId, runId }: { ropeId: string; runId: string }) {
         <FactCard value={formatDateTime(run.started_at)} label="Started" />
         <FactCard value={formatRunDuration(run)} label="Duration" />
         <FactCard value={findings.length} label="Findings" />
-        <FactCard value={detections.length} label="Detections" title="Every frame the detector fired on" />
+        <FactCard value={detections.length} label="Detections" />
       </CardGrid>
 
       <Panel className="mt-[26px] px-3 py-4 sm:px-[22px] sm:py-5">
@@ -62,57 +62,50 @@ export function RunView({ ropeId, runId }: { ropeId: string; runId: string }) {
       </Panel>
       <DefectLegend />
 
-      <SectionTitle>Findings</SectionTitle>
-      {findings.length === 0 ? (
-        <StatusMessage>No defects were detected in this run.</StatusMessage>
-      ) : (
-        <Table>
-          <thead>
-            <tr>
-              <Th>Position</Th>
-              <Th>Flaw</Th>
-              <Th>Type</Th>
-              <Th align="right">Confidence</Th>
-              <Th align="right">Detections</Th>
-              <Th>Status</Th>
-            </tr>
-          </thead>
-          <tbody>
-            {findings.map((finding) => (
-              <LinkRow
-                key={finding.best.id}
-                href={routes.defect(rope.id, finding.best.run_id, finding.best.id)}
-              >
-                <Td mono strong phone="primary">
-                  {formatSpan(finding.from, finding.to)}
-                </Td>
-                <Td className="font-medium" label="Flaw">
-                  {defectClassLabel(finding.best.label)}
-                </Td>
-                <Td label="Type">
-                  <Pill tone={kindTone(finding.kind)}>{defectTypeLabel(finding.kind)}</Pill>
-                </Td>
-                <Td mono align="right" label="Confidence">
-                  {formatConfidence(finding.confidence)}
-                </Td>
-                <Td mono muted align="right" label="Detections">
-                  {finding.detections.length}
-                </Td>
-                <Td muted phone="hide">
-                  {NOT_AVAILABLE}
-                </Td>
-              </LinkRow>
-            ))}
-          </tbody>
-        </Table>
+      {findings.length > 0 && (
+        <>
+          <SectionTitle>Findings</SectionTitle>
+          <Table>
+            <thead>
+              <tr>
+                <Th>Position</Th>
+                <Th>Flaw</Th>
+                <Th>Type</Th>
+                <Th align="right">Confidence</Th>
+                <Th align="right">Detections</Th>
+                <Th>Status</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {findings.map((finding) => (
+                <LinkRow
+                  key={finding.best.id}
+                  href={routes.defect(rope.id, finding.best.run_id, finding.best.id)}
+                >
+                  <Td mono strong phone="primary">
+                    {formatSpan(finding.from, finding.to)}
+                  </Td>
+                  <Td className="font-medium" label="Flaw">
+                    {defectClassLabel(finding.best.label)}
+                  </Td>
+                  <Td label="Type">
+                    <Pill tone={kindTone(finding.kind)}>{defectTypeLabel(finding.kind)}</Pill>
+                  </Td>
+                  <Td mono align="right" label="Confidence">
+                    {formatConfidence(finding.confidence)}
+                  </Td>
+                  <Td mono muted align="right" label="Detections">
+                    {finding.detections.length}
+                  </Td>
+                  <Td muted phone="hide">
+                    {NOT_AVAILABLE}
+                  </Td>
+                </LinkRow>
+              ))}
+            </tbody>
+          </Table>
+        </>
       )}
-
-      <p className="mt-3.5 max-w-[620px] text-[13px] leading-[1.6] text-text-muted">
-        The detector fires every two seconds on both cameras, so one flaw is usually seen several
-        times. {detections.length} detections were grouped into {findings.length}{" "}
-        {findings.length === 1 ? "finding" : "findings"}. Position is where the clearest detection
-        sat, or the stretch the group covers.
-      </p>
     </>
   );
 }

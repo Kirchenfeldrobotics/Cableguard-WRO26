@@ -113,12 +113,7 @@ export function DashboardView() {
           label="Robot link"
           indicator={connected ? "success" : "danger"}
         />
-        <StatCard
-          value={NOT_AVAILABLE}
-          label="Unreviewed defects"
-          indicator="muted"
-          title="Defect review is not available yet"
-        />
+        <StatCard value={NOT_AVAILABLE} label="Unreviewed defects" indicator="muted" />
         <StatCard value={rope?.name ?? NOT_AVAILABLE} label="Selected rope" indicator="ring" />
         <StatCard
           value={formatDate(lastRun?.finished_at)}
@@ -166,27 +161,15 @@ export function DashboardView() {
         </StatusMessage>
       ) : current.loading || history.loading ? (
         <StatusMessage>Loading…</StatusMessage>
-      ) : !rope ? (
-        <StatusMessage>
-          {ropes.data?.length === 0 ? (
-            <>
-              No ropes yet. Add the first one on{" "}
-              <Link href={routes.ropes} className="underline">
-                Ropes
-              </Link>
-              .
-            </>
-          ) : (
-            "No rope is selected yet. Choose one from the dropdown above."
-          )}
-        </StatusMessage>
       ) : (
-        <>
-          <Panel className="mt-[18px] px-3 py-4 sm:px-[22px] sm:py-5">
-            <RopeStrip length={rope.length_m} marks={findingMarks(rope.id, lastFindings)} />
-          </Panel>
-          <DefectLegend />
-        </>
+        rope && (
+          <>
+            <Panel className="mt-[18px] px-3 py-4 sm:px-[22px] sm:py-5">
+              <RopeStrip length={rope.length_m} marks={findingMarks(rope.id, lastFindings)} />
+            </Panel>
+            <DefectLegend />
+          </>
+        )
       )}
 
       <div className="mt-[38px] flex flex-wrap gap-3.5">
@@ -208,13 +191,6 @@ export function DashboardView() {
           <Button
             disabled={!rope || !connected || busy}
             onClick={startRun}
-            title={
-              !rope
-                ? "Select a rope first"
-                : !connected
-                  ? "The robot has to be reachable so it can zero its position for the new run"
-                  : undefined
-            }
             className="flex-[0_1_260px] py-[15px] text-[15px] max-sm:grow"
           >
             {busy ? "Starting…" : "Start run"}
@@ -224,14 +200,13 @@ export function DashboardView() {
 
       {runError ? (
         <StatusMessage tone="error">{runError}</StatusMessage>
-      ) : currentRunId ? (
-        <StatusMessage>
-          Recording into {shortId(currentRunId)}
-          {currentRun && `, started ${formatDateTime(currentRun.started_at)}`}. Defects are placed
-          from where the robot stood when the run started.
-        </StatusMessage>
       ) : (
-        rope && <StatusMessage>No run is being recorded. Start one to place defects on the rope.</StatusMessage>
+        currentRunId && (
+          <StatusMessage>
+            Recording into {shortId(currentRunId)}
+            {currentRun && `, started ${formatDateTime(currentRun.started_at)}`}.
+          </StatusMessage>
+        )
       )}
     </>
   );

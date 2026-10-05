@@ -19,7 +19,6 @@ import {
   defectClassLabel,
   formatAgo,
   formatConfidence,
-  formatDetectRate,
   formatDistance,
   formatDriveSpeed,
   formatMetres,
@@ -29,7 +28,6 @@ import {
 } from "@/lib/format";
 import { useCurrentSelection, useRopeHistory } from "@/lib/hooks/use-inspection";
 import { useNow } from "@/lib/hooks/use-now";
-import { useRobotSettings } from "@/lib/hooks/use-settings";
 import {
   useFreshDistance,
   useFreshTelemetry,
@@ -43,10 +41,6 @@ import { routes } from "@/lib/routes";
 const REFRESH_MS = 5_000;
 /** How long a command may go without matching telemetry before the operator is warned. */
 const CONFIRM_TIMEOUT_MS = 5_000;
-const NO_TELEMETRY = "No motion telemetry from the robot in the last 2 seconds";
-const NO_VISION = "The robot has not reported a detector frame recently";
-const NO_DISTANCE = "No distance reading from the robot in the last 2 seconds";
-const NO_OPEN_STATE = "No motion telemetry, so the robot has not confirmed whether it is open";
 
 const MOTION_LABEL = { scanning: "Scanning", stopped: "Stopped", unknown: "Motion unknown" } as const;
 
@@ -77,40 +71,24 @@ function carriedOut(sent: SentCommand, telemetry: MotionTelemetryEvent): boolean
 
 /**
  * Neither the server nor the robot acknowledges commands, so a command only counts as carried
- * out once the robot's own telemetry reports it.
+ * out once the robot's own telemetry reports it. From then on the motion state on the screen
+ * says so, and there is nothing left to report here.
  */
 function commandFeedback(
   sent: SentCommand | null,
   telemetry: MotionTelemetryEvent | null,
   telemetryAt: number | null,
-  telemetryFresh: boolean,
   now: number | null,
 ): { text: string; tone: "muted" | "error" } | null {
   if (!sent) return null;
-  const asked = sent.expected === "stop" ? "standstill" : `scanning ${sent.expected}`;
   const reported = telemetry && telemetryAt !== null && telemetryAt > sent.at ? telemetry : null;
-  const reports = telemetryFresh ? "Robot reports" : "Robot last reported";
-  const staleNote =
-    telemetryFresh || telemetryAt === null || now === null
-      ? ""
-      : ` ${formatAgo(Math.max(0, now - telemetryAt))}, no telemetry since`;
+  if (reported && carriedOut(sent, reported)) return null;
 
-  if (reported && carriedOut(sent, reported)) {
-    const doing = reported.speed === 0 ? "standstill" : formatDriveSpeed(reported.speed_mps);
-    return { text: `${reports} ${doing}${staleNote}.`, tone: telemetryFresh ? "muted" : "error" };
-  }
-
+  const what = sent.expected === "stop" ? "Stop" : `Start ${sent.expected}`;
   const waited = now === null ? 0 : Math.max(0, now - sent.at);
-  if (waited <= CONFIRM_TIMEOUT_MS) {
-    const what = sent.expected === "stop" ? "Stop" : `Start ${sent.expected}`;
-    return { text: `${what} sent to the server, waiting for the robot to report it.`, tone: "muted" };
-  }
-  return {
-    tone: "error",
-    text: reported
-      ? `${reports} ${formatDriveSpeed(reported.speed_mps)}${staleNote}, expected ${asked}.`
-      : `No telemetry from the robot since the command was sent ${formatAgo(waited)}. Do not assume it is at ${asked}.`,
-  };
+  return waited <= CONFIRM_TIMEOUT_MS
+    ? { text: `${what} sent, waiting for the robot.`, tone: "muted" }
+    : { text: `${what} not confirmed.`, tone: "error" };
 }
 
 export function LiveView() {
@@ -124,11 +102,6 @@ export function LiveView() {
 
   const [direction, setDirection] = useState<DriveDirection>("forward");
   const [sent, setSent] = useState<SentCommand | null>(null);
-
-  // The rope socket wording names the robot's own angles and distances, so they are read
-  // from the settings the server holds rather than copied into the webapp.
-  const settings = useRobotSettings().data?.values;
-  const openAngle = settings ? `${settings.turret_open_angle}°` : NOT_AVAILABLE;
 
   const current = useCurrentSelection();
   const ropeId = current.data?.rope_id ?? null;
@@ -163,7 +136,7 @@ export function LiveView() {
   // by accident, so the direction is only picked while it stands still.
   const moving = fresh !== null && fresh.speed !== 0;
   const motion = fresh === null ? "unknown" : moving ? "scanning" : "stopped";
-  const feedback = commandFeedback(sent, telemetry, telemetryAt, fresh !== null, now);
+  const feedback = commandFeedback(sent, telemetry, telemetryAt, now);
   const status = lastError ? { text: `Server: ${lastError}`, tone: "error" as const } : feedback;
 
   const start = () => {
@@ -190,16 +163,9 @@ export function LiveView() {
           <RunStatePill running={false} />
         </PageHeader>
 
-        {moving && (
-          <Notice>
-            The robot is still moving, but no run is recording, so nothing it sees is stored.
-            Stop it here, or start a run to record what it finds.
-          </Notice>
-        )}
+        {moving && <Notice>Robot is moving.</Notice>}
 
-        <StatusMessage>
-          The live view drives the robot into a run. Start one on the dashboard first.
-        </StatusMessage>
+        <StatusMessage>No run selected.</StatusMessage>
 
         <div className="mt-[18px] flex flex-wrap gap-3.5">
           <ButtonLink href={routes.dashboard} className="flex-[0_1_260px] py-[15px] text-[15px] max-sm:grow">
@@ -231,47 +197,21 @@ export function LiveView() {
         {rope && <HeadingMeta>{rope.name}</HeadingMeta>}
       </PageHeader>
 
-      {socket !== "open" ? (
-        <Notice>
-          Connection to the server is lost, so no command can be sent. The values below are the last
-          received state. The robot keeps executing its last command for as long as its own link to the
-          server is up.
-        </Notice>
-      ) : (
-        !connected && (
-          <Notice>
-            The robot is not reachable. The values below are the last received state. The robot ramps
-            down to standstill by itself once it detects the lost link, which can take about 30 seconds.
-          </Notice>
-        )
-      )}
-
-      {fresh?.robot_open && (
-        <Notice>
-          The robot is open for a rope socket: the camera ring is parked at {openAngle} and the
-          detector is off, so nothing is logged while it passes. The cameras keep streaming and the
-          drive keeps running.
-        </Notice>
-      )}
-
       <CardGrid className="max-lg:order-1">
         <StatCard
           value={fresh ? formatMetres(fresh.metres) : NOT_AVAILABLE}
           label={`Position on rope of ${formatMetres(rope?.length_m)}`}
           indicator="ring"
-          title={fresh ? "Measured from where the robot stood when the run was selected" : NO_TELEMETRY}
         />
         <StatCard
           value={fresh ? formatDriveSpeed(fresh.speed_mps) : NOT_AVAILABLE}
           label="Drive speed"
           indicator="solid"
-          title={fresh ? undefined : NO_TELEMETRY}
         />
         <StatCard
           value={vision ? `${formatNumber(vision.inference_ms)} ms` : NOT_AVAILABLE}
           label={vision ? `Detector, ${vision.detections.length} in the last frame` : "Detector"}
           indicator={vision ? "solid" : "muted"}
-          title={vision ? undefined : NO_VISION}
         />
         <StatCard value={run ? findings.length : NOT_AVAILABLE} label="Findings this run" indicator="warning" />
       </CardGrid>
@@ -306,11 +246,11 @@ export function LiveView() {
         </Panel>
       </section>
 
-      <section className="max-lg:order-6">
-        <SectionTitle>Log</SectionTitle>
-        <Panel className="flex flex-col gap-[7px] p-4">
-          {rope &&
-            newestFirst.map((f) => (
+      {rope && newestFirst.length > 0 && (
+        <section className="max-lg:order-6">
+          <SectionTitle>Log</SectionTitle>
+          <Panel className="flex flex-col gap-[7px] p-4">
+            {newestFirst.map((f) => (
               <LogRow
                 key={f.best.id}
                 href={routes.defect(rope.id, f.best.run_id, f.best.id)}
@@ -321,15 +261,9 @@ export function LiveView() {
                 {f.detections.length > 1 && ` · ${f.detections.length}x`}
               </LogRow>
             ))}
-          <div className="px-1 pt-1.5 pb-0.5 text-xs leading-none text-text-subtle">
-            {!run
-              ? "No run is selected on the server."
-              : findings.length === 0
-                ? "No detections in this run yet."
-                : `Updates when the robot reports a detection, otherwise every ${REFRESH_MS / 1000} s`}
-          </div>
-        </Panel>
-      </section>
+          </Panel>
+        </section>
+      )}
 
       <section className="max-lg:order-4">
         <SectionTitle>Drive</SectionTitle>
@@ -347,7 +281,7 @@ export function LiveView() {
                 aria-pressed={direction === "forward"}
                 className="max-sm:flex-1"
                 disabled={moving}
-                title={moving ? "Stop the robot before changing direction" : undefined}
+                title={moving ? "Stop first" : undefined}
                 onClick={() => setDirection("forward")}
               >
                 Forward
@@ -357,7 +291,7 @@ export function LiveView() {
                 aria-pressed={direction === "reverse"}
                 className="max-sm:flex-1"
                 disabled={moving}
-                title={moving ? "Stop the robot before changing direction" : undefined}
+                title={moving ? "Stop first" : undefined}
                 onClick={() => setDirection("reverse")}
               >
                 Reverse
@@ -365,23 +299,8 @@ export function LiveView() {
             </div>
           </div>
 
-          <p className="m-0 text-xs leading-normal text-text-subtle">
-            The robot sets its own speed: it times its detector at startup and drives exactly fast
-            enough for the camera frames to cover the rope end to end.{" "}
-            {fresh
-              ? `It runs the detector ${formatDetectRate(fresh.detect_fps)} and holds ${formatDriveSpeed(fresh.scan_speed_mps)}.`
-              : "Its plan arrives with the motion telemetry."}
-          </p>
-
           <div className="flex flex-wrap gap-3.5">
-            <Button
-              className="flex-[1_1_220px]"
-              disabled={!connected || moving}
-              title={
-                !connected ? "The robot is not reachable" : moving ? "The robot is already scanning" : undefined
-              }
-              onClick={start}
-            >
+            <Button className="flex-[1_1_220px]" disabled={!connected || moving} onClick={start}>
               Start scanning {direction}
             </Button>
             {/* On phones Stop lives in the bar pinned above the tabs, so only one is ever in view. */}
@@ -403,7 +322,7 @@ export function LiveView() {
                   ? `No fresh telemetry. Last report ${formatAgo(Math.max(0, now - telemetryAt))}: ${formatDriveSpeed(telemetry.speed_mps)}`
                   : "No telemetry from the robot yet"}
             </div>
-            <div className="text-text-muted" title={distance ? undefined : NO_DISTANCE}>
+            <div className="text-text-muted">
               Distance sensor · {distance ? formatDistance(distance.distance_m) : NOT_AVAILABLE}
             </div>
           </div>
@@ -413,24 +332,8 @@ export function LiveView() {
       <section className="max-lg:order-5">
         <SectionTitle>Rope socket</SectionTitle>
         <Panel className="flex flex-col gap-[18px] px-4 py-5 sm:px-[22px]">
-          <p className="m-0 text-xs leading-normal text-text-subtle">
-            The camera ring cannot turn past the fitting a rope ends in. Opening the robot parks the
-            ring at {openAngle} and stops the detector until the socket is behind it; the drive and
-            the camera streams are not affected. An opening you ask for here stays until you close
-            it; one the robot makes itself ends after {formatMetres(settings?.socket_clear_m)} of
-            driving. The robot measures what its distance sensor normally sees when it starts, and
-            opens when a reading comes in {formatMetres(settings?.socket_trigger_diff_m)} nearer
-            than that.
-          </p>
-
           <div className="flex flex-wrap items-center gap-3.5">
-            <Button
-              size="lg"
-              className="flex-[1_1_260px]"
-              disabled={socket !== "open"}
-              title={socket !== "open" ? "No connection to the server" : undefined}
-              onClick={toggleOpen}
-            >
+            <Button size="lg" className="flex-[1_1_260px]" disabled={socket !== "open"} onClick={toggleOpen}>
               {open ? "Close robot" : "Open robot"}
             </Button>
             <Button
@@ -438,15 +341,6 @@ export function LiveView() {
               aria-pressed={watch}
               className="max-sm:grow"
               disabled={socket !== "open" || telemetry === null}
-              title={
-                telemetry === null
-                  ? "The robot has not reported whether its distance sensor may open it"
-                  : watch
-                    ? `A reading ${formatMetres(settings?.socket_trigger_diff_m)} nearer than normal opens the robot by itself`
-                    : baseline === null
-                      ? "The sensor could not be calibrated, so it cannot open the robot by itself"
-                      : "The robot only opens when you ask it to"
-              }
               onClick={toggleWatch}
             >
               Sensor opening {watch ? "on" : "off"}
@@ -454,21 +348,14 @@ export function LiveView() {
           </div>
 
           <div className="flex flex-col gap-1.5 border-t border-surface-strong pt-4 font-mono text-[13px] leading-[1.4]">
-            <div className="text-text-muted" title={fresh ? undefined : NO_OPEN_STATE}>
+            <div className="text-text-muted">
               Robot reports {fresh ? (fresh.robot_open ? "open" : "closed") : NOT_AVAILABLE} · sensor
               opening {fresh ? (fresh.socket_watch ? "armed" : "off") : NOT_AVAILABLE}
             </div>
-            <div
-              className="text-text-muted"
-              title={
-                fresh === null
-                  ? NO_OPEN_STATE
-                  : baseline === null
-                    ? "The robot found nothing steady to measure against when it started"
-                    : "Measured at startup, openings are judged against this"
-              }
-            >
-              Calibrated at {fresh === null ? NOT_AVAILABLE : formatMetres(baseline)}
+            <div className="text-text-muted">
+              {fresh !== null && baseline === null
+                ? "Not calibrated"
+                : `Calibrated at ${fresh === null ? NOT_AVAILABLE : formatMetres(baseline)}`}
             </div>
           </div>
         </Panel>
@@ -476,7 +363,6 @@ export function LiveView() {
 
       <div className="max-lg:hidden">
         <div
-          title={motion === "unknown" ? NO_TELEMETRY : undefined}
           className={cn(
             "mt-[38px] flex h-[58px] items-center justify-center gap-2.5 rounded-control border text-base leading-none font-semibold",
             motionTint(motion),
@@ -495,7 +381,6 @@ export function LiveView() {
       <div className="fixed inset-x-0 bottom-[calc(var(--tabbar-h)+env(safe-area-inset-bottom))] z-20 border-t border-line-strong bg-canvas/95 px-4 py-2.5 backdrop-blur lg:hidden">
         <div className="flex items-center gap-2.5">
           <div
-            title={motion === "unknown" ? NO_TELEMETRY : undefined}
             className={cn(
               "flex h-12 min-w-0 flex-1 items-center gap-2.5 rounded-control border px-3.5 text-[15px] leading-none font-semibold",
               motionTint(motion),

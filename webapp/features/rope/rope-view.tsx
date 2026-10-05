@@ -50,7 +50,7 @@ export function RopeView({ ropeId }: { ropeId: string }) {
       />
 
       <CardGrid>
-        <FactCard value={NOT_AVAILABLE} label="Installed" title="Installation date is not stored yet" />
+        <FactCard value={NOT_AVAILABLE} label="Installed" />
         <FactCard value={formatMetres(rope.length_m)} label="Rope length" />
         <FactCard value={runs.length} label="Runs recorded" />
         <FactCard value={formatDate(lastFinishedRun(runs)?.finished_at)} label="Last inspected" />
@@ -64,77 +64,72 @@ export function RopeView({ ropeId }: { ropeId: string }) {
         />
       </Panel>
       <DefectLegend
-        note={shownRun ? `Defects from ${shortId(shownRun.id)} · ${formatDate(shownRun.started_at)}` : "No runs yet"}
+        note={shownRun && `Defects from ${shortId(shownRun.id)} · ${formatDate(shownRun.started_at)}`}
       />
 
-      <SectionTitle>Run history</SectionTitle>
-      {runs.length === 0 ? (
-        <StatusMessage>No runs recorded on this rope yet.</StatusMessage>
-      ) : (
-        <Table>
-          <thead>
-            <tr>
-              <Th>Run</Th>
-              <Th>Date</Th>
-              <Th align="right">Duration</Th>
-              <Th align="right">Distance</Th>
-              <Th align="right">Findings</Th>
-              <Th align="right">Unreviewed</Th>
-            </tr>
-          </thead>
-          <tbody>
-            {runs.map((run) => (
-              <LinkRow key={run.id} href={routes.run(rope.id, run.id)}>
-                <Td mono strong phone="primary">
-                  {shortId(run.id)}
-                </Td>
-                <Td mono muted label="Date">
-                  {formatDateTime(run.started_at)}
-                </Td>
-                <Td mono align="right" label="Duration">
-                  {formatRunDuration(run)}
-                </Td>
-                <Td mono align="right" phone="hide">
-                  {NOT_AVAILABLE}
-                </Td>
-                <Td mono align="right" label="Findings">
-                  {findingsByRun[run.id]?.length ?? 0}
-                </Td>
-                <Td mono muted align="right" phone="hide">
-                  {NOT_AVAILABLE}
-                </Td>
-              </LinkRow>
-            ))}
-          </tbody>
-        </Table>
+      {runs.length > 0 && (
+        <>
+          <SectionTitle>Run history</SectionTitle>
+          <Table>
+            <thead>
+              <tr>
+                <Th>Run</Th>
+                <Th>Date</Th>
+                <Th align="right">Duration</Th>
+                <Th align="right">Distance</Th>
+                <Th align="right">Findings</Th>
+                <Th align="right">Unreviewed</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {runs.map((run) => (
+                <LinkRow key={run.id} href={routes.run(rope.id, run.id)}>
+                  <Td mono strong phone="primary">
+                    {shortId(run.id)}
+                  </Td>
+                  <Td mono muted label="Date">
+                    {formatDateTime(run.started_at)}
+                  </Td>
+                  <Td mono align="right" label="Duration">
+                    {formatRunDuration(run)}
+                  </Td>
+                  <Td mono align="right" phone="hide">
+                    {NOT_AVAILABLE}
+                  </Td>
+                  <Td mono align="right" label="Findings">
+                    {findingsByRun[run.id]?.length ?? 0}
+                  </Td>
+                  <Td mono muted align="right" phone="hide">
+                    {NOT_AVAILABLE}
+                  </Td>
+                </LinkRow>
+              ))}
+            </tbody>
+          </Table>
+        </>
       )}
 
       <SectionTitle>Trend</SectionTitle>
       {counts.length < 2 ? (
         <StatusMessage>The trend needs at least two finished runs.</StatusMessage>
       ) : (
-        <>
-          <Panel className="flex flex-wrap items-end gap-[26px] p-[22px]">
-            {finishedOldestFirst.map((run, i) => (
-              <div key={run.id} className="flex h-[132px] w-16 flex-col items-center justify-end gap-2">
-                <div className="text-[13px] leading-none font-semibold">{counts[i]}</div>
-                <div
-                  style={{ height: `${Math.round((counts[i] / maxCount) * 92)}px` }}
-                  className={cn(
-                    "w-full rounded-t-[6px]",
-                    i === counts.length - 1 ? "bg-ink" : "bg-mark-tick",
-                  )}
-                />
-                <div className="font-mono text-[11px] leading-none text-text-subtle">
-                  {formatDate(run.started_at).slice(2)}
-                </div>
+        <Panel className="flex flex-wrap items-end gap-[26px] p-[22px]">
+          {finishedOldestFirst.map((run, i) => (
+            <div key={run.id} className="flex h-[132px] w-16 flex-col items-center justify-end gap-2">
+              <div className="text-[13px] leading-none font-semibold">{counts[i]}</div>
+              <div
+                style={{ height: `${Math.round((counts[i] / maxCount) * 92)}px` }}
+                className={cn(
+                  "w-full rounded-t-[6px]",
+                  i === counts.length - 1 ? "bg-ink" : "bg-mark-tick",
+                )}
+              />
+              <div className="font-mono text-[11px] leading-none text-text-subtle">
+                {formatDate(run.started_at).slice(2)}
               </div>
-            ))}
-          </Panel>
-          <p className="mt-3.5 max-w-[620px] text-[13px] leading-[1.6] text-text-muted">
-            Findings have gone from {counts[0]} to {counts[counts.length - 1]} over {counts.length} runs.
-          </p>
-        </>
+            </div>
+          ))}
+        </Panel>
       )}
     </>
   );

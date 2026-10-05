@@ -50,9 +50,6 @@ export function LoginView() {
 
         <form className="mt-3.5 rounded-card bg-surface p-5 sm:p-[26px]" onSubmit={submit}>
           <PageHeader title="Sign in" />
-          <p className="mt-[18px] text-sm leading-normal text-text-muted">
-            Operator access to the rope inspection console.
-          </p>
 
           <div className="mt-[22px] flex flex-col gap-3.5">
             <Field

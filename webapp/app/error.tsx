@@ -13,10 +13,9 @@ export default function Error({ error, retry }: { error: Error & { digest?: stri
   return (
     <>
       <PageHeader title="Something went wrong" />
-      <p className="mt-[18px] mb-6 text-sm text-text-muted">
-        The page failed to render. The error was logged to the browser console.
-      </p>
-      <Button onClick={retry}>Try again</Button>
+      <Button onClick={retry} className="mt-6">
+        Try again
+      </Button>
     </>
   );
 }

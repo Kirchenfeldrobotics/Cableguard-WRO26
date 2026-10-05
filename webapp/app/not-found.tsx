@@ -7,7 +7,6 @@ export default function NotFound() {
     <>
       <PageHeader title="Not found" />
       <p className="mt-[18px] text-sm text-text-muted">
-        This page does not exist.{" "}
         <Link href="/" className="font-semibold underline">
           Back to the dashboard
         </Link>

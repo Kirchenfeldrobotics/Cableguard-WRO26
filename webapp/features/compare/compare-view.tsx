@@ -45,7 +45,7 @@ export function CompareView({
     if (current.error || history.error)
       return <StatusMessage tone="error">Could not load runs from the server.</StatusMessage>;
     if (current.loading || history.loading) return <StatusMessage>Loading…</StatusMessage>;
-    if (!rope) return <StatusMessage>No rope is selected. Open a rope and choose Compare runs.</StatusMessage>;
+    if (!rope) return <StatusMessage>No rope selected.</StatusMessage>;
     if (!runA || !runB) return <StatusMessage>Comparing needs at least two finished runs.</StatusMessage>;
 
     // Comparing raw detections would count every repeat sighting, so both runs are
@@ -88,22 +88,22 @@ export function CompareView({
           </StripBlock>
         </Panel>
 
-        <SectionTitle className="mb-4">New findings</SectionTitle>
-        {added.length === 0 ? (
-          <StatusMessage>No new findings compared to the reference run.</StatusMessage>
-        ) : (
-          <div className="flex max-w-[760px] flex-col gap-[7px]">
-            {added.map((f) => (
-              <LogRow
-                key={f.best.id}
-                href={routes.defect(rope.id, f.best.run_id, f.best.id)}
-                tone={kindTone(f.kind)}
-                position={formatSpan(f.from, f.to)}
-              >
-                {defectClassLabel(f.best.label)} · {formatConfidence(f.confidence)}
-              </LogRow>
-            ))}
-          </div>
+        {added.length > 0 && (
+          <>
+            <SectionTitle className="mb-4">New findings</SectionTitle>
+            <div className="flex max-w-[760px] flex-col gap-[7px]">
+              {added.map((f) => (
+                <LogRow
+                  key={f.best.id}
+                  href={routes.defect(rope.id, f.best.run_id, f.best.id)}
+                  tone={kindTone(f.kind)}
+                  position={formatSpan(f.from, f.to)}
+                >
+                  {defectClassLabel(f.best.label)} · {formatConfidence(f.confidence)}
+                </LogRow>
+              ))}
+            </div>
+          </>
         )}
       </>
     );

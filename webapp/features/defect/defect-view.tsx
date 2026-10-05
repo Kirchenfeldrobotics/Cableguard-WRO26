@@ -16,7 +16,6 @@ import {
   formatConfidence,
   formatDateTime,
   formatMetres,
-  formatSpan,
   shortId,
 } from "@/lib/format";
 import { useRopeHistory } from "@/lib/hooks/use-inspection";
@@ -60,12 +59,9 @@ export function DefectView({
       </PageHeader>
 
       <div className="mt-5 flex flex-wrap items-start gap-[22px]">
-        <figure className="m-0 flex min-w-[290px] flex-[1_1_380px] flex-col gap-2.5">
+        <div className="min-w-[290px] flex-[1_1_380px]">
           <DetectionFrame key={defect.id} defect={defect} />
-          <figcaption className="text-[13px] leading-none text-text-muted">
-            {formatCamera(defect.cam)}, the frame the detection was made in
-          </figcaption>
-        </figure>
+        </div>
 
         <div className="flex min-w-[280px] flex-[1_1_320px] flex-col gap-[18px]">
           <FactList
@@ -101,15 +97,10 @@ export function DefectView({
           </div>
 
           <div className="flex flex-wrap gap-3">
-            <Button disabled title="Defect review is not available yet" className="flex-[1_1_150px] py-3.5">
+            <Button disabled title="Not available yet" className="flex-[1_1_150px] py-3.5">
               Mark reviewed
             </Button>
-            <Button
-              variant="secondary"
-              disabled
-              title="Defect review is not available yet"
-              className="flex-[1_1_150px] py-3.5"
-            >
+            <Button variant="secondary" disabled title="Not available yet" className="flex-[1_1_150px] py-3.5">
               Flag false positive
             </Button>
           </div>
@@ -119,12 +110,6 @@ export function DefectView({
       <SectionTitle>
         {siblings.length === 1 ? "The detection" : `${siblings.length} detections of this flaw`}
       </SectionTitle>
-      {finding && siblings.length > 1 && (
-        <p className="mb-[18px] max-w-[620px] text-[13px] leading-[1.6] text-text-muted">
-          The detector saw this spot {siblings.length} times over {formatSpan(finding.from, finding.to)}.
-          The page above shows the clearest of them.
-        </p>
-      )}
       <Table>
         <thead>
           <tr>

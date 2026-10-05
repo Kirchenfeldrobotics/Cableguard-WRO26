@@ -63,7 +63,7 @@ export function RopesView() {
       ) : overview.loading && !overview.data ? (
         <StatusMessage>Loading…</StatusMessage>
       ) : overview.data?.length === 0 ? (
-        <StatusMessage>No ropes yet. Add the first rope to start inspecting.</StatusMessage>
+        <StatusMessage>No ropes yet.</StatusMessage>
       ) : (
         <Table className="mt-[22px]">
           <thead>

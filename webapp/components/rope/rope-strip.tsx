@@ -45,7 +45,7 @@ export function RopeStrip({
   if (!length || length <= 0) {
     return (
       <div className="flex h-[70px] items-center justify-center rounded-[8px] bg-white/60 text-[13px] text-text-subtle">
-        Rope length is not set, the strip cannot be scaled.
+        Rope length not set.
       </div>
     );
   }
