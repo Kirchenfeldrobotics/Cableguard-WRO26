@@ -71,7 +71,6 @@ function SettingRow({
         <span className="flex flex-wrap items-center gap-2 text-sm leading-[1.3] font-semibold">
           {field.label}
           {changed && <Pill tone="neutral">changed</Pill>}
-          {field.restart && <Pill tone="warning">next start</Pill>}
         </span>
         <span className="text-xs leading-[1.4] text-text-subtle">{field.note}</span>
         {problem && <span className="text-xs leading-[1.4] text-danger-strong">{problem}</span>}
@@ -237,7 +236,6 @@ export function SettingsView() {
                 value: connected ? "Connected" : "Lost",
                 tone: connected ? "success" : "danger",
               },
-              { label: "Transport", value: "LTE · SIM module" },
               {
                 label: "Last packet",
                 value:

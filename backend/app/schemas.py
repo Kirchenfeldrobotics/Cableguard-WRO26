@@ -104,6 +104,9 @@ class DefectOut(BaseModel):
 
     created_at: datetime
 
+    # Whether the operator has looked at it
+    reviewed: bool
+
     # Only set when the vision model reported the defect
     label: str | None
     confidence: float | None
@@ -114,3 +117,13 @@ class DefectOut(BaseModel):
     box_y2: float | None
     # Set when the frame the defect was found in is stored, GET /api/defects/{id}/frame
     frame_id: str | None
+
+# Schema for a review. One flaw on the rope arrives as several detections and the webapp is
+# what groups them, so it names every detection the operator's decision covers
+class DefectReview(BaseModel):
+    defect_ids: list[str]
+    reviewed: bool
+
+# Schema for removing detections the operator flagged as a false positive
+class DefectRemoval(BaseModel):
+    defect_ids: list[str]

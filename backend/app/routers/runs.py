@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import Rope, Run, utcnow
+from app.repository import state as state_repo
 from app.schemas import RunCreate, RunOut
 
 router = APIRouter(prefix="/api/runs", tags=["runs"])
@@ -43,7 +44,10 @@ def finish_run(run_id: str, db: Session = Depends(get_db)):
 @router.delete("/{run_id}", status_code=204)
 def delete_run(run_id: str, db: Session = Depends(get_db)): 
     run = db.get(Run, run_id)
-    if run is None: 
+    if run is None:
         raise HTTPException(404, "run not found")
+    # the robot is still recording into it, and the webapp still shows it as the live run
+    if state_repo.get_state(db).current_run_id == run_id:
+        raise HTTPException(409, "this run is being recorded, finish it first")
     db.delete(run)
     db.commit()

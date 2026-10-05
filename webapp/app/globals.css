@@ -157,7 +157,8 @@
     text-align: right;
   }
 
-  .stack-table td[data-phone="hide"] {
+  /* A row whose action is not offered keeps the cell for the desktop column. */
+  .stack-table td:empty {
     display: none;
   }
 }

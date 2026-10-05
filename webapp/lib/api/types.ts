@@ -44,6 +44,8 @@ export interface Defect {
   /** Distance from the start of the rope, in metres. */
   pos_to_start: number;
   created_at: string;
+  /** The operator has looked at it. Set for every detection of a finding at once. */
+  reviewed: boolean;
   /** Class name of the detector, e.g. `broken_wire`. Null for defects from another sensor. */
   label: string | null;
   /** 0..1, as the model reported it. */
@@ -84,8 +86,6 @@ export interface SettingField {
   step: number;
   /** Whole numbers only. */
   integer: boolean;
-  /** Takes effect the next time the robot starts, not on the one that is running. */
-  restart: boolean;
 }
 
 export interface SettingGroup {

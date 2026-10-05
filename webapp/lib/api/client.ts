@@ -114,6 +114,15 @@ export const api = {
     /** JPEG of the frame the defect was found in. Fetched, not linked: an <img> cannot send the token. */
     frame: (defectId: string) =>
       send(`/api/defects/${encodeURIComponent(defectId)}/frame`).then((res) => res.blob()),
+    /** A finding is several detections, so a review names all of them. */
+    review: (defectIds: string[], reviewed: boolean) =>
+      request<Defect[]>("/api/defects/review", {
+        method: "POST",
+        body: json({ defect_ids: defectIds, reviewed }),
+      }),
+    /** For a false positive: the detections are deleted, there is no way back. */
+    remove: (defectIds: string[]) =>
+      request<void>("/api/defects/remove", { method: "POST", body: json({ defect_ids: defectIds }) }),
   },
   settings: {
     get: () => request<SettingsDocument>("/api/settings"),

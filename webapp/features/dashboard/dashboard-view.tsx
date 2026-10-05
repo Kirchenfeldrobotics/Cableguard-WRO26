@@ -13,6 +13,7 @@ import { Dropdown } from "@/components/ui/dropdown";
 import { StatusMessage } from "@/components/ui/feedback";
 import { HeadingMeta, PageHeader, SectionTitle } from "@/components/ui/heading";
 import { api } from "@/lib/api/client";
+import { countUnreviewed } from "@/lib/defects";
 import { NOT_AVAILABLE, formatDate, formatDateTime, isRunActive, shortId } from "@/lib/format";
 import { useApi } from "@/lib/hooks/use-api";
 import { lastFinishedRun, useCurrentSelection, useRopeHistory } from "@/lib/hooks/use-inspection";
@@ -41,6 +42,8 @@ export function DashboardView() {
   const running = connected && isRunActive(currentRun);
   const lastRun = lastFinishedRun(runs);
   const lastFindings = lastRun ? (history.data?.findingsByRun[lastRun.id] ?? []) : [];
+  // Over every run of the rope, the one being recorded included.
+  const unreviewed = rope ? countUnreviewed(Object.values(history.data?.findingsByRun ?? {}).flat()) : null;
   const lastRunLabel = lastRun
     ? `${shortId(lastRun.id)} · ${formatDate(lastRun.started_at)}`
     : "no finished run";
@@ -113,7 +116,11 @@ export function DashboardView() {
           label="Robot link"
           indicator={connected ? "success" : "danger"}
         />
-        <StatCard value={NOT_AVAILABLE} label="Unreviewed defects" indicator="muted" />
+        <StatCard
+          value={unreviewed ?? NOT_AVAILABLE}
+          label="Unreviewed findings"
+          indicator={unreviewed ? "alert" : "muted"}
+        />
         <StatCard value={rope?.name ?? NOT_AVAILABLE} label="Selected rope" indicator="ring" />
         <StatCard
           value={formatDate(lastRun?.finished_at)}

@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 import { DefectLegend } from "@/components/rope/defect-legend";
 import { findingMarks } from "@/components/rope/defect-marks";
 import { RopeStrip } from "@/components/rope/rope-strip";
@@ -11,7 +13,6 @@ import { Pill } from "@/components/ui/pill";
 import { LinkRow, Table, Td, Th } from "@/components/ui/table";
 import { kindTone } from "@/lib/defects";
 import {
-  NOT_AVAILABLE,
   defectClassLabel,
   defectTypeLabel,
   formatConfidence,
@@ -25,6 +26,8 @@ import { routes } from "@/lib/routes";
 
 export function RunView({ ropeId, runId }: { ropeId: string; runId: string }) {
   const { data, error, loading } = useRopeHistory(ropeId);
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
 
   if (error) return <StatusMessage tone="error">Could not load the run from the server.</StatusMessage>;
   if (loading || !data) return <StatusMessage>Loading…</StatusMessage>;
@@ -36,19 +39,34 @@ export function RunView({ ropeId, runId }: { ropeId: string; runId: string }) {
   const findings = data.findingsByRun[run.id] ?? [];
   const detections = data.defectsByRun[run.id] ?? [];
 
+  const exportReport = async () => {
+    setExportError(null);
+    setExporting(true);
+    try {
+      // Loaded on the click, the PDF library is far heavier than the page it is used on.
+      const { downloadRunReport } = await import("./run-report");
+      await downloadRunReport({ rope, run, findings, detectionCount: detections.length });
+    } catch (err) {
+      setExportError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <>
       <BackLink href={routes.rope(rope.id)}>{rope.name}</BackLink>
       <PageHeader
         title={shortId(run.id)}
         actions={
-          <Button variant="secondary" disabled title="Not available yet" className="py-3">
-            Export run report
+          <Button variant="secondary" disabled={exporting} onClick={exportReport} className="py-3">
+            {exporting ? "Exporting…" : "Export run report"}
           </Button>
         }
       >
         <HeadingMeta>{rope.name}</HeadingMeta>
       </PageHeader>
+      {exportError && <StatusMessage tone="error">{exportError}</StatusMessage>}
 
       <CardGrid>
         <FactCard value={formatDateTime(run.started_at)} label="Started" />
@@ -97,8 +115,8 @@ export function RunView({ ropeId, runId }: { ropeId: string; runId: string }) {
                   <Td mono muted align="right" label="Detections">
                     {finding.detections.length}
                   </Td>
-                  <Td muted phone="hide">
-                    {NOT_AVAILABLE}
+                  <Td muted label="Status">
+                    {finding.reviewed ? "Reviewed" : <Pill tone="neutral">Unreviewed</Pill>}
                   </Td>
                 </LinkRow>
               ))}

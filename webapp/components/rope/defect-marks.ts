@@ -6,7 +6,7 @@ import type { StripMark } from "./rope-strip";
 
 function markTitle(finding: Finding): string {
   const parts = [
-    defectClassLabel(finding.best.label) || defectTypeLabel(finding.kind),
+    finding.best.label ? defectClassLabel(finding.best.label) : defectTypeLabel(finding.kind),
     formatConfidence(finding.confidence),
     formatSpan(finding.from, finding.to),
   ];

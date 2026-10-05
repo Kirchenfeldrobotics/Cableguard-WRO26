@@ -29,10 +29,10 @@ GroupKey = Literal["drive", "turret", "scan", "detection", "socket", "camera", "
 # One setting. Its type and default are the field's own, the rest is what the settings page
 # needs to draw a row for it
 def setting(default, *, group: GroupKey, label: str, unit: str, note: str,
-            ge: float, le: float, step: float, restart: bool = False):
+            ge: float, le: float, step: float):
     return Field(default, ge=ge, le=le, description=note,
                  json_schema_extra={"group": group, "label": label, "unit": unit,
-                                    "step": step, "restart": restart})
+                                    "step": step})
 
 
 class RobotSettings(BaseModel):
@@ -106,9 +106,6 @@ class RobotSettings(BaseModel):
         note="Safety factor on the detector time measured at startup. Inference is slower on a "
              "frame with something in it than on the clean rope the benchmark ran on, and a "
              "cycle that overruns leaves a stretch of rope unscanned.")
-    benchmark_cycles: int = setting(
-        9, group="scan", label="Benchmark cycles", unit="", ge=1, le=60, step=1, restart=True,
-        note="Cycles the startup benchmark averages the detector over before it picks a speed.")
 
     # -- detection ---------------------------------------------------------------------
     detect_confidence: float = setting(
@@ -195,7 +192,6 @@ class SettingInfo(BaseModel):
     maximum: float
     step: float
     integer: bool
-    restart: bool       # takes effect at the next robot start, not on the running robot
 
 
 class SettingGroup(BaseModel):
@@ -228,7 +224,6 @@ def describe_settings() -> list[SettingInfo]:
             maximum=_bound(field, "le"),
             step=extra["step"],
             integer=field.annotation is int,
-            restart=extra["restart"],
         ))
     return described
 

@@ -38,6 +38,11 @@ export interface Finding {
   to: number;
   /** Best confidence of the group, null when no detection carries one. */
   confidence: number | null;
+  /**
+   * True once every detection of the group is reviewed. A detection that joins a reviewed
+   * finding later, during a live run, opens it again.
+   */
+  reviewed: boolean;
   /** Sorted by position. */
   detections: Defect[];
 }
@@ -53,6 +58,7 @@ function toFinding(kind: DefectKind, group: Defect[]): Finding {
     from: group[0].pos_to_start,
     to: group[group.length - 1].pos_to_start,
     confidence: scored.length ? Math.max(...scored) : null,
+    reviewed: group.every((d) => d.reviewed),
     detections: group,
   };
 }
@@ -118,6 +124,11 @@ export function findMatch(list: Finding[], finding: Finding): Finding | undefine
     }
   }
   return best;
+}
+
+/** How many of the findings the operator has not looked at yet. */
+export function countUnreviewed(findings: Finding[]): number {
+  return findings.filter((f) => !f.reviewed).length;
 }
 
 /** The finding a single detection belongs to. */

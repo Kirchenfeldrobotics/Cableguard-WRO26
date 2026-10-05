@@ -73,6 +73,8 @@ class Defect(Base):
     kind: Mapped[str]                   = mapped_column(String(8))
     pos_to_start: Mapped[float]         = mapped_column()
     created_at: Mapped[datetime]        = mapped_column(default=utcnow)
+    # set by the operator once they have looked at the flaw this detection belongs to
+    reviewed: Mapped[bool]              = mapped_column(default=False)
 
     # What the vision model saw. A defect reported by another sensor carries none of it,
     # the box is normalised to the frame it was found in

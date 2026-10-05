@@ -6,9 +6,10 @@ import { RopeLengthInput, parseRopeLength } from "@/components/rope/rope-length-
 import { Button } from "@/components/ui/button";
 import { StatusMessage } from "@/components/ui/feedback";
 import { PageHeader } from "@/components/ui/heading";
+import { RemoveButton } from "@/components/ui/remove-button";
 import { LinkRow, Table, Td, Th } from "@/components/ui/table";
 import { api } from "@/lib/api/client";
-import { NOT_AVAILABLE, formatDate, formatMetres } from "@/lib/format";
+import { formatDate, formatMetres } from "@/lib/format";
 import { lastFinishedRun } from "@/lib/hooks/use-inspection";
 import { useApi } from "@/lib/hooks/use-api";
 import { routes } from "@/lib/routes";
@@ -70,11 +71,9 @@ export function RopesView() {
           <thead>
             <tr>
               <Th>Rope</Th>
-              <Th>Installed</Th>
               <Th align="right">Length</Th>
               <Th align="right">Runs</Th>
               <Th>Last inspected</Th>
-              <Th>Condition</Th>
               <Th />
             </tr>
           </thead>
@@ -84,9 +83,6 @@ export function RopesView() {
                 <Td strong phone="primary">
                   {rope.name}
                 </Td>
-                <Td mono muted phone="hide">
-                  {NOT_AVAILABLE}
-                </Td>
                 <Td mono align="right" label="Length">
                   {formatMetres(rope.length_m)}
                 </Td>
@@ -95,9 +91,6 @@ export function RopesView() {
                 </Td>
                 <Td mono muted label="Last inspected">
                   {formatDate(lastFinishedRun(runs)?.finished_at)}
-                </Td>
-                <Td muted phone="hide">
-                  {NOT_AVAILABLE}
                 </Td>
                 <Td align="right" phone="end" className="pr-0">
                   <RemoveButton onConfirm={() => run(() => api.ropes.remove(rope.id))} />
@@ -152,30 +145,5 @@ function AddRopeForm({
         Cancel
       </Button>
     </form>
-  );
-}
-
-/** Two-step remove so a rope and its runs are not deleted by a stray click. */
-function RemoveButton({ onConfirm }: { onConfirm: () => void }) {
-  const [armed, setArmed] = useState(false);
-
-  return (
-    <button
-      type="button"
-      onClick={(e) => {
-        e.stopPropagation();
-        if (armed) onConfirm();
-        setArmed(!armed);
-      }}
-      onBlur={() => setArmed(false)}
-      onKeyDown={(e) => e.stopPropagation()}
-      className={
-        armed
-          ? "text-xs leading-none font-semibold text-danger-strong max-lg:-m-2.5 max-lg:p-2.5"
-          : "text-xs leading-none font-medium text-text-subtle hover:text-danger-strong max-lg:-m-2.5 max-lg:p-2.5"
-      }
-    >
-      {armed ? "Confirm remove" : "Remove"}
-    </button>
   );
 }

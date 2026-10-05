@@ -8,10 +8,10 @@ type Align = "left" | "right";
 
 /**
  * How a cell shows on a phone, where every row is a card (`.stack-table` in globals.css):
- * `primary` spans the card as its title, `end` sits bottom right (row actions), `hide`
- * leaves the cell out. Cells without it get their `label` as a caption.
+ * `primary` spans the card as its title, `end` sits bottom right (row actions). Cells
+ * without it get their `label` as a caption.
  */
-type Phone = "primary" | "end" | "hide";
+type Phone = "primary" | "end";
 
 export function Table({ className, children }: { className?: string; children: React.ReactNode }) {
   return (

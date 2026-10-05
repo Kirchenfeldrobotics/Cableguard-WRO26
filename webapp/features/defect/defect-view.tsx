@@ -1,5 +1,8 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+
 import { DetectionFrame } from "@/components/camera/detection-frame";
 import { Button } from "@/components/ui/button";
 import { BackLink, StatusMessage } from "@/components/ui/feedback";
@@ -7,9 +10,9 @@ import { FactList } from "@/components/ui/fact-list";
 import { HeadingMeta, PageHeader, SectionTitle } from "@/components/ui/heading";
 import { InfoRow } from "@/components/ui/log-row";
 import { Table, Td, Th } from "@/components/ui/table";
+import { api } from "@/lib/api/client";
 import { findMatch, findingOf, kindTone } from "@/lib/defects";
 import {
-  NOT_AVAILABLE,
   defectClassLabel,
   defectTypeLabel,
   formatCamera,
@@ -30,7 +33,11 @@ export function DefectView({
   runId: string;
   defectId: string;
 }) {
-  const { data, error, loading } = useRopeHistory(ropeId);
+  const router = useRouter();
+  const { data, error, loading, reload } = useRopeHistory(ropeId);
+  const [busy, setBusy] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [failed, setFailed] = useState<string | null>(null);
 
   if (error) return <StatusMessage tone="error">Could not load the defect from the server.</StatusMessage>;
   if (loading || !data) return <StatusMessage>Loading…</StatusMessage>;
@@ -40,9 +47,39 @@ export function DefectView({
   const defect = run && data.defectsByRun[run.id]?.find((d) => d.id === defectId);
   if (!data.rope || !run || !defect) return <StatusMessage>This defect does not exist.</StatusMessage>;
 
-  // The page opens on one detection, but the flaw is the whole group it sits in.
+  // The page opens on one detection, but the flaw is the whole group it sits in. A review
+  // is of the flaw, so it goes to every detection of the group.
   const finding = findingOf(data.findingsByRun[run.id] ?? [], defect);
   const siblings = finding?.detections ?? [defect];
+  const reviewed = finding?.reviewed ?? defect.reviewed;
+  const ids = siblings.map((d) => d.id);
+  const runHref = routes.run(data.rope.id, run.id);
+
+  const setReviewed = async (value: boolean) => {
+    setFailed(null);
+    setBusy(true);
+    try {
+      await api.defects.review(ids, value);
+      reload();
+    } catch (err) {
+      setFailed(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  /** A false positive is deleted, so the page it was on is gone with it. */
+  const removeFinding = async () => {
+    setFailed(null);
+    setBusy(true);
+    try {
+      await api.defects.remove(ids);
+      router.replace(runHref);
+    } catch (err) {
+      setFailed(err instanceof Error ? err.message : String(err));
+      setBusy(false);
+    }
+  };
 
   // Runs are sorted newest first, so the previous run is the next entry.
   const previousRun = data.runs[runIndex + 1];
@@ -51,7 +88,7 @@ export function DefectView({
 
   return (
     <>
-      <BackLink href={routes.run(data.rope.id, run.id)}>{shortId(run.id)}</BackLink>
+      <BackLink href={runHref}>{shortId(run.id)}</BackLink>
       <PageHeader title={defectClassLabel(defect.label)}>
         <HeadingMeta>
           {defectTypeLabel(defect.kind)} · {formatMetres(defect.pos_to_start)}
@@ -71,7 +108,7 @@ export function DefectView({
               { label: "Type", value: `${defectTypeLabel(defect.kind)} (${defect.kind.toUpperCase()})` },
               { label: "Detection confidence", value: formatConfidence(defect.confidence), tone: "ink" },
               { label: "Camera", value: formatCamera(defect.cam) },
-              { label: "Status", value: NOT_AVAILABLE },
+              { label: "Status", value: reviewed ? "Reviewed" : "Unreviewed", tone: reviewed ? "muted" : "ink" },
               { label: "Run", value: shortId(run.id) },
               { label: "Detected", value: formatDateTime(defect.created_at) },
             ]}
@@ -97,13 +134,25 @@ export function DefectView({
           </div>
 
           <div className="flex flex-wrap gap-3">
-            <Button disabled title="Not available yet" className="flex-[1_1_150px] py-3.5">
-              Mark reviewed
+            <Button
+              variant={reviewed ? "secondary" : "primary"}
+              disabled={busy}
+              className="flex-[1_1_150px] py-3.5"
+              onClick={() => setReviewed(!reviewed)}
+            >
+              {reviewed ? "Mark unreviewed" : "Mark reviewed"}
             </Button>
-            <Button variant="secondary" disabled title="Not available yet" className="flex-[1_1_150px] py-3.5">
-              Flag false positive
+            <Button
+              variant={confirmDelete ? "danger" : "secondary"}
+              disabled={busy}
+              className="flex-[1_1_150px] py-3.5"
+              onClick={() => (confirmDelete ? removeFinding() : setConfirmDelete(true))}
+              onBlur={() => setConfirmDelete(false)}
+            >
+              {confirmDelete ? "Confirm delete" : "Flag false positive"}
             </Button>
           </div>
+          {failed && <StatusMessage tone="error">{failed}</StatusMessage>}
         </div>
       </div>
 

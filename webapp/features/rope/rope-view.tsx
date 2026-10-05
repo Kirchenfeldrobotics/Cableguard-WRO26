@@ -11,24 +11,31 @@ import { Button } from "@/components/ui/button";
 import { CardGrid, FactCard, Panel } from "@/components/ui/card";
 import { BackLink, StatusMessage } from "@/components/ui/feedback";
 import { PageHeader, SectionTitle } from "@/components/ui/heading";
+import { RemoveButton } from "@/components/ui/remove-button";
 import { LinkRow, Table, Td, Th } from "@/components/ui/table";
 import { api } from "@/lib/api/client";
 import type { Rope } from "@/lib/api/types";
 import { cn } from "@/lib/cn";
-import {
-  NOT_AVAILABLE,
-  formatDate,
-  formatDateTime,
-  formatMetres,
-  formatRunDuration,
-  shortId,
-} from "@/lib/format";
-import { lastFinishedRun, useRopeHistory } from "@/lib/hooks/use-inspection";
+import { countUnreviewed } from "@/lib/defects";
+import { formatDate, formatDateTime, formatMetres, formatRunDuration, shortId } from "@/lib/format";
+import { lastFinishedRun, useCurrentSelection, useRopeHistory } from "@/lib/hooks/use-inspection";
 import { routes } from "@/lib/routes";
 
 export function RopeView({ ropeId }: { ropeId: string }) {
   const { data, error, loading, reload } = useRopeHistory(ropeId);
+  const current = useCurrentSelection();
   const [editing, setEditing] = useState(false);
+  const [removeError, setRemoveError] = useState<string | null>(null);
+
+  const removeRun = async (runId: string) => {
+    setRemoveError(null);
+    try {
+      await api.runs.remove(runId);
+      reload();
+    } catch (err) {
+      setRemoveError(err instanceof Error ? err.message : String(err));
+    }
+  };
 
   if (error) return <StatusMessage tone="error">Could not load the rope from the server.</StatusMessage>;
   if (loading || !data) return <StatusMessage>Loading…</StatusMessage>;
@@ -78,7 +85,6 @@ export function RopeView({ ropeId }: { ropeId: string }) {
       )}
 
       <CardGrid>
-        <FactCard value={NOT_AVAILABLE} label="Installed" />
         <FactCard value={formatMetres(rope.length_m)} label="Rope length" />
         <FactCard value={runs.length} label="Runs recorded" />
         <FactCard value={formatDate(lastFinishedRun(runs)?.finished_at)} label="Last inspected" />
@@ -98,15 +104,16 @@ export function RopeView({ ropeId }: { ropeId: string }) {
       {runs.length > 0 && (
         <>
           <SectionTitle>Run history</SectionTitle>
+          {removeError && <StatusMessage tone="error">{removeError}</StatusMessage>}
           <Table>
             <thead>
               <tr>
                 <Th>Run</Th>
                 <Th>Date</Th>
                 <Th align="right">Duration</Th>
-                <Th align="right">Distance</Th>
                 <Th align="right">Findings</Th>
                 <Th align="right">Unreviewed</Th>
+                <Th />
               </tr>
             </thead>
             <tbody>
@@ -121,14 +128,15 @@ export function RopeView({ ropeId }: { ropeId: string }) {
                   <Td mono align="right" label="Duration">
                     {formatRunDuration(run)}
                   </Td>
-                  <Td mono align="right" phone="hide">
-                    {NOT_AVAILABLE}
-                  </Td>
                   <Td mono align="right" label="Findings">
                     {findingsByRun[run.id]?.length ?? 0}
                   </Td>
-                  <Td mono muted align="right" phone="hide">
-                    {NOT_AVAILABLE}
+                  <Td mono muted align="right" label="Unreviewed">
+                    {countUnreviewed(findingsByRun[run.id] ?? [])}
+                  </Td>
+                  {/* The server refuses to delete the run that is being recorded. */}
+                  <Td align="right" phone="end" className="pr-0 max-lg:col-span-2">
+                    {run.id !== current.data?.run_id && <RemoveButton onConfirm={() => removeRun(run.id)} />}
                   </Td>
                 </LinkRow>
               ))}

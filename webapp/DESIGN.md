@@ -17,7 +17,7 @@ adding screens: use these tokens and components rather than new one-off styles.
 - **Say it once, in a few words.** No text explains how a feature works, and no text repeats
   what a badge, a card, a button label or the sidebar already shows. What is left is a note
   of a few words. A `title` tooltip is only for a disabled button whose reason is not on the
-  screen (`Stop first`, `Not available yet`) and for data (the label on a rope mark). The
+  screen (`Stop first`) and for data (the label on a rope mark). The
   settings page is the exception: its explanations come from the server with each setting.
 
 ## Tokens
@@ -104,8 +104,8 @@ between cards, 12px outer padding around the app.
   status circle, and main action buttons fill the row.
 - Tables become one card per row (`.stack-table` in `globals.css`). Give every `Td` a
   `label` (its column header), mark the identifying cell `phone="primary"` and a row
-  action `phone="end"`. Columns that only ever show `—` because the backend has no data
-  for them get `phone="hide"`.
+  action `phone="end"`. A cell that is empty, such as a row action that is not offered,
+  takes no room on the card.
 - Inputs use 16px text below `sm`, otherwise iOS zooms the page when they are focused.
 - The live screen puts what is being tracked first (numbers, position on rope, cameras,
   then drive, rope socket and log), the cameras swipe sideways, and the motion state with Stop is
@@ -122,6 +122,7 @@ between cards, 12px outer padding around the app.
 | `Pill` | `components/ui/pill.tsx` | `status` variant for headers, `tag` inside tables |
 | `StatCard`, `FactCard`, `Panel`, `CardGrid` | `components/ui/card.tsx` | Stat cards carry a 46px status circle |
 | `Table`, `Th`, `Td`, `LinkRow` | `components/ui/table.tsx` | Rows navigate on click and Enter |
+| `RemoveButton` | `components/ui/remove-button.tsx` | Two-step remove at the end of a table row (ropes, runs) |
 | `LogRow`, `InfoRow` | `components/ui/log-row.tsx` | Tinted rows for detections and changes |
 | `FactList` | `components/ui/fact-list.tsx` | Label and value rows on a panel |
 | `Notice`, `StatusMessage`, `BackLink` | `components/ui/feedback.tsx` | Alerts, loading, empty and error states |
@@ -139,6 +140,19 @@ between cards, 12px outer padding around the app.
 - **Status circle meanings** (`StatCard` `indicator`): `success` connected, `danger`
   link lost, `alert` needs review, `warning` detections, `ring` current selection
   (rope, position), `solid` motion, `muted` neutral or unavailable.
+- **Review**: the operator reviews findings, not detections. `Mark reviewed` on the defect
+  page sets every detection of the finding in one request, and a finding counts as reviewed
+  only while all of them are, so a detection that joins it later in a live run opens it
+  again. `Flag false positive` deletes the detections for good after a second click
+  (`Confirm delete`): there is no false-positive state to show, count or undo. Unreviewed
+  findings are counted per run on the rope page and over all runs of the selected rope on
+  the dashboard, where the `alert` circle shows while any are left.
+- **Run report**: `Export run report` builds a PDF in the browser
+  (`features/run/run-report.ts`): the run's numbers, the rope with its findings, the
+  findings table with their review status, and one photo per finding with the detector's
+  box. jsPDF is loaded on the click, it is far heavier than the page. A PDF cannot read the
+  stylesheet, so the report module carries its own copy of the few colour tokens it uses,
+  and the PDF's built-in Helvetica stands in for Poppins.
 - **Findings, not detections**: the robot stores one row per detection and runs the
   detector every two seconds on both cameras, so one flaw arrives as several rows a few
   centimetres apart. `clusterDefects` groups rows of the same kind that are closer than
@@ -172,7 +186,8 @@ between cards, 12px outer padding around the app.
 - **States**: every data view handles loading (`Loading…`), error (red text) and empty
   (a few words saying what is missing). An empty list whose count already shows as 0 on a
   card is not drawn at all, heading included.
-- **Destructive actions** need a second click (`Remove` becomes `Confirm remove`).
+- **Destructive actions** need a second click (`Remove` becomes `Confirm remove`,
+  `Flag false positive` becomes `Confirm delete`).
 - **Stop** is never disabled while the server socket is open, even if the robot is reported
   offline. The server answers with an error if it cannot forward it. There is no separate
   emergency stop: it sent the same command as Stop, and a second button that looks more

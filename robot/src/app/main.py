@@ -458,7 +458,7 @@ async def main():
     detector = DetectorProcess()
     await asyncio.to_thread(detector.warmup)
     detector.configure(cfg.detect_confidence, cfg.detect_iou)
-    measured = await asyncio.to_thread(measure_cycle, cams, detector, cycles=cfg.benchmark_cycles)
+    measured = await asyncio.to_thread(measure_cycle, cams, detector)
 
     rope_socket = RopeSocket(cfg.socket_trigger_diff_m, cfg.socket_clear_m)
     # holds the settings and everything they decide: the scan plan, the hardware, the pace
