@@ -1,3 +1,4 @@
 deploy-webapp.sh
 *.log
 .venv/
+3d_animations/
