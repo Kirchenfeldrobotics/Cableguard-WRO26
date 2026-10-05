@@ -15,9 +15,10 @@ const variants: Record<Variant, string> = {
   danger: "bg-danger-strong text-white hover:bg-danger-deep disabled:opacity-60",
 };
 
+/** `md` is as tall as an input. `lg` is for the main action of a screen. */
 const sizes: Record<Size, string> = {
-  md: "px-5 py-[13px] text-sm",
-  lg: "h-[58px] px-5 text-base",
+  md: "h-control px-5 text-sm",
+  lg: "h-control-lg px-6 text-base",
 };
 
 interface StyleProps {
@@ -47,6 +48,20 @@ export function ButtonLink({
   ...props
 }: StyleProps & React.ComponentProps<typeof Link>) {
   return <Link className={buttonClass({ variant, size, className })} {...props} />;
+}
+
+/** On phones the tap area reaches past the text, without moving anything around it. */
+const textLinkClass =
+  "text-[13px] leading-none font-semibold hover:text-danger-strong max-lg:-m-2.5 max-lg:p-2.5";
+
+/** Small action next to a heading: a link with `href`, a button without. */
+export function TextLink(
+  props:
+    | Omit<React.ComponentProps<typeof Link>, "className">
+    | (Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "className" | "type"> & { href?: undefined }),
+) {
+  if (props.href !== undefined) return <Link className={textLinkClass} {...props} />;
+  return <button type="button" className={textLinkClass} {...props} />;
 }
 
 /** Hollow circle used as an icon inside the large action buttons. */

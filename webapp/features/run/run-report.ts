@@ -267,7 +267,9 @@ export function buildRunReport({
 }
 
 function fileName(rope: Rope, run: Run): string {
-  const slug = rope.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  // Accents are split off their letter and dropped first, so `Säntis` is `santis`, not `s-ntis`.
+  const plainName = rope.name.normalize("NFKD").replace(/[̀-ͯ]/g, "");
+  const slug = plainName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
   return `cableguard-${slug || "rope"}-${shortId(run.id).toLowerCase()}.pdf`;
 }
 

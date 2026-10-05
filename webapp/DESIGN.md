@@ -64,12 +64,20 @@ with `next/font` in `app/layout.tsx` and exposed as `font-sans` and `font-mono`.
 
 | Role | Style |
 | --- | --- |
-| Page and section title | 30px / 800, uppercase, `-0.01em` tracking |
-| Stat card value | 22px / 700 (fact cards 20px, comparison cards 26px) |
-| Body and labels | 13–14px / 400–600 |
-| Status badge | 12px / 700, uppercase, `.05em` tracking |
-| Table header | 12px / 600, `text-subtle` |
-| Numbers, positions, ids | Plex Mono 11–13px |
+| Page and section title | 30px / 800, uppercase, `-0.01em` tracking (24px on phones) |
+| Sub-title inside a column | 18px / 800, uppercase |
+| Card value (stat, fact, comparison) | 22px / 700 (18px on phones) |
+| Large button, input on a phone | 16px |
+| Body, buttons, inputs | 14px / 400–600 |
+| Labels, links, table cells | 13px |
+| Status badge, table header, notes | 12px |
+| Scale labels, captions in mono | 11px |
+
+These eight sizes (11, 12, 13, 14, 16, 18, 22 and the title) are the whole scale. A size in
+between is a sign that a screen is styling something a component already styles.
+
+Mono is for measurements, ids and timestamps. A word stays in the text font even when it
+sits in a column of numbers: `FactList` rows are mono only where `mono` is set.
 
 ### Shape and spacing
 
@@ -81,13 +89,34 @@ with `next/font` in `app/layout.tsx` and exposed as `font-sans` and `font-mono`.
 | `rounded-row` | 9px | Log rows |
 | `rounded-full` | | Badges and indicators |
 
-Rhythm: 38px between page sections, 18px between a heading and its content, 14px gap
-between cards, 12px outer padding around the app.
+### Sizes and rhythm
+
+| Token | Value | Use |
+| --- | --- | --- |
+| `control` | 44px | Height of every button, input and dropdown (`h-control`) |
+| `control-lg` | 58px | The main action of a screen: start and finish a run, open the robot, sign in |
+| `section` | 38px | Above a section heading (`mt-section`) |
+| `stack` | 18px | Under a heading, and between two blocks that follow each other (`mt-stack`, `gap-stack`) |
+
+Cards sit 14px apart, the app has 12px of outer padding. A control never gets its own
+padding or height on a screen: if `md` and `lg` do not fit, the screen is asking for the
+wrong control.
+
+A spacing token also becomes a size utility under other prefixes, so its name must not be a
+CSS display value: a token called `block` turns every `inline-block` into an 18px wide box.
+
+`Panel` has two paddings and no third: `content` (16px, 22px from `sm`) for a strip,
+controls, a chart or a form, and `list` for rows that bring their own vertical padding
+(settings, fact lists).
 
 ## Layout
 
 - `app/layout.tsx`: 236px sticky black sidebar on the left and main content up to 1280px
   wide.
+- A page is titled like its navigation entry. The page header row is as tall as a control
+  whether or not it holds a button, so the title sits at the same height on every page,
+  and the scrollbar keeps its room on a page too short to need one, so nothing shifts
+  sideways between pages.
 - The sidebar footer always shows the robot link (green or red dot), the time since the
   last packet and the local clock.
 - **Phones and tablets** (below `lg`): the sidebar is replaced by a sticky black top bar
@@ -101,7 +130,8 @@ between cards, 12px outer padding around the app.
 ### Phone rules
 
 - Below `sm`, headings drop to 24px, stat and fact cards go two to a row with a 20px
-  status circle, and main action buttons fill the row.
+  status circle, and main action buttons fill the row. The actions of a page header get a
+  row of their own under the title, starting at the left edge like everything else.
 - Tables become one card per row (`.stack-table` in `globals.css`). Give every `Td` a
   `label` (its column header), mark the identifying cell `phone="primary"` and a row
   action `phone="end"`. A cell that is empty, such as a row action that is not offered,
@@ -116,11 +146,12 @@ between cards, 12px outer padding around the app.
 
 | Component | File | Notes |
 | --- | --- | --- |
-| `PageHeader`, `SectionTitle`, `HeadingMeta` | `components/ui/heading.tsx` | Title row with badges and actions |
-| `Button`, `ButtonLink`, `RingIcon` | `components/ui/button.tsx` | `primary`, `secondary`, `danger`; `md` or `lg` (58px action bar) |
+| `PageHeader`, `SectionTitle`, `SubTitle`, `HeadingMeta` | `components/ui/heading.tsx` | Title rows. Meta text, actions and a note are props of the row, never siblings of the heading: the row owns the spacing |
+| `Button`, `ButtonLink`, `TextLink`, `RingIcon` | `components/ui/button.tsx` | `primary`, `secondary`, `danger`; `md` (44px) or `lg` (58px). `TextLink` is the small action next to a heading |
+| `Input`, `Field` | `components/ui/input.tsx` | The one text field, and a control under its caption |
 | `Dropdown` | `components/ui/dropdown.tsx` | Listbox in the control shape; a native `<select>` cannot be styled to the tokens |
 | `Pill` | `components/ui/pill.tsx` | `status` variant for headers, `tag` inside tables |
-| `StatCard`, `FactCard`, `Panel`, `CardGrid` | `components/ui/card.tsx` | Stat cards carry a 46px status circle |
+| `StatCard`, `FactCard`, `Panel`, `CardGrid` | `components/ui/card.tsx` | Stat cards carry a 46px status circle. Labels sit on the bottom edge, so they stay in line when a value wraps |
 | `Table`, `Th`, `Td`, `LinkRow` | `components/ui/table.tsx` | Rows navigate on click and Enter |
 | `RemoveButton` | `components/ui/remove-button.tsx` | Two-step remove at the end of a table row (ropes, runs) |
 | `LogRow`, `InfoRow` | `components/ui/log-row.tsx` | Tinted rows for detections and changes |
@@ -160,7 +191,13 @@ between cards, 12px outer padding around the app.
   Detections stay reachable: the run page shows how many back each finding, and the defect
   page lists them. Comparing runs also works on findings, otherwise repeat sightings would
   be counted as new defects.
-- **Rope strip**: red marks for local faults, amber for loss of metallic area. A finding is
+- **Tables**: columns are 24px apart, so a right-aligned number never touches the column
+  after it. A status in a table is plain text: what is still to do in the strong weight,
+  what is done muted.
+- **Error text** is the server's own sentence and nothing else (`ApiError` in
+  `lib/api/client.ts`): no endpoint, no status code.
+- **Rope strip**: the rope is a white bar on the grey panel, with red marks for local
+  faults and amber ones for loss of metallic area. A finding is
   drawn over the stretch its detections cover, down to a minimum width so a single one
   stays clickable, and faded by its confidence so a weak detection does not read like a
   certain one. In comparisons, marks also found in the reference run are thin and grey,

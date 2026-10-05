@@ -7,6 +7,7 @@ import { Panel } from "@/components/ui/card";
 import { FactList } from "@/components/ui/fact-list";
 import { Notice, StatusMessage } from "@/components/ui/feedback";
 import { PageHeader, SectionTitle } from "@/components/ui/heading";
+import { Input } from "@/components/ui/input";
 import { Pill } from "@/components/ui/pill";
 import { api, ApiError } from "@/lib/api/client";
 import type { SettingField, SettingsDocument } from "@/lib/api/types";
@@ -77,7 +78,8 @@ function SettingRow({
       </div>
 
       <div className="flex flex-none items-center gap-2.5">
-        <input
+        <Input
+          mono
           type="number"
           inputMode="decimal"
           value={text}
@@ -89,11 +91,7 @@ function SettingRow({
           aria-invalid={problem !== null}
           title={disabled ? MOVING : `Default ${field.default}${field.unit && ` ${field.unit}`}`}
           onChange={(e) => onChange(e.target.value)}
-          className={cn(
-            "w-28 rounded-control border bg-white px-3 py-2.5 text-right font-mono text-base leading-none font-medium text-ink sm:text-[13px]",
-            "disabled:cursor-not-allowed disabled:bg-surface disabled:text-text-faint",
-            problem ? "border-danger" : changed ? "border-ink" : "border-border",
-          )}
+          className={cn("w-28", problem ? "border-danger" : changed && "border-ink")}
         />
         <span className="w-10 font-mono text-xs leading-none text-text-subtle">{field.unit}</span>
       </div>
@@ -179,13 +177,14 @@ export function SettingsView() {
 
       {doc && (
         <FactList
-          className="mt-[18px]"
+          className="mt-stack"
           facts={[
-            { label: "Stored version", value: `v${doc.version}`, tone: "ink" },
+            { label: "Stored version", value: `v${doc.version}`, tone: "ink", mono: true },
             {
               label: "Version the robot runs on",
               value: telemetry ? `v${telemetry.settings_version}` : NOT_AVAILABLE,
               tone: inForce === null ? "muted" : inForce ? "success" : "danger",
+              mono: true,
             },
             {
               label: "State",
@@ -197,7 +196,7 @@ export function SettingsView() {
                     : "Waiting for the robot to stand still",
               tone: inForce === null ? "muted" : inForce ? "success" : "danger",
             },
-            { label: "Last changed", value: formatDateTime(doc.updated_at) },
+            { label: "Last changed", value: formatDateTime(doc.updated_at), mono: true },
           ]}
         />
       )}
@@ -208,9 +207,8 @@ export function SettingsView() {
           if (fields.length === 0) return null;
           return (
             <section key={group.key}>
-              <SectionTitle>{group.title}</SectionTitle>
-              <p className="-mt-2.5 mb-3.5 text-xs leading-normal text-text-subtle">{group.note}</p>
-              <Panel className="px-4 py-2 sm:px-5">
+              <SectionTitle note={group.note}>{group.title}</SectionTitle>
+              <Panel pad="list">
                 {fields.map((field) => (
                   <SettingRow
                     key={field.key}
@@ -241,6 +239,7 @@ export function SettingsView() {
                 value:
                   lastMessageAt && now ? formatAgo(Math.max(0, now - lastMessageAt)) : NOT_AVAILABLE,
                 tone: connected ? "muted" : "danger",
+                mono: true,
               },
               {
                 label: "Last telemetry",
@@ -252,28 +251,33 @@ export function SettingsView() {
                   telemetryAt !== null && now !== null && now - telemetryAt <= TELEMETRY_STALE_MS
                     ? "muted"
                     : "danger",
+                mono: true,
               },
               {
                 label: "Telemetry sequence",
                 value: telemetry ? `seq ${formatNumber(telemetry.seq)}` : NOT_AVAILABLE,
+                mono: true,
               },
               {
                 label: "Position on rope",
                 value: telemetry ? formatMetres(telemetry.metres) : NOT_AVAILABLE,
+                mono: true,
               },
               {
                 label: "Scan speed the robot chose",
                 value: telemetry ? formatDriveSpeed(telemetry.scan_speed_mps) : NOT_AVAILABLE,
+                mono: true,
               },
               {
                 label: "Detector rate the scan is paced for",
                 value: telemetry ? formatDetectRate(telemetry.detect_fps) : NOT_AVAILABLE,
+                mono: true,
               },
-              { label: "Server", value: now ? serverLabel() : NOT_AVAILABLE },
+              { label: "Server", value: now ? serverLabel() : NOT_AVAILABLE, mono: true },
             ]}
           />
 
-          <div className="mt-[18px] flex flex-wrap gap-3.5">
+          <div className="mt-stack flex flex-wrap gap-3.5">
             <Button
               variant={confirmReset ? "danger" : "secondary"}
               disabled={locked}
@@ -289,31 +293,29 @@ export function SettingsView() {
 
       {!doc && !settings.loading && <StatusMessage tone="error">{NO_SETTINGS}</StatusMessage>}
 
-      {/* Room for the save bar, so the last panel scrolls clear of it. */}
-      {dirty && <div aria-hidden className="h-24" />}
-
+      {/* Sticks to the bottom of the screen while the settings scroll under it, and stays
+          inside their column: on a phone that is the full width, above the tab bar. */}
       {dirty && (
-        <div className="fixed inset-x-0 bottom-[calc(var(--tabbar-h)+env(safe-area-inset-bottom))] z-20 border-t border-line-strong bg-canvas/95 px-4 py-2.5 backdrop-blur lg:bottom-0">
-          <div className="mx-auto flex max-w-[1280px] flex-wrap items-center gap-2.5">
-            <span
-              className={cn(
-                "min-w-0 flex-1 text-[13px] leading-snug",
-                broken ? "text-danger-strong" : "text-text-muted",
-              )}
-            >
-              {changedNote}
-            </span>
-            <Button variant="secondary" disabled={busy} onClick={() => setDraft({})}>
-              Discard
-            </Button>
-            <Button
-              disabled={locked || broken || edited.length === 0}
-              title={moving ? MOVING : broken ? "One of the values is out of range" : undefined}
-              onClick={save}
-            >
-              {busy ? "Saving…" : "Save and send to the robot"}
-            </Button>
-          </div>
+        <div className="sticky bottom-[calc(var(--tabbar-h)+env(safe-area-inset-bottom))] z-20 -mx-4 mt-stack flex flex-wrap items-center gap-2.5 border-t border-line-strong bg-canvas/95 px-4 py-2.5 backdrop-blur lg:bottom-0 lg:mx-0 lg:px-0">
+          <span
+            className={cn(
+              "min-w-0 flex-1 text-[13px] leading-snug max-sm:basis-full",
+              broken ? "text-danger-strong" : "text-text-muted",
+            )}
+          >
+            {changedNote}
+          </span>
+          <Button variant="secondary" className="max-sm:flex-1" disabled={busy} onClick={() => setDraft({})}>
+            Discard
+          </Button>
+          <Button
+            className="max-sm:flex-1"
+            disabled={locked || broken || edited.length === 0}
+            title={moving ? MOVING : broken ? "One of the values is out of range" : undefined}
+            onClick={save}
+          >
+            {busy ? "Saving…" : "Save and send to the robot"}
+          </Button>
         </div>
       )}
     </div>

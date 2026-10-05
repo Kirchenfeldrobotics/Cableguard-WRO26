@@ -1,13 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 
 import { RunStatePill } from "@/components/inspection/run-state-pill";
 import { DefectLegend } from "@/components/rope/defect-legend";
 import { findingMarks } from "@/components/rope/defect-marks";
 import { RopeStrip } from "@/components/rope/rope-strip";
-import { Button, ButtonLink } from "@/components/ui/button";
+import { Button, ButtonLink, TextLink } from "@/components/ui/button";
 import { CardGrid, Panel, StatCard } from "@/components/ui/card";
 import { Dropdown } from "@/components/ui/dropdown";
 import { StatusMessage } from "@/components/ui/feedback";
@@ -106,7 +105,7 @@ export function DashboardView() {
 
   return (
     <>
-      <PageHeader title="Inspection status">
+      <PageHeader title="Dashboard">
         <RunStatePill running={running} />
       </PageHeader>
 
@@ -129,22 +128,14 @@ export function DashboardView() {
         />
       </CardGrid>
 
-      <div className="mt-[38px] flex flex-wrap items-center gap-3">
-        <SectionTitle className="m-0">Rope</SectionTitle>
-        {rope && (
-          <>
-            <HeadingMeta>{lastRunLabel}</HeadingMeta>
-            <Link
-              href={routes.rope(rope.id)}
-              className="ml-auto text-[13px] leading-none font-semibold hover:text-danger-strong"
-            >
-              Rope detail
-            </Link>
-          </>
-        )}
-      </div>
+      <SectionTitle
+        meta={rope && <HeadingMeta>{lastRunLabel}</HeadingMeta>}
+        actions={rope && <TextLink href={routes.rope(rope.id)}>Rope detail</TextLink>}
+      >
+        Rope
+      </SectionTitle>
 
-      <div className="mt-[18px] flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <Dropdown
           label="Selected rope"
           className="w-full sm:w-auto sm:min-w-[240px] sm:flex-[0_1_320px]"
@@ -171,7 +162,7 @@ export function DashboardView() {
       ) : (
         rope && (
           <>
-            <Panel className="mt-[18px] px-3 py-4 sm:px-[22px] sm:py-5">
+            <Panel className="mt-stack">
               <RopeStrip length={rope.length_m} marks={findingMarks(rope.id, lastFindings)} />
             </Panel>
             <DefectLegend />
@@ -179,26 +170,28 @@ export function DashboardView() {
         )
       )}
 
-      <div className="mt-[38px] flex flex-wrap gap-3.5">
+      <div className="mt-section flex flex-wrap gap-3.5">
         {currentRunId ? (
           <>
-            <ButtonLink href={routes.live} size="md" className="flex-[0_1_260px] py-[15px] text-[15px] max-sm:grow">
+            <ButtonLink href={routes.live} size="lg" className="flex-[0_1_260px] max-sm:grow">
               Open live view
             </ButtonLink>
             <Button
               variant="secondary"
+              size="lg"
               disabled={busy}
               onClick={finishRun}
-              className="flex-[0_1_200px] py-[15px] text-[15px] max-sm:grow"
+              className="flex-[0_1_200px] max-sm:grow"
             >
               {busy ? "Finishing…" : "Finish run"}
             </Button>
           </>
         ) : (
           <Button
+            size="lg"
             disabled={!rope || !connected || busy}
             onClick={startRun}
-            className="flex-[0_1_260px] py-[15px] text-[15px] max-sm:grow"
+            className="flex-[0_1_260px] max-sm:grow"
           >
             {busy ? "Starting…" : "Start run"}
           </Button>

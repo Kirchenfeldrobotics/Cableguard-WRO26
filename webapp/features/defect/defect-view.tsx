@@ -7,7 +7,7 @@ import { DetectionFrame } from "@/components/camera/detection-frame";
 import { Button } from "@/components/ui/button";
 import { BackLink, StatusMessage } from "@/components/ui/feedback";
 import { FactList } from "@/components/ui/fact-list";
-import { HeadingMeta, PageHeader, SectionTitle } from "@/components/ui/heading";
+import { HeadingMeta, PageHeader, SectionTitle, SubTitle } from "@/components/ui/heading";
 import { InfoRow } from "@/components/ui/log-row";
 import { Table, Td, Th } from "@/components/ui/table";
 import { api } from "@/lib/api/client";
@@ -95,49 +95,45 @@ export function DefectView({
         </HeadingMeta>
       </PageHeader>
 
-      <div className="mt-5 flex flex-wrap items-start gap-[22px]">
+      <div className="mt-stack flex flex-wrap items-start gap-stack">
         <div className="min-w-[290px] flex-[1_1_380px]">
           <DetectionFrame key={defect.id} defect={defect} />
         </div>
 
-        <div className="flex min-w-[280px] flex-[1_1_320px] flex-col gap-[18px]">
+        <div className="flex min-w-[280px] flex-[1_1_320px] flex-col gap-stack">
           <FactList
             facts={[
-              { label: "Position", value: formatMetres(defect.pos_to_start), tone: "ink" },
+              { label: "Position", value: formatMetres(defect.pos_to_start), tone: "ink", mono: true },
               { label: "Flaw", value: defectClassLabel(defect.label), tone: "ink" },
               { label: "Type", value: `${defectTypeLabel(defect.kind)} (${defect.kind.toUpperCase()})` },
-              { label: "Detection confidence", value: formatConfidence(defect.confidence), tone: "ink" },
+              { label: "Detection confidence", value: formatConfidence(defect.confidence), tone: "ink", mono: true },
               { label: "Camera", value: formatCamera(defect.cam) },
               { label: "Status", value: reviewed ? "Reviewed" : "Unreviewed", tone: reviewed ? "muted" : "ink" },
-              { label: "Run", value: shortId(run.id) },
-              { label: "Detected", value: formatDateTime(defect.created_at) },
+              { label: "Run", value: shortId(run.id), mono: true },
+              { label: "Detected", value: formatDateTime(defect.created_at), mono: true },
             ]}
           />
 
-          <div>
-            <h2 className="mb-2.5 text-lg leading-none font-extrabold tracking-[-0.01em] uppercase">
-              Change since {previousRun ? shortId(previousRun.id) : "earlier runs"}
-            </h2>
-            <div className="flex flex-col gap-[7px]">
-              {!previousRun ? (
-                <InfoRow tone="neutral" label="No earlier run" value="first run" />
-              ) : previous ? (
-                <InfoRow
-                  tone={kindTone(previous.kind)}
-                  label="Position"
-                  value={`${previous.pos.toFixed(1)} → ${(finding?.pos ?? defect.pos_to_start).toFixed(1)} m`}
-                />
-              ) : (
-                <InfoRow tone="neutral" label="Not detected before" value="first sighting" />
-              )}
-            </div>
+          <div className="flex flex-col gap-2.5">
+            <SubTitle>Change since {previousRun ? shortId(previousRun.id) : "earlier runs"}</SubTitle>
+            {!previousRun ? (
+              <InfoRow tone="neutral" label="No earlier run" />
+            ) : previous ? (
+              <InfoRow
+                tone={kindTone(previous.kind)}
+                label="Position"
+                value={`${previous.pos.toFixed(1)} → ${(finding?.pos ?? defect.pos_to_start).toFixed(1)} m`}
+              />
+            ) : (
+              <InfoRow tone="neutral" label="Not detected before" />
+            )}
           </div>
 
           <div className="flex flex-wrap gap-3">
             <Button
               variant={reviewed ? "secondary" : "primary"}
               disabled={busy}
-              className="flex-[1_1_150px] py-3.5"
+              className="flex-[1_1_150px]"
               onClick={() => setReviewed(!reviewed)}
             >
               {reviewed ? "Mark unreviewed" : "Mark reviewed"}
@@ -145,7 +141,7 @@ export function DefectView({
             <Button
               variant={confirmDelete ? "danger" : "secondary"}
               disabled={busy}
-              className="flex-[1_1_150px] py-3.5"
+              className="flex-[1_1_150px]"
               onClick={() => (confirmDelete ? removeFinding() : setConfirmDelete(true))}
               onBlur={() => setConfirmDelete(false)}
             >

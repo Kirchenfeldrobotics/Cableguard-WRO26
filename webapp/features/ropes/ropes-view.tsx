@@ -4,8 +4,10 @@ import { useState } from "react";
 
 import { RopeLengthInput, parseRopeLength } from "@/components/rope/rope-length-input";
 import { Button } from "@/components/ui/button";
+import { Panel } from "@/components/ui/card";
 import { StatusMessage } from "@/components/ui/feedback";
 import { PageHeader } from "@/components/ui/heading";
+import { Input } from "@/components/ui/input";
 import { RemoveButton } from "@/components/ui/remove-button";
 import { LinkRow, Table, Td, Th } from "@/components/ui/table";
 import { api } from "@/lib/api/client";
@@ -43,7 +45,7 @@ export function RopesView() {
         title="Ropes"
         actions={
           !adding && (
-            <Button onClick={() => setAdding(true)} className="py-[13px]">
+            <Button onClick={() => setAdding(true)} className="max-sm:flex-1">
               Add rope
             </Button>
           )
@@ -67,7 +69,7 @@ export function RopesView() {
       ) : overview.data?.length === 0 ? (
         <StatusMessage>No ropes yet.</StatusMessage>
       ) : (
-        <Table className="mt-[22px]">
+        <Table className="mt-stack">
           <thead>
             <tr>
               <Th>Rope</Th>
@@ -118,7 +120,7 @@ function AddRopeForm({
 
   return (
     <form
-      className="mt-[22px] flex flex-wrap items-center gap-3 rounded-card bg-surface p-4"
+      className="mt-stack"
       onSubmit={async (e) => {
         e.preventDefault();
         if (lengthM === null) return;
@@ -127,23 +129,25 @@ function AddRopeForm({
         setSaving(false);
       }}
     >
-      <input
-        autoFocus
-        required
-        maxLength={120}
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        placeholder="Rope name"
-        aria-label="Rope name"
-        className="min-w-0 basis-full rounded-control border border-border bg-white px-3.5 py-3 text-base sm:min-w-[240px] sm:flex-1 sm:basis-auto sm:text-sm"
-      />
-      <RopeLengthInput value={length} onChange={setLength} />
-      <Button type="submit" disabled={saving || !name.trim() || lengthM === null}>
-        Save
-      </Button>
-      <Button variant="secondary" onClick={onCancel}>
-        Cancel
-      </Button>
+      <Panel className="flex flex-wrap items-center gap-3">
+        <Input
+          autoFocus
+          required
+          maxLength={120}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Rope name"
+          aria-label="Rope name"
+          className="basis-full sm:min-w-[240px] sm:flex-1 sm:basis-auto"
+        />
+        <RopeLengthInput value={length} onChange={setLength} />
+        <Button type="submit" disabled={saving || !name.trim() || lengthM === null}>
+          Save
+        </Button>
+        <Button variant="secondary" onClick={onCancel}>
+          Cancel
+        </Button>
+      </Panel>
     </form>
   );
 }

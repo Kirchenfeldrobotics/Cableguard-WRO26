@@ -8,7 +8,7 @@ export function Notice({ children, className }: { children: React.ReactNode; cla
     <div
       role="alert"
       className={cn(
-        "mt-[18px] rounded-[12px] bg-danger-soft px-[18px] py-4 text-[15px] leading-normal font-medium text-danger-strong",
+        "mt-stack rounded-control bg-danger-soft px-4 py-3.5 text-sm leading-normal font-medium text-danger-strong",
         className,
       )}
     >
@@ -28,7 +28,7 @@ export function StatusMessage({
   return (
     <p
       className={cn(
-        "mt-[18px] text-sm leading-normal",
+        "mt-stack text-sm leading-normal",
         tone === "error" ? "text-danger-strong" : "text-text-subtle",
       )}
     >

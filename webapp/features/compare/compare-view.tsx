@@ -5,8 +5,10 @@ import { useRouter } from "next/navigation";
 import { findingMarks } from "@/components/rope/defect-marks";
 import { RopeStrip, RopeStripSync } from "@/components/rope/rope-strip";
 import { CardGrid, FactCard, Panel } from "@/components/ui/card";
+import { Dropdown } from "@/components/ui/dropdown";
 import { StatusMessage } from "@/components/ui/feedback";
 import { HeadingMeta, PageHeader, SectionTitle } from "@/components/ui/heading";
+import { Field } from "@/components/ui/input";
 import { LogRow } from "@/components/ui/log-row";
 import type { Run } from "@/lib/api/types";
 import { compareRuns, kindTone } from "@/lib/defects";
@@ -57,26 +59,18 @@ export function CompareView({
 
     return (
       <>
-        <div className="mt-5 grid grid-cols-1 gap-3.5 sm:flex sm:flex-wrap">
+        <div className="mt-stack grid grid-cols-1 gap-3.5 sm:flex sm:flex-wrap">
           <RunSelect label="Reference run" value={runB.id} runs={finished} onChange={(v) => select("b", v)} />
           <RunSelect label="Compared run" value={runA.id} runs={finished} onChange={(v) => select("a", v)} />
         </div>
 
-        <CardGrid className="mt-[22px]">
-          <FactCard
-            value={added.length}
-            label="New findings"
-            className="text-[22px] leading-none text-danger-strong sm:text-[26px]"
-          />
-          <FactCard value={unchanged.length} label="Unchanged" className="text-[22px] leading-none sm:text-[26px]" />
-          <FactCard
-            value={resolved.length}
-            label="No longer detected"
-            className="text-[22px] leading-none text-text-muted sm:text-[26px]"
-          />
+        <CardGrid>
+          <FactCard value={added.length} label="New findings" className="text-danger-strong" />
+          <FactCard value={unchanged.length} label="Unchanged" />
+          <FactCard value={resolved.length} label="No longer detected" className="text-text-muted" />
         </CardGrid>
 
-        <Panel className="mt-[26px] flex flex-col gap-7 px-4 py-5 sm:px-[22px]">
+        <Panel className="mt-stack flex flex-col gap-7">
           <RopeStripSync>
             <StripBlock label={runLabel(runB)} count={bFindings.length}>
               <RopeStrip length={rope.length_m} marks={findingMarks(rope.id, bFindings, "unchanged")} />
@@ -92,8 +86,8 @@ export function CompareView({
 
         {added.length > 0 && (
           <>
-            <SectionTitle className="mb-4">New findings</SectionTitle>
-            <div className="flex max-w-[760px] flex-col gap-[7px]">
+            <SectionTitle>New findings</SectionTitle>
+            <Panel className="flex flex-col gap-[7px]">
               {added.map((f) => (
                 <LogRow
                   key={f.best.id}
@@ -104,7 +98,7 @@ export function CompareView({
                   {defectClassLabel(f.best.label)} · {formatConfidence(f.confidence)}
                 </LogRow>
               ))}
-            </div>
+            </Panel>
           </>
         )}
       </>
@@ -131,20 +125,14 @@ function RunSelect({
   onChange: (value: string) => void;
 }) {
   return (
-    <label className="flex flex-col gap-2">
-      <span className="text-xs leading-none text-text-subtle">{label}</span>
-      <select
+    <Field label={label} className="sm:min-w-[240px]">
+      <Dropdown
+        label={label}
+        options={runs.map((run) => ({ value: run.id, label: runLabel(run) }))}
         value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-control border border-border bg-white px-3.5 py-3 font-mono text-base leading-none font-medium text-ink sm:w-auto sm:min-w-[230px] sm:text-[13px]"
-      >
-        {runs.map((run) => (
-          <option key={run.id} value={run.id}>
-            {runLabel(run)}
-          </option>
-        ))}
-      </select>
-    </label>
+        onChange={onChange}
+      />
+    </Field>
   );
 }
 
@@ -153,7 +141,7 @@ function StripBlock({ label, count, children }: { label: string; count: number; 
     <div>
       <div className="mb-3.5 flex justify-between gap-4">
         <span className="text-sm leading-none font-semibold">{label}</span>
-        <span className="font-mono text-xs leading-none text-text-subtle">{count} findings</span>
+        <span className="text-xs leading-none text-text-subtle">{count} findings</span>
       </div>
       {children}
     </div>

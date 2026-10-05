@@ -1,16 +1,14 @@
-import Link from "next/link";
-
+import { ButtonLink } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/heading";
+import { routes } from "@/lib/routes";
 
 export default function NotFound() {
   return (
     <>
       <PageHeader title="Not found" />
-      <p className="mt-[18px] text-sm text-text-muted">
-        <Link href="/" className="font-semibold underline">
-          Back to the dashboard
-        </Link>
-      </p>
+      <ButtonLink href={routes.dashboard} size="lg" className="mt-stack max-sm:w-full sm:w-[260px]">
+        Back to the dashboard
+      </ButtonLink>
     </>
   );
 }

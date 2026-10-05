@@ -15,7 +15,7 @@ import { routes } from "@/lib/routes";
  * footer on desktop. Tapping it opens the connection details under Robot settings.
  */
 export function MobileTopBar() {
-  const { connected, label, detail } = useLinkStatus();
+  const { connected, label, detail, brief } = useLinkStatus();
   const { user, signOut } = useAuth();
 
   return (
@@ -36,7 +36,7 @@ export function MobileTopBar() {
           />
           <span className="flex min-w-0 flex-col gap-1">
             <span className="truncate text-[13px] leading-none font-semibold text-white">{label}</span>
-            <span className="truncate font-mono text-[10px] leading-none text-text-faint">{detail}</span>
+            <span className="truncate font-mono text-[11px] leading-none text-text-faint">{brief}</span>
           </span>
         </Link>
 
@@ -44,7 +44,7 @@ export function MobileTopBar() {
           type="button"
           onClick={signOut}
           title={user ? `Signed in as ${user.username}` : undefined}
-          className="flex-none rounded-control px-2 py-2 text-[12px] leading-none font-semibold text-text-inverse-muted active:bg-ink-soft"
+          className="flex-none rounded-control px-2 py-2 text-xs leading-none font-semibold text-text-inverse-muted active:bg-ink-soft"
         >
           Sign out
         </button>

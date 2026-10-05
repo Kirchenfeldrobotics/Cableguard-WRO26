@@ -59,7 +59,7 @@ export function RunView({ ropeId, runId }: { ropeId: string; runId: string }) {
       <PageHeader
         title={shortId(run.id)}
         actions={
-          <Button variant="secondary" disabled={exporting} onClick={exportReport} className="py-3">
+          <Button variant="secondary" disabled={exporting} onClick={exportReport} className="max-sm:flex-1">
             {exporting ? "Exporting…" : "Export run report"}
           </Button>
         }
@@ -75,7 +75,7 @@ export function RunView({ ropeId, runId }: { ropeId: string; runId: string }) {
         <FactCard value={detections.length} label="Detections" />
       </CardGrid>
 
-      <Panel className="mt-[26px] px-3 py-4 sm:px-[22px] sm:py-5">
+      <Panel className="mt-stack">
         <RopeStrip length={rope.length_m} marks={findingMarks(rope.id, findings)} />
       </Panel>
       <DefectLegend />
@@ -115,8 +115,9 @@ export function RunView({ ropeId, runId }: { ropeId: string; runId: string }) {
                   <Td mono muted align="right" label="Detections">
                     {finding.detections.length}
                   </Td>
-                  <Td muted label="Status">
-                    {finding.reviewed ? "Reviewed" : <Pill tone="neutral">Unreviewed</Pill>}
+                  {/* What is still to do stands out, what is done steps back. */}
+                  <Td label="Status" className={finding.reviewed ? "text-text-muted" : "font-semibold"}>
+                    {finding.reviewed ? "Reviewed" : "Unreviewed"}
                   </Td>
                 </LinkRow>
               ))}

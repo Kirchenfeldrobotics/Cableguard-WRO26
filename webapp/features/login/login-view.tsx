@@ -4,8 +4,10 @@ import { useEffect, useState } from "react";
 
 import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
+import { Panel } from "@/components/ui/card";
 import { Notice } from "@/components/ui/feedback";
 import { PageHeader } from "@/components/ui/heading";
+import { Field, Input } from "@/components/ui/input";
 import { useAuth } from "@/lib/auth/auth-context";
 
 export function LoginView() {
@@ -48,70 +50,48 @@ export function LoginView() {
           <Logo />
         </div>
 
-        <form className="mt-3.5 rounded-card bg-surface p-5 sm:p-[26px]" onSubmit={submit}>
-          <PageHeader title="Sign in" />
+        <form className="mt-3.5" onSubmit={submit}>
+          <Panel>
+            <PageHeader title="Sign in" />
 
-          <div className="mt-[22px] flex flex-col gap-3.5">
-            <Field
-              id="username"
-              label="Username"
-              autoComplete="username"
-              autoFocus
-              value={username}
-              onChange={setUsername}
-            />
-            <Field
-              id="password"
-              label="Password"
-              type="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={setPassword}
-            />
-          </div>
+            <div className="mt-stack flex flex-col gap-3.5">
+              <Field label="Username" htmlFor="username">
+                <Input
+                  id="username"
+                  name="username"
+                  required
+                  autoComplete="username"
+                  autoFocus
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                />
+              </Field>
+              <Field label="Password" htmlFor="password">
+                <Input
+                  id="password"
+                  name="password"
+                  type="password"
+                  required
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </Field>
+            </div>
 
-          {error && <Notice>{error}</Notice>}
+            {error && <Notice>{error}</Notice>}
 
-          <Button
-            type="submit"
-            size="lg"
-            className="mt-[22px] w-full"
-            disabled={submitting || !username.trim() || !password}
-          >
-            {submitting ? "Signing in…" : "Sign in"}
-          </Button>
+            <Button
+              type="submit"
+              size="lg"
+              className="mt-stack w-full"
+              disabled={submitting || !username.trim() || !password}
+            >
+              {submitting ? "Signing in…" : "Sign in"}
+            </Button>
+          </Panel>
         </form>
       </div>
-    </div>
-  );
-}
-
-function Field({
-  id,
-  label,
-  value,
-  onChange,
-  ...props
-}: {
-  id: string;
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-} & Omit<React.InputHTMLAttributes<HTMLInputElement>, "onChange" | "value" | "id">) {
-  return (
-    <div className="flex flex-col gap-2">
-      <label htmlFor={id} className="text-[13px] leading-none font-semibold text-text-muted">
-        {label}
-      </label>
-      <input
-        id={id}
-        name={id}
-        required
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="rounded-control border border-border bg-white px-3.5 py-3 text-base sm:text-sm"
-        {...props}
-      />
     </div>
   );
 }

@@ -35,7 +35,7 @@ export function LogRow({
   );
 }
 
-/** Tinted row without navigation. */
+/** Tinted row without navigation: a statement, or a label with its measurement. */
 export function InfoRow({
   tone,
   label,
@@ -43,12 +43,12 @@ export function InfoRow({
 }: {
   tone: Tone;
   label: React.ReactNode;
-  value: React.ReactNode;
+  value?: React.ReactNode;
 }) {
   return (
     <div className={cn("flex items-center justify-between gap-4 rounded-row px-3.5 py-3", tones[tone])}>
       <span className="text-[13px] leading-none font-medium">{label}</span>
-      <span className="font-mono text-xs leading-none">{value}</span>
+      {value != null && <span className="font-mono text-xs leading-none">{value}</span>}
     </div>
   );
 }

@@ -46,7 +46,7 @@ const MOTION_LABEL = { scanning: "Scanning", stopped: "Stopped", unknown: "Motio
 
 function motionTint(motion: keyof typeof MOTION_LABEL) {
   return motion === "scanning"
-    ? "border-success-line bg-linear-to-r from-success-soft to-[#d3f0dd] text-success-ink"
+    ? "border-success-line bg-success-soft text-success-ink"
     : "border-line-strong bg-surface text-text-muted";
 }
 
@@ -159,7 +159,7 @@ export function LiveView() {
   if (current.data?.run_id == null) {
     return (
       <>
-        <PageHeader title="Inspection data">
+        <PageHeader title="Live run">
           <RunStatePill running={false} />
         </PageHeader>
 
@@ -167,14 +167,15 @@ export function LiveView() {
 
         <StatusMessage>No run selected.</StatusMessage>
 
-        <div className="mt-[18px] flex flex-wrap gap-3.5">
-          <ButtonLink href={routes.dashboard} className="flex-[0_1_260px] py-[15px] text-[15px] max-sm:grow">
+        <div className="mt-stack flex flex-wrap gap-3.5">
+          <ButtonLink href={routes.dashboard} size="lg" className="flex-[0_1_260px] max-sm:grow">
             Back to the dashboard
           </ButtonLink>
           {moving && (
             <Button
               variant="danger"
-              className="flex-[0_1_200px] py-[15px] text-[15px] max-sm:grow"
+              size="lg"
+              className="flex-[0_1_200px] max-sm:grow"
               disabled={socket !== "open"}
               onClick={stop}
             >
@@ -192,7 +193,7 @@ export function LiveView() {
   // the markup.
   return (
     <div className="flex flex-col">
-      <PageHeader title="Inspection data">
+      <PageHeader title="Live run">
         <RunStatePill running={running} />
         {rope && <HeadingMeta>{rope.name}</HeadingMeta>}
       </PageHeader>
@@ -233,7 +234,7 @@ export function LiveView() {
 
       <section className="max-lg:order-2">
         <SectionTitle>Position on rope</SectionTitle>
-        <Panel className="px-3 py-4 sm:px-[22px] sm:py-5">
+        <Panel>
           {rope ? (
             <RopeStrip
               length={rope.length_m}
@@ -249,7 +250,7 @@ export function LiveView() {
       {rope && newestFirst.length > 0 && (
         <section className="max-lg:order-6">
           <SectionTitle>Log</SectionTitle>
-          <Panel className="flex flex-col gap-[7px] p-4">
+          <Panel className="flex flex-col gap-[7px]">
             {newestFirst.map((f) => (
               <LogRow
                 key={f.best.id}
@@ -267,7 +268,7 @@ export function LiveView() {
 
       <section className="max-lg:order-4">
         <SectionTitle>Drive</SectionTitle>
-        <Panel className="flex flex-col gap-[18px] px-4 py-5 sm:px-[22px]">
+        <Panel className="flex flex-col gap-stack">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex flex-col gap-2">
               <span className="text-[13px] leading-none text-text-muted">Scan speed</span>
@@ -331,13 +332,14 @@ export function LiveView() {
 
       <section className="max-lg:order-5">
         <SectionTitle>Rope socket</SectionTitle>
-        <Panel className="flex flex-col gap-[18px] px-4 py-5 sm:px-[22px]">
+        <Panel className="flex flex-col gap-stack">
           <div className="flex flex-wrap items-center gap-3.5">
             <Button size="lg" className="flex-[1_1_260px]" disabled={socket !== "open"} onClick={toggleOpen}>
               {open ? "Close robot" : "Open robot"}
             </Button>
             <Button
               variant="secondary"
+              size="lg"
               aria-pressed={watch}
               className="max-sm:grow"
               disabled={socket !== "open" || telemetry === null}
@@ -364,7 +366,7 @@ export function LiveView() {
       <div className="max-lg:hidden">
         <div
           className={cn(
-            "mt-[38px] flex h-[58px] items-center justify-center gap-2.5 rounded-control border text-base leading-none font-semibold",
+            "mt-section flex h-control-lg items-center justify-center gap-2.5 rounded-control border text-base leading-none font-semibold",
             motionTint(motion),
           )}
         >
@@ -382,7 +384,7 @@ export function LiveView() {
         <div className="flex items-center gap-2.5">
           <div
             className={cn(
-              "flex h-12 min-w-0 flex-1 items-center gap-2.5 rounded-control border px-3.5 text-[15px] leading-none font-semibold",
+              "flex h-control min-w-0 flex-1 items-center gap-2.5 rounded-control border px-3.5 text-sm leading-none font-semibold",
               motionTint(motion),
             )}
           >
@@ -394,12 +396,7 @@ export function LiveView() {
               </span>
             )}
           </div>
-          <Button
-            variant="secondary"
-            className="h-12 flex-none px-7 text-[15px]"
-            disabled={socket !== "open"}
-            onClick={stop}
-          >
+          <Button variant="secondary" className="flex-none px-7" disabled={socket !== "open"} onClick={stop}>
             Stop
           </Button>
         </div>

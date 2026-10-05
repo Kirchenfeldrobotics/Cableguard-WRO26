@@ -25,7 +25,7 @@ export function Th({ align = "left", children }: { align?: Align; children?: Rea
   return (
     <th
       className={cn(
-        "border-b border-line-strong pr-3.5 pb-3 text-xs leading-none font-semibold text-text-subtle",
+        "border-b border-line-strong pr-6 pb-3 text-xs leading-none font-semibold text-text-subtle last:pr-0",
         align === "right" ? "text-right" : "text-left",
       )}
     >
@@ -60,7 +60,8 @@ export function Td({
       data-primary={phone === "primary" || undefined}
       data-phone={phone}
       className={cn(
-        "border-b border-line py-3.5 pr-3.5 text-[13px] leading-[1.3]",
+        // The gutter keeps a right-aligned number off the column that follows it.
+        "border-b border-line py-3.5 pr-6 text-[13px] leading-[1.3] last:pr-0",
         align === "right" && "text-right",
         mono ? "font-mono whitespace-nowrap" : "font-sans",
         muted && "text-text-muted",

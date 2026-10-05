@@ -1,13 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 
 import { DefectLegend } from "@/components/rope/defect-legend";
 import { findingMarks } from "@/components/rope/defect-marks";
 import { RopeLengthInput, parseRopeLength } from "@/components/rope/rope-length-input";
 import { RopeStrip } from "@/components/rope/rope-strip";
-import { Button } from "@/components/ui/button";
+import { Button, TextLink } from "@/components/ui/button";
 import { CardGrid, FactCard, Panel } from "@/components/ui/card";
 import { BackLink, StatusMessage } from "@/components/ui/feedback";
 import { PageHeader, SectionTitle } from "@/components/ui/heading";
@@ -54,21 +53,8 @@ export function RopeView({ ropeId }: { ropeId: string }) {
         title={rope.name}
         actions={
           <>
-            {!editing && (
-              <button
-                type="button"
-                onClick={() => setEditing(true)}
-                className="text-[13px] leading-none font-semibold hover:text-danger-strong max-lg:-m-2.5 max-lg:p-2.5"
-              >
-                Edit length
-              </button>
-            )}
-            <Link
-              href={routes.compare(rope.id)}
-              className="text-[13px] leading-none font-semibold hover:text-danger-strong"
-            >
-              Compare runs
-            </Link>
+            {!editing && <TextLink onClick={() => setEditing(true)}>Edit length</TextLink>}
+            <TextLink href={routes.compare(rope.id)}>Compare runs</TextLink>
           </>
         }
       />
@@ -91,7 +77,7 @@ export function RopeView({ ropeId }: { ropeId: string }) {
       </CardGrid>
 
       <SectionTitle>Unrolled rope</SectionTitle>
-      <Panel className="px-3 py-4 sm:px-[22px] sm:py-5">
+      <Panel>
         <RopeStrip
           length={rope.length_m}
           marks={shownRun ? findingMarks(rope.id, findingsByRun[shownRun.id] ?? []) : []}
@@ -149,7 +135,7 @@ export function RopeView({ ropeId }: { ropeId: string }) {
       {counts.length < 2 ? (
         <StatusMessage>The trend needs at least two finished runs.</StatusMessage>
       ) : (
-        <Panel className="flex flex-wrap items-end gap-[26px] p-[22px]">
+        <Panel className="flex flex-wrap items-end gap-[26px]">
           {finishedOldestFirst.map((run, i) => (
             <div key={run.id} className="flex h-[132px] w-16 flex-col items-center justify-end gap-2">
               <div className="text-[13px] leading-none font-semibold">{counts[i]}</div>
@@ -188,7 +174,7 @@ function EditLengthForm({
   return (
     <>
       <form
-        className="mt-[22px] flex flex-wrap items-center gap-3 rounded-card bg-surface p-4"
+        className="mt-stack"
         onSubmit={async (e) => {
           e.preventDefault();
           if (lengthM === null) return;
@@ -203,13 +189,15 @@ function EditLengthForm({
           }
         }}
       >
-        <RopeLengthInput autoFocus value={length} onChange={setLength} />
-        <Button type="submit" disabled={saving || lengthM === null}>
-          Save
-        </Button>
-        <Button variant="secondary" onClick={onCancel}>
-          Cancel
-        </Button>
+        <Panel className="flex flex-wrap items-center gap-3">
+          <RopeLengthInput autoFocus value={length} onChange={setLength} />
+          <Button type="submit" disabled={saving || lengthM === null}>
+            Save
+          </Button>
+          <Button variant="secondary" onClick={onCancel}>
+            Cancel
+          </Button>
+        </Panel>
       </form>
       {error && <StatusMessage tone="error">{error}</StatusMessage>}
     </>

@@ -64,7 +64,7 @@ function Operator() {
       <button
         type="button"
         onClick={signOut}
-        className="rounded-control px-2 py-1.5 text-[12px] leading-none font-semibold text-text-inverse-muted transition-colors hover:bg-ink-soft hover:text-white"
+        className="rounded-control px-2 py-1.5 text-xs leading-none font-semibold text-text-inverse-muted transition-colors hover:bg-ink-soft hover:text-white"
       >
         Sign out
       </button>
@@ -80,15 +80,17 @@ export function useLinkStatus() {
 
   const serverUp = socket === "open";
   const label = connected ? "Connected" : serverUp ? "Link lost" : "Server offline";
+  const ago = serverUp && lastMessageAt && now ? formatAgo(Math.max(0, now - lastMessageAt)) : null;
   const detail = !serverUp
     ? socket === "connecting"
       ? "connecting to server…"
       : "retrying…"
-    : lastMessageAt && now
-      ? `last packet ${formatAgo(Math.max(0, now - lastMessageAt))}`
+    : ago
+      ? `last packet ${ago}`
       : "waiting for data";
 
-  return { connected, label, detail, now };
+  // `brief` drops the caption, for the phone header where the full line never fits.
+  return { connected, label, detail, brief: ago ?? detail, now };
 }
 
 function LinkStatus() {

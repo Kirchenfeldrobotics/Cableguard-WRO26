@@ -125,7 +125,7 @@ export function Dropdown({
         onClick={() => (open ? setOpen(false) : openMenu())}
         onKeyDown={onKeyDown}
         className={cn(
-          "flex w-full items-center justify-between gap-3 rounded-control border bg-white px-3.5 py-3 text-sm leading-none font-medium transition-colors",
+          "flex h-control w-full items-center justify-between gap-3 rounded-control border bg-white px-3.5 text-sm font-medium transition-colors",
           unusable ? "cursor-not-allowed border-border text-text-faint" : "hover:border-ink",
           open ? "border-ink" : "border-border",
         )}
@@ -155,7 +155,7 @@ export function Dropdown({
               onPointerEnter={() => setActiveIndex(i)}
               onClick={() => choose(i)}
               className={cn(
-                "cursor-pointer truncate px-3.5 py-2.5 text-sm leading-none",
+                "cursor-pointer truncate px-3.5 py-2 text-sm",
                 i === activeIndex && "bg-surface-hover",
                 option.value === value ? "font-semibold" : "font-medium text-text-muted",
               )}

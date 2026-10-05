@@ -10,9 +10,15 @@ import type {
   SettingsDocument,
 } from "./types";
 
+/**
+ * A request the server refused or never got. The message is what the operator reads, so it
+ * is a sentence and nothing else; the endpoint and the status are kept beside it.
+ */
 export class ApiError extends Error {
   constructor(
+    /** HTTP status, 0 when the server could not be reached at all. */
     readonly status: number,
+    readonly path: string,
     message: string,
   ) {
     super(message);
@@ -20,10 +26,16 @@ export class ApiError extends Error {
   }
 }
 
+/** `wrong username or password` becomes `Wrong username or password.` */
+function sentence(text: string): string {
+  const capitalised = text.charAt(0).toUpperCase() + text.slice(1);
+  return /[.!?…]$/.test(capitalised) ? capitalised : `${capitalised}.`;
+}
+
 /** The server words a refusal as text, and a refused field as a list with one entry per field. */
 function errorDetail(body: unknown): string | null {
   const detail = (body as { detail?: unknown } | null)?.detail;
-  if (typeof detail === "string") return detail;
+  if (typeof detail === "string") return detail ? sentence(detail) : null;
   if (!Array.isArray(detail)) return null;
   return detail
     .map((item: { loc?: unknown[]; msg?: string }) =>
@@ -39,27 +51,32 @@ async function send(
   { anonymous = false }: { anonymous?: boolean } = {},
 ): Promise<Response> {
   const token = anonymous ? null : getToken();
-  const res = await fetch(apiUrl(path), {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...init?.headers,
-    },
-    cache: "no-store",
-  });
+  let res: Response;
+  try {
+    res = await fetch(apiUrl(path), {
+      ...init,
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...init?.headers,
+      },
+      cache: "no-store",
+    });
+  } catch {
+    throw new ApiError(0, path, "The server cannot be reached.");
+  }
 
   // The token expired or the account is gone: back to the login screen.
   if (res.status === 401 && !anonymous) clearToken();
 
   if (!res.ok) {
-    let detail = res.statusText;
+    let detail: string | null = null;
     try {
-      detail = errorDetail(await res.json()) ?? detail;
+      detail = errorDetail(await res.json());
     } catch {
-      // Body is not JSON; keep the status text.
+      // Body is not JSON; the status has to do.
     }
-    throw new ApiError(res.status, `${path} failed: ${res.status} ${detail || res.statusText}`);
+    throw new ApiError(res.status, path, detail ?? `The server answered with an error (${res.status}).`);
   }
   return res;
 }

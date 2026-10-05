@@ -86,7 +86,7 @@ export function RopeStrip({
 }) {
   if (!length || length <= 0) {
     return (
-      <div className="flex h-[70px] items-center justify-center rounded-[8px] bg-white/60 text-[13px] text-text-subtle">
+      <div className="flex h-[70px] items-center justify-center rounded-row bg-white text-[13px] text-text-subtle">
         Rope length not set.
       </div>
     );
@@ -233,7 +233,8 @@ function Strip({
             </div>
           </div>
 
-          <div className="relative h-[34px] rounded-[8px] bg-surface">
+          {/* The rope: white, so that it stands out from the grey panel a strip sits on. */}
+          <div className="relative h-[34px] rounded-row bg-white">
             {/* Wider click margin on phones so a finger can hit a single detection. */}
             <div
               className="absolute inset-y-0 [--pad:10px] sm:[--pad:6px]"

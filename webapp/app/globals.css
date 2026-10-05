@@ -45,6 +45,14 @@
   --radius-card: 14px;
   --radius-control: 10px;
   --radius-row: 9px;
+
+  /* Rhythm: `section` above a section heading, `stack` under it and between stacked blocks. */
+  --spacing-section: 38px;
+  --spacing-stack: 18px;
+
+  /* Height of every button, input and dropdown, and of the large action buttons. */
+  --spacing-control: 44px;
+  --spacing-control-lg: 58px;
 }
 
 @theme inline {
@@ -76,6 +84,19 @@
   /* Taps give their own feedback through `active:` styles. */
   html {
     -webkit-tap-highlight-color: transparent;
+    /* The scrollbar keeps its room on a page too short to need it, so pages line up. */
+    scrollbar-gutter: stable;
+  }
+
+  /* Numbers are typed, the steppers a browser draws into the field only get in the way. */
+  input[type="number"] {
+    appearance: textfield;
+  }
+
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    appearance: none;
+    margin: 0;
   }
 
   :focus-visible {
@@ -149,7 +170,7 @@
 
   .stack-table td[data-primary] {
     grid-column: 1 / -1;
-    font-size: 15px;
+    font-size: 16px;
   }
 
   .stack-table td[data-phone="end"] {
