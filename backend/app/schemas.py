@@ -1,7 +1,7 @@
 from datetime import datetime
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from comm_protocols.settings import RobotSettings, SettingGroup, SettingInfo
 
@@ -33,17 +33,27 @@ class TokenOut(BaseModel):
 
     user: UserOut
 
+# Length of a rope in metres. The webapp draws the rope to scale, so a slip of a few zeros
+# too many is refused rather than drawn
+RopeLength = Annotated[float, Field(gt=0, le=100_000)]
+
 # Schema for the rope creation
-class RopeCreate(BaseModel): 
-    name: str 
+class RopeCreate(BaseModel):
+    name: str
+    length_m: RopeLength
+
+# Schema for a change to a rope. The length is the only thing about it that can be corrected
+class RopeUpdate(BaseModel):
+    length_m: RopeLength
 
 # Schema for rope output
-class RopeOut(BaseModel): 
+class RopeOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    id: str 
-    name: str 
-    length_m: float | None 
+    id: str
+    name: str
+    # Only empty for a rope that was created before the length was asked for
+    length_m: float | None
     created_at: datetime
 
 # Schema for run creation

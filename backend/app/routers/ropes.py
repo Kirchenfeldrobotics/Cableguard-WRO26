@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import Rope
-from app.schemas import RopeCreate, RopeOut
+from app.schemas import RopeCreate, RopeOut, RopeUpdate
 
 router = APIRouter(prefix="/api/ropes", tags=["ropes"])
 
@@ -23,6 +23,17 @@ def create_rope(payload: RopeCreate, db: Session = Depends(get_db)):
     except IntegrityError: 
         db.rollback()
         raise HTTPException(409, "a rope with that name already exists")
+    db.refresh(rope)
+    return rope
+
+# Correct the length of a rope (fields specified in schemas.py)
+@router.patch("/{rope_id}", response_model=RopeOut)
+def update_rope(rope_id: str, payload: RopeUpdate, db: Session = Depends(get_db)):
+    rope = db.get(Rope, rope_id)
+    if rope is None:
+        raise HTTPException(404, "rope not found")
+    rope.length_m = payload.length_m
+    db.commit()
     db.refresh(rope)
     return rope
 

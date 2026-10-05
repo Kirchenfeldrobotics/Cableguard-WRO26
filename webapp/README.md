@@ -66,7 +66,7 @@ Conventions:
 
 | Channel | Endpoint | Used for |
 | --- | --- | --- |
-| REST | `GET /api/ropes`, `POST /api/ropes`, `DELETE /api/ropes/{id}` | Ropes list, add, remove |
+| REST | `GET /api/ropes`, `POST /api/ropes`, `PATCH /api/ropes/{id}`, `DELETE /api/ropes/{id}` | Ropes list, add (name and length), correct the length, remove |
 | REST | `GET /api/runs?rope_id=` | Run history per rope |
 | REST | `GET /api/defects?run_id=` | Defects per run (live view polls every 5 s) |
 | REST | `GET /api/current` | Rope and run selected on the server |
@@ -94,7 +94,8 @@ Connected to real data:
 - Robot link state, last packet and telemetry age, telemetry sequence, microsteps and drive speed
 - Drive control: target speed and direction, Drive, Resume after a stop, Emergency stop
 - Camera A and B live streams
-- Ropes list with add and remove, rope detail, run history, defect trend
+- Ropes list with add (name and length) and remove, rope detail with length correction, run history, defect trend
+- Rope strip drawn to scale: scrolls sideways on a long rope, with an overview of the whole rope
 - Run detail, defect detail with change since the previous run
 - Run comparison (defects within 1.5 m count as the same defect)
 

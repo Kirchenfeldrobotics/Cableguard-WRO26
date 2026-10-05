@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 
 import { findingMarks } from "@/components/rope/defect-marks";
-import { RopeStrip } from "@/components/rope/rope-strip";
+import { RopeStrip, RopeStripSync } from "@/components/rope/rope-strip";
 import { CardGrid, FactCard, Panel } from "@/components/ui/card";
 import { StatusMessage } from "@/components/ui/feedback";
 import { HeadingMeta, PageHeader, SectionTitle } from "@/components/ui/heading";
@@ -77,15 +77,17 @@ export function CompareView({
         </CardGrid>
 
         <Panel className="mt-[26px] flex flex-col gap-7 px-4 py-5 sm:px-[22px]">
-          <StripBlock label={runLabel(runB)} count={bFindings.length}>
-            <RopeStrip length={rope.length_m} marks={findingMarks(rope.id, bFindings, "unchanged")} />
-          </StripBlock>
-          <StripBlock label={runLabel(runA)} count={aFindings.length}>
-            <RopeStrip
-              length={rope.length_m}
-              marks={findingMarks(rope.id, aFindings, (f) => (addedIds.has(f.best.id) ? "new" : "unchanged"))}
-            />
-          </StripBlock>
+          <RopeStripSync>
+            <StripBlock label={runLabel(runB)} count={bFindings.length}>
+              <RopeStrip length={rope.length_m} marks={findingMarks(rope.id, bFindings, "unchanged")} />
+            </StripBlock>
+            <StripBlock label={runLabel(runA)} count={aFindings.length}>
+              <RopeStrip
+                length={rope.length_m}
+                marks={findingMarks(rope.id, aFindings, (f) => (addedIds.has(f.best.id) ? "new" : "unchanged"))}
+              />
+            </StripBlock>
+          </RopeStripSync>
         </Panel>
 
         {added.length > 0 && (

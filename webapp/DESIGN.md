@@ -125,7 +125,8 @@ between cards, 12px outer padding around the app.
 | `LogRow`, `InfoRow` | `components/ui/log-row.tsx` | Tinted rows for detections and changes |
 | `FactList` | `components/ui/fact-list.tsx` | Label and value rows on a panel |
 | `Notice`, `StatusMessage`, `BackLink` | `components/ui/feedback.tsx` | Alerts, loading, empty and error states |
-| `RopeStrip`, `findingMarks`, `DefectLegend` | `components/rope/` | Unrolled rope with metre scale and finding marks |
+| `RopeStrip`, `RopeStripSync`, `findingMarks`, `DefectLegend` | `components/rope/` | Unrolled rope with metre scale and finding marks, drawn to scale and scrolling sideways when the rope is longer than the screen |
+| `RopeLengthInput` | `components/rope/rope-length-input.tsx` | Length in metres with its unit, for adding a rope and correcting its length |
 | `CameraFeed` | `components/camera/camera-feed.tsx` | Live JPEG stream, dimmed with a "Not live" badge when frames stop, or striped placeholder |
 | `DetectionFrame` | `components/camera/detection-frame.tsx` | The stored JPEG a defect was found in, with its box on top; fetched as a blob because an `<img>` cannot send the token |
 | `RunStatePill` | `components/inspection/run-state-pill.tsx` | Link lost, Live or Idle |
@@ -151,6 +152,23 @@ between cards, 12px outer padding around the app.
   certain one. In comparisons, marks also found in the reference run are thin and grey,
   new ones are wider and keep full opacity. The black vertical line is the robot position
   (only drawn when a position is known).
+- **Rope strip scale**: the strip is drawn at 10 px per metre (`PX_PER_M` in
+  `components/rope/strip-layout.ts`), about 100 m across a desktop panel and 30 m on a phone.
+  A rope that fits is stretched to the full width. A longer one scrolls sideways and gets an
+  overview bar underneath: the whole rope in one line, a tick per mark and a frame around the
+  part on screen. The overview is the strip's scrollbar (drag, click, arrow keys, Page
+  Up/Down, Home, End), the browser's own is hidden. The scale is what keeps marks apart:
+  findings of one type are never closer than `CLUSTER_GAP_M`, which is wider than a mark at
+  10 px per metre. A local fault and a loss of metallic area on the same spot share the bar
+  height, the fault on top. A mark's click margin stops halfway to its neighbour. The scale
+  labels step by 1, 2, 5, 10, ... metres, whatever keeps them about 64 px apart.
+- **Rope strip position**: a strip opens at the start of the rope. On the live screen it
+  follows the robot and moves on when the robot nears the edge. While the operator has hold
+  of the strip it stays where they put it, and it follows again once they have let go with
+  the robot on screen. Strips inside one `RopeStripSync` scroll together (run comparison).
+- **Rope length** is asked for when a rope is added and can be corrected on the rope page
+  (`Edit length`). Only a rope from before the length was asked for has none, and its strip
+  says so instead of drawing.
 - **States**: every data view handles loading (`Loading…`), error (red text) and empty
   (a few words saying what is missing). An empty list whose count already shows as 0 on a
   card is not drawn at all, heading included.

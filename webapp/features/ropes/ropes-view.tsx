@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { RopeLengthInput, parseRopeLength } from "@/components/rope/rope-length-input";
 import { Button } from "@/components/ui/button";
 import { StatusMessage } from "@/components/ui/feedback";
 import { PageHeader } from "@/components/ui/heading";
@@ -51,8 +52,8 @@ export function RopesView() {
       {adding && (
         <AddRopeForm
           onCancel={() => setAdding(false)}
-          onSubmit={async (name) => {
-            if (await run(() => api.ropes.create(name))) setAdding(false);
+          onSubmit={async (name, lengthM) => {
+            if (await run(() => api.ropes.create(name, lengthM))) setAdding(false);
           }}
         />
       )}
@@ -114,19 +115,22 @@ function AddRopeForm({
   onSubmit,
   onCancel,
 }: {
-  onSubmit: (name: string) => Promise<void>;
+  onSubmit: (name: string, lengthM: number) => Promise<void>;
   onCancel: () => void;
 }) {
   const [name, setName] = useState("");
+  const [length, setLength] = useState("");
   const [saving, setSaving] = useState(false);
+  const lengthM = parseRopeLength(length);
 
   return (
     <form
       className="mt-[22px] flex flex-wrap items-center gap-3 rounded-card bg-surface p-4"
       onSubmit={async (e) => {
         e.preventDefault();
+        if (lengthM === null) return;
         setSaving(true);
-        await onSubmit(name.trim());
+        await onSubmit(name.trim(), lengthM);
         setSaving(false);
       }}
     >
@@ -140,7 +144,8 @@ function AddRopeForm({
         aria-label="Rope name"
         className="min-w-0 basis-full rounded-control border border-border bg-white px-3.5 py-3 text-base sm:min-w-[240px] sm:flex-1 sm:basis-auto sm:text-sm"
       />
-      <Button type="submit" disabled={saving || !name.trim()}>
+      <RopeLengthInput value={length} onChange={setLength} />
+      <Button type="submit" disabled={saving || !name.trim() || lengthM === null}>
         Save
       </Button>
       <Button variant="secondary" onClick={onCancel}>

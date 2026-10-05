@@ -24,6 +24,7 @@ export interface LoginResult {
 export interface Rope {
   id: string;
   name: string;
+  /** Metres. Null only for a rope that was added before the length was asked for. */
   length_m: number | null;
   created_at: string;
 }

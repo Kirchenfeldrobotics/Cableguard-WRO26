@@ -1,14 +1,19 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 
 import { DefectLegend } from "@/components/rope/defect-legend";
 import { findingMarks } from "@/components/rope/defect-marks";
+import { RopeLengthInput, parseRopeLength } from "@/components/rope/rope-length-input";
 import { RopeStrip } from "@/components/rope/rope-strip";
+import { Button } from "@/components/ui/button";
 import { CardGrid, FactCard, Panel } from "@/components/ui/card";
 import { BackLink, StatusMessage } from "@/components/ui/feedback";
 import { PageHeader, SectionTitle } from "@/components/ui/heading";
 import { LinkRow, Table, Td, Th } from "@/components/ui/table";
+import { api } from "@/lib/api/client";
+import type { Rope } from "@/lib/api/types";
 import { cn } from "@/lib/cn";
 import {
   NOT_AVAILABLE,
@@ -22,7 +27,8 @@ import { lastFinishedRun, useRopeHistory } from "@/lib/hooks/use-inspection";
 import { routes } from "@/lib/routes";
 
 export function RopeView({ ropeId }: { ropeId: string }) {
-  const { data, error, loading } = useRopeHistory(ropeId);
+  const { data, error, loading, reload } = useRopeHistory(ropeId);
+  const [editing, setEditing] = useState(false);
 
   if (error) return <StatusMessage tone="error">Could not load the rope from the server.</StatusMessage>;
   if (loading || !data) return <StatusMessage>Loading…</StatusMessage>;
@@ -40,14 +46,36 @@ export function RopeView({ ropeId }: { ropeId: string }) {
       <PageHeader
         title={rope.name}
         actions={
-          <Link
-            href={routes.compare(rope.id)}
-            className="text-[13px] leading-none font-semibold hover:text-danger-strong"
-          >
-            Compare runs
-          </Link>
+          <>
+            {!editing && (
+              <button
+                type="button"
+                onClick={() => setEditing(true)}
+                className="text-[13px] leading-none font-semibold hover:text-danger-strong max-lg:-m-2.5 max-lg:p-2.5"
+              >
+                Edit length
+              </button>
+            )}
+            <Link
+              href={routes.compare(rope.id)}
+              className="text-[13px] leading-none font-semibold hover:text-danger-strong"
+            >
+              Compare runs
+            </Link>
+          </>
         }
       />
+
+      {editing && (
+        <EditLengthForm
+          rope={rope}
+          onCancel={() => setEditing(false)}
+          onSaved={() => {
+            setEditing(false);
+            reload();
+          }}
+        />
+      )}
 
       <CardGrid>
         <FactCard value={NOT_AVAILABLE} label="Installed" />
@@ -131,6 +159,51 @@ export function RopeView({ ropeId }: { ropeId: string }) {
           ))}
         </Panel>
       )}
+    </>
+  );
+}
+
+function EditLengthForm({
+  rope,
+  onSaved,
+  onCancel,
+}: {
+  rope: Rope;
+  onSaved: () => void;
+  onCancel: () => void;
+}) {
+  const [length, setLength] = useState(rope.length_m === null ? "" : String(rope.length_m));
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const lengthM = parseRopeLength(length);
+
+  return (
+    <>
+      <form
+        className="mt-[22px] flex flex-wrap items-center gap-3 rounded-card bg-surface p-4"
+        onSubmit={async (e) => {
+          e.preventDefault();
+          if (lengthM === null) return;
+          setError(null);
+          setSaving(true);
+          try {
+            await api.ropes.update(rope.id, lengthM);
+            onSaved();
+          } catch (err) {
+            setError(err instanceof Error ? err.message : String(err));
+            setSaving(false);
+          }
+        }}
+      >
+        <RopeLengthInput autoFocus value={length} onChange={setLength} />
+        <Button type="submit" disabled={saving || lengthM === null}>
+          Save
+        </Button>
+        <Button variant="secondary" onClick={onCancel}>
+          Cancel
+        </Button>
+      </form>
+      {error && <StatusMessage tone="error">{error}</StatusMessage>}
     </>
   );
 }

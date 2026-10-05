@@ -20,6 +20,18 @@ export class ApiError extends Error {
   }
 }
 
+/** The server words a refusal as text, and a refused field as a list with one entry per field. */
+function errorDetail(body: unknown): string | null {
+  const detail = (body as { detail?: unknown } | null)?.detail;
+  if (typeof detail === "string") return detail;
+  if (!Array.isArray(detail)) return null;
+  return detail
+    .map((item: { loc?: unknown[]; msg?: string }) =>
+      [item.loc?.[item.loc.length - 1], item.msg].filter(Boolean).join(": "),
+    )
+    .join(", ");
+}
+
 /** `anonymous` skips the access token, for the login call itself. */
 async function send(
   path: string,
@@ -43,8 +55,7 @@ async function send(
   if (!res.ok) {
     let detail = res.statusText;
     try {
-      const body = await res.json();
-      if (typeof body?.detail === "string") detail = body.detail;
+      detail = errorDetail(await res.json()) ?? detail;
     } catch {
       // Body is not JSON; keep the status text.
     }
@@ -78,7 +89,14 @@ export const api = {
   },
   ropes: {
     list: () => request<Rope[]>("/api/ropes"),
-    create: (name: string) => request<Rope>("/api/ropes", { method: "POST", body: json({ name }) }),
+    create: (name: string, lengthM: number) =>
+      request<Rope>("/api/ropes", { method: "POST", body: json({ name, length_m: lengthM }) }),
+    /** The length is the only thing about a rope that can be corrected. */
+    update: (ropeId: string, lengthM: number) =>
+      request<Rope>(`/api/ropes/${encodeURIComponent(ropeId)}`, {
+        method: "PATCH",
+        body: json({ length_m: lengthM }),
+      }),
     remove: (ropeId: string) =>
       request<void>(`/api/ropes/${encodeURIComponent(ropeId)}`, { method: "DELETE" }),
   },
