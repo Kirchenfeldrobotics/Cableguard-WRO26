@@ -142,28 +142,7 @@ finding and the web app is the window for the operator (Figure 3). We wrote in P
 TypeScript and C. Everything else we use is open source: FastAPI, Next.js, Ultralytics YOLO,
 NCNN and the Raspberry Pi libraries for the cameras and the PIO block.
 
-```
-+--------------------------------------------------+
-| Web app on phone or laptop                       |
-| Next.js, runs in the browser                     |
-| Live view, history, comparison, settings         |
-+--------------------------------------------------+
-     | start, stop, settings      ^ live state and video,
-     v                            | findings with photos
-+--------------------------------------------------+
-| Server                                           |
-| FastAPI with a database                          |
-| Stores ropes, runs, findings and photos          |
-+--------------------------------------------------+
-     | commands and settings      ^ link 1: findings and telemetry
-     v over the mobile network    | link 2: video
-+--------------------------------------------------+         +----------------------+
-| Robot, Raspberry Pi 5                            |  model  | Training computer    |
-| Nine tasks run in parallel in one program        | <------ | Trains YOLO26s       |
-| Neural network in its own process                |         | Exports it to NCNN   |
-| Results go to a journal before they are sent     |         +----------------------+
-+--------------------------------------------------+
-```
+![Software architecture: three devices and two links from the robot to the server.](documents/img/software_dataflow.png)
 
 **Figure 3.** Software architecture: three devices and two links from the robot to the server.
 
