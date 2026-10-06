@@ -14,6 +14,7 @@ from app.routers.runs import router as runs_router
 from app.routers.current import router as current_router
 from app.routers.defects import router as defects_router
 from app.routers.settings import router as settings_router
+from app.routers.robot import router as robot_router
 from app.routers.video import router as video_router
 
 @asynccontextmanager
@@ -51,4 +52,5 @@ app.include_router(runs_router, dependencies=signed_in)
 app.include_router(current_router, dependencies=signed_in)
 app.include_router(defects_router, dependencies=signed_in)
 app.include_router(settings_router, dependencies=signed_in)
+app.include_router(robot_router, dependencies=signed_in)
 app.include_router(video_router)

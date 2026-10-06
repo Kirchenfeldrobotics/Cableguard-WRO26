@@ -149,6 +149,13 @@ export const api = {
     /** Back to the constants the robot is built with. */
     reset: () => request<SettingsDocument>("/api/settings/reset", { method: "POST" }),
   },
+  robot: {
+    /**
+     * Has the robot run its update script. The answer only says the robot was asked: whether
+     * it is updating and what it ends up on is in its motion telemetry.
+     */
+    update: () => request<void>("/api/robot/update", { method: "POST" }),
+  },
   current: {
     get: () => request<CurrentSelection>("/api/current"),
     set: (selection: CurrentSelection) =>

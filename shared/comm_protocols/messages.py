@@ -39,6 +39,10 @@ class MotionTelemetry(RobotMessage):
     # calibrated and after a calibration that found nothing
     socket_baseline_m: float | None = None
     settings_version: int = 0   # the settings the robot is actually running on, see SettingsCmd
+    # the three below default to what a robot without the update code reports, see UpdateCmd
+    software: str | None = None         # git commit the robot runs from, None if it cannot tell
+    updating: bool = False              # its update script is running
+    update_error: str | None = None     # why the last update did not go through
     seq: int
 
 # What the robot's distance sensor sees. Live only, a reading is worthless a second later
@@ -116,3 +120,9 @@ class SettingsCmd(BaseModel):
     type: Literal["settings"] = "settings"
     version: int
     settings: RobotSettings
+
+# Have the robot update itself: its update script pulls the latest software and restarts the
+# robot on it. The command only asks. That the script runs, what it failed on and the commit
+# the robot ends up on all come back in the motion telemetry
+class UpdateCmd(BaseModel):
+    type: Literal["update"] = "update"

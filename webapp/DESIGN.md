@@ -256,6 +256,13 @@ controls, a chart or a form, and `list` for rows that bring their own vertical p
   movement, so the page disables its inputs then. The robot echoes the version it is running
   on in every motion telemetry packet, and the page says a change is **in force** only when
   that version matches the stored one, never because the `PUT` came back 200.
+- **Robot update**: `Update` in the first box of the settings page has the robot run its own
+  update script (`POST /api/robot/update`, `robot/src/app/update.py`), after a second click.
+  The server refuses it for a robot that is offline or moving, and the action is disabled
+  then. The row reads the robot's telemetry and never the click: `software` is the commit
+  the robot runs from, `updating` keeps the row on `Updating…` through the restart until the
+  robot reports again, and `update_error` is the script's last line when it gave up. A robot
+  that reports no commit is from before it could update itself, so it is not offered one.
 - **Position** is metres since the origin, which the backend resets on the robot whenever a
   run is selected. The webapp never converts steps to metres, the robot owns the drive
   geometry and reports both.

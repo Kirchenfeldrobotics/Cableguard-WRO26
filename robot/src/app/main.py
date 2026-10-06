@@ -17,6 +17,7 @@ from comm_protocols.messages import (
     SocketWatchCmd,
     StartCmd,
     StopCmd,
+    UpdateCmd,
 )
 from comm_protocols.settings import RobotSettings
 
@@ -24,6 +25,7 @@ from app.buttons import Button
 from app.buzzer import Buzzer, Sound
 from app.ropesocket import RopeSocket
 from app.runtime import Runtime
+from app.update import Updater, software_version
 from camera.camera import CameraPair, encode
 from display.screen import Status, StatusScreen
 from link.client import RobotLink
@@ -73,7 +75,8 @@ STREAM_JPEG_QUALITY = 95
 
 
 # creates function that turns messages into roboter commands
-def make_command_handler(rt: Runtime, motion: MotionController, buzzer: Buzzer):
+def make_command_handler(rt: Runtime, motion: MotionController, buzzer: Buzzer,
+                         updater: Updater):
     def handle(cmd):
         if isinstance(cmd, StopCmd):
             log.info("stop requested")
@@ -81,6 +84,12 @@ def make_command_handler(rt: Runtime, motion: MotionController, buzzer: Buzzer):
             motion.emergency_stop()
 
         elif isinstance(cmd, StartCmd):
+            # the update restarts this program any moment now, and a scan it cuts off has
+            # lost the position it was measured from
+            if updater.running:
+                log.warning("start refused, the robot is updating")
+                return
+
             # The speed is not ours to choose, the scan plan fixed it so that the detector
             # sees every bit of rope once. The round trip through metres is not bit exact,
             # and ramp_to reads anything below start_speed as a stop, so a plan sitting on
@@ -112,6 +121,9 @@ def make_command_handler(rt: Runtime, motion: MotionController, buzzer: Buzzer):
         elif isinstance(cmd, SettingsCmd):
             # queued here, put in force by the detection cycle once the robot rests
             rt.accept(cmd.version, cmd.settings)
+
+        elif isinstance(cmd, UpdateCmd):
+            updater.request()
 
     return handle
 
@@ -302,7 +314,7 @@ async def link_guard(rt: Runtime, link: RobotLink, motion: MotionController, buz
         await asyncio.sleep(rt.settings.guard_period)
 
 # send motion telemetry
-async def telemetry_sender(rt: Runtime, link: RobotLink):
+async def telemetry_sender(rt: Runtime, link: RobotLink, updater: Updater, software: str | None):
     seq = 0
     while True:
         if link.connected:
@@ -321,6 +333,11 @@ async def telemetry_sender(rt: Runtime, link: RobotLink):
                     # the settings really in force, not the ones last received: that is what
                     # lets the webapp say whether a change has taken
                     settings_version=rt.version,
+                    # an update is followed here as well: the script running, what it
+                    # failed on, and after the restart the commit it left the robot on
+                    software=software,
+                    updating=updater.running,
+                    update_error=updater.error,
                     seq=seq,
                 )
                 await link.send_live(msg.model_dump())
@@ -466,7 +483,10 @@ async def main():
     rt = Runtime(cfg, measured, drive, turret, cams, detector, rope_socket)
 
     stats = DetectionStats()
-    handle = make_command_handler(rt, motion, buzzer)
+    # the operator's way to update the robot, and the commit an update would replace
+    updater = Updater(drive)
+    software = software_version()
+    handle = make_command_handler(rt, motion, buzzer, updater)
     link.on_command(handle)
 
     # a button has no direction of its own, so the red one scans the way StartCmd defaults to
@@ -486,9 +506,10 @@ async def main():
             tg.create_task(frame_producer(rt, video), name="frame-stream")
             tg.create_task(detection_reporter(rt, link, stats, buzzer), name="detection")
             tg.create_task(link_guard(rt, link, motion, buzzer), name="guard")
-            tg.create_task(telemetry_sender(rt, link), name="telemetry")
+            tg.create_task(telemetry_sender(rt, link, updater, software), name="telemetry")
             tg.create_task(distance_sender(rt, link, TOF_I2C_BUS), name="distance")
             tg.create_task(display_updater(rt, screen, link, outbox, stats), name="display")
+            tg.create_task(updater.run(), name="update")
     except* asyncio.CancelledError:
         log.info("shutting down")
     finally:

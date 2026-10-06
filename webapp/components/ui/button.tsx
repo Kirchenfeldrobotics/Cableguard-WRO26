@@ -52,7 +52,7 @@ export function ButtonLink({
 
 /** On phones the tap area reaches past the text, without moving anything around it. */
 const textLinkClass =
-  "text-[13px] leading-none font-semibold hover:text-danger-strong max-lg:-m-2.5 max-lg:p-2.5";
+  "text-[13px] leading-none font-semibold hover:text-danger-strong disabled:cursor-not-allowed disabled:text-text-faint disabled:hover:text-text-faint max-lg:-m-2.5 max-lg:p-2.5";
 
 /** Small action next to a heading: a link with `href`, a button without. */
 export function TextLink(

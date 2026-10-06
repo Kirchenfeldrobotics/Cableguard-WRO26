@@ -74,7 +74,7 @@ async def robot_link(sock: WebSocket):
                 continue 
 
             if isinstance(msg, MotionTelemetry): 
-                # the settings route refuses a change to a robot that is driving
+                # the settings and the update route refuse a robot that is driving
                 hub.note_motion(msg.speed)
 
             if msg.persist: 

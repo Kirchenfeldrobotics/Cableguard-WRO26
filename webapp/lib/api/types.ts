@@ -158,6 +158,15 @@ export interface MotionTelemetryEvent {
   socket_baseline_m?: number | null;
   /** Version of the settings the robot is really running on, see `SettingsDocument`. */
   settings_version: number;
+  /**
+   * Git commit the robot runs from. Null for a robot that cannot tell or that is too old to
+   * report it, and such a robot cannot update itself either.
+   */
+  software?: string | null;
+  /** The robot's update script is running. The robot restarts before it is through. */
+  updating?: boolean;
+  /** Why the last update did not go through, as the script or the robot worded it. */
+  update_error?: string | null;
   seq: number;
 }
 

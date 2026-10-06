@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { Button } from "@/components/ui/button";
+import { Button, TextLink } from "@/components/ui/button";
 import { Panel } from "@/components/ui/card";
 import { FactList } from "@/components/ui/fact-list";
 import { Notice, StatusMessage } from "@/components/ui/feedback";
@@ -33,6 +33,12 @@ import {
 
 const MOVING = "Stop the robot before changing its settings";
 const NO_SETTINGS = "The server has not answered with the robot's settings";
+
+/**
+ * The robot reports twice a second whether it is updating. For this long after the click its
+ * telemetry may still be from before it was asked, so the click stands in for it.
+ */
+const UPDATE_SETTLE_MS = 2_000;
 
 /** What a field is worth right now: the edit if there is one, otherwise what is stored. */
 function shownValue(field: SettingField, draft: Record<string, string>, stored: number): string {
@@ -110,6 +116,9 @@ export function SettingsView() {
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState<string | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
+  const [confirmUpdate, setConfirmUpdate] = useState(false);
+  /** Epoch ms the update was last asked for. */
+  const [asked, setAsked] = useState<number | null>(null);
 
   const doc = settings.data;
   // The same rule the server applies (app/ws/hub.py): a robot that is not connected moves
@@ -160,6 +169,27 @@ export function SettingsView() {
   // the robot says so itself in its telemetry.
   const inForce = doc && telemetry ? telemetry.settings_version === doc.version : null;
 
+  // The robot says itself that it is updating. Its last packet before the restart keeps
+  // saying so while it is gone, and the restarted robot's first one ends it.
+  const settling = asked !== null && now !== null && now - asked < UPDATE_SETTLE_MS;
+  const updating = settling || telemetry?.updating === true;
+  const software = telemetry?.software ?? null;
+  // A robot that does not report its commit is from before it could update itself.
+  const canUpdate = fresh !== null && fresh.speed === 0 && (fresh.software ?? null) !== null;
+  const updateError = updating ? null : (telemetry?.update_error ?? null);
+
+  const update = async () => {
+    setConfirmUpdate(false);
+    setFailed(null);
+    setAsked(Date.now());
+    try {
+      await api.robot.update();
+    } catch (err) {
+      setAsked(null);
+      setFailed(err instanceof ApiError ? err.message : String(err));
+    }
+  };
+
   return (
     <div className="max-w-[720px]">
       <PageHeader title="Robot settings" />
@@ -167,6 +197,7 @@ export function SettingsView() {
       {settings.loading && !doc && <StatusMessage>Loading…</StatusMessage>}
       {settings.error && <StatusMessage tone="error">{settings.error.message}</StatusMessage>}
       {failed && <StatusMessage tone="error">{failed}</StatusMessage>}
+      {updateError && <StatusMessage tone="error">Update failed: {updateError}</StatusMessage>}
 
       {moving && (
         <Notice>
@@ -197,6 +228,26 @@ export function SettingsView() {
               tone: inForce === null ? "muted" : inForce ? "success" : "danger",
             },
             { label: "Last changed", value: formatDateTime(doc.updated_at), mono: true },
+            {
+              label: "Robot software",
+              value: (
+                <span className="flex items-center justify-end gap-3">
+                  <span className="font-mono">{software ?? NOT_AVAILABLE}</span>
+                  {updating ? (
+                    <span className="text-text-muted">Updating…</span>
+                  ) : (
+                    <TextLink
+                      disabled={!canUpdate}
+                      onClick={() => (confirmUpdate ? update() : setConfirmUpdate(true))}
+                      onBlur={() => setConfirmUpdate(false)}
+                    >
+                      {confirmUpdate ? "Confirm update" : "Update"}
+                    </TextLink>
+                  )}
+                </span>
+              ),
+              tone: "ink",
+            },
           ]}
         />
       )}

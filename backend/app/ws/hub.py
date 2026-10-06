@@ -14,8 +14,8 @@ class Hub:
         self._uis   = set()  # Browser Websockets
         self._lock  = asyncio.Lock()
 
-        # last motion the robot reported, and when. Only the settings route reads it, to
-        # refuse a change to a robot that is driving
+        # last motion the robot reported, and when. The settings and the update route read
+        # it, to refuse a change or a restart to a robot that is driving
         self._speed    = None
         self._speed_at = 0.0
 
@@ -40,7 +40,7 @@ class Hub:
             self._speed = None
         await self.broadcast({"type": "robot_status", "online": False})
 
-    # the speed out of the last motion telemetry, kept for the settings route
+    # the speed out of the last motion telemetry, kept for the settings and the update route
     def note_motion(self, speed): 
         self._speed    = speed
         self._speed_at = time.monotonic()
@@ -49,13 +49,26 @@ class Hub:
     # at once and some of it redefines the position it is counting in, so a change is only
     # offered to a robot that stands still. One that is offline moves nothing and gets the
     # new set the moment it connects
-    def settings_locked(self): 
-        if self._robot is None: 
+    def settings_locked(self):
+        if self._robot is None:
             return None
-        if self._speed is None or time.monotonic() - self._speed_at > MOTION_STALE_S: 
+        return self._not_standing("changing its settings")
+
+    # Why the robot may not be told to update right now, or None. The update restarts the
+    # robot's program, and with it goes the position a run is measured from, so it is held
+    # to the same standstill as a settings change. Unlike one it cannot wait for a robot
+    # that is offline
+    def update_locked(self):
+        if self._robot is None:
+            return "the robot is offline"
+        return self._not_standing("updating it")
+
+    # why a connected robot does not count as standing still, or None if it does
+    def _not_standing(self, before):
+        if self._speed is None or time.monotonic() - self._speed_at > MOTION_STALE_S:
             return "the robot has not reported whether it is moving"
-        if self._speed != 0.0: 
-            return "the robot is moving, stop it before changing its settings"
+        if self._speed != 0.0:
+            return f"the robot is moving, stop it before {before}"
         return None
 
     # add a ui client to the set 
