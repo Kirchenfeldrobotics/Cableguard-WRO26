@@ -1,5 +1,7 @@
 stubs/
-models/
+models/*
+!models/best_ncnn_model/
+!models/model.yaml
 src/camera/__pycache__/
 src/motion/__pycache__/
 src/tof/__pycache__/
