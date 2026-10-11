@@ -153,10 +153,6 @@ class RobotSettings(BaseModel):
         2.0, group="camera", label="Gain", unit="x", ge=1.0, le=16.0, step=0.1,
         note="Analogue gain of both cameras. It brightens a dark rope without the smear of a "
              "longer exposure, at the price of noise.")
-    camera_focus_distance_m: float = setting(
-        0.05, group="camera", label="Focus distance", unit="m", ge=0.01, le=5.0, step=0.005,
-        note="Distance the lenses are locked at: how far the rope sits in front of them. A "
-             "fixed focus lens ignores it.")
 
     # -- reporting ---------------------------------------------------------------------
     telemetry_period: float = setting(

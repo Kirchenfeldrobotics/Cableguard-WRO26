@@ -469,7 +469,6 @@ async def main():
         fps=cfg.camera_fps,
         exposure_us=cfg.camera_exposure_us,
         gain=cfg.camera_gain,
-        focus_distance_m=cfg.camera_focus_distance_m,
     ).start()
 
     # the detector sets the pace the drive runs at, there is no scanning without it

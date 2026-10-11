@@ -114,8 +114,7 @@ class Runtime:
         self.rope_socket.rebase(self.drive.metres_done)
 
         self.detector.configure(s.detect_confidence, s.detect_iou)
-        self.cams.configure(s.camera_fps, s.camera_exposure_us, s.camera_gain,
-                            s.camera_focus_distance_m)
+        self.cams.configure(s.camera_fps, s.camera_exposure_us, s.camera_gain)
 
         self.settings = s
         self.plan     = self._planned()

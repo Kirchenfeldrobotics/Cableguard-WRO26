@@ -502,7 +502,7 @@ Six problems shaped the current design.
 | Motor stutters | Pulses from Python came late whenever the network ran | Pulses from the PIO hardware block |
 | Network freezes the robot | Every analysis blocked all other threads | Network in its own process |
 | Rope is skipped | The operator could drive faster than the network could analyse | The robot sets its own speed |
-| Photos unusable | Automatic exposure changed the brightness, the focus was wrong | Fixed exposure, gain and white balance, focus locked at 5 cm |
+| Photos unusable | Automatic exposure changed the brightness, the focus was wrong | Fixed exposure, gain and white balance, each camera focuses on the rope by itself |
 | Position jumps | New drive settings during a ramp changed the meaning of counted steps | Settings apply only while the robot stands |
 
 We test on our own rig, a steel rope of 22 mm diameter and 1.6 m length. There we run complete
