@@ -68,7 +68,7 @@ TOF_I2C_BUS = 1
 # status display, a 0.96" 128x64 SSD1306 OLED. It shares I2C bus 1 with the distance sensor
 DISPLAY_I2C_BUS = 1
 DISPLAY_ADDRESS = 0x3C      # 0x3D on boards where the address pad is bridged
-DISPLAY_FLIP = False        # True if the panel is mounted upside down
+DISPLAY_FLIP = True         # True if the panel is mounted upside down
 
 # the frame a defect was found in travels as a JPEG, the live stream at a lower quality
 STREAM_JPEG_QUALITY = 95
