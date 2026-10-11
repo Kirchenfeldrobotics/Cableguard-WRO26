@@ -43,6 +43,7 @@ class MotionTelemetry(RobotMessage):
     software: str | None = None         # git commit the robot runs from, None if it cannot tell
     updating: bool = False              # its update script is running
     update_error: str | None = None     # why the last update did not go through
+    cpu_temp_c: float | None = None     # None where the kernel reports none
     seq: int
 
 # What the robot's distance sensor sees. Live only, a reading is worthless a second later

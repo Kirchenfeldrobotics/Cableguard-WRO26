@@ -21,6 +21,7 @@ import {
   formatDriveSpeed,
   formatMetres,
   formatNumber,
+  formatTemperature,
 } from "@/lib/format";
 import { useNow } from "@/lib/hooks/use-now";
 import { useRobotSettings } from "@/lib/hooks/use-settings";
@@ -39,6 +40,9 @@ const NO_SETTINGS = "The server has not answered with the robot's settings";
  * telemetry may still be from before it was asked, so the click stands in for it.
  */
 const UPDATE_SETTLE_MS = 2_000;
+
+/** Where the robot's display marks the CPU as hot (WARM_C in robot/src/display/screen.py). */
+const CPU_WARM_C = 70;
 
 /** What a field is worth right now: the edit if there is one, otherwise what is stored. */
 function shownValue(field: SettingField, draft: Record<string, string>, stored: number): string {
@@ -322,6 +326,12 @@ export function SettingsView() {
               {
                 label: "Detector rate the scan is paced for",
                 value: telemetry ? formatDetectRate(telemetry.detect_fps) : NOT_AVAILABLE,
+                mono: true,
+              },
+              {
+                label: "CPU temperature",
+                value: formatTemperature(telemetry?.cpu_temp_c),
+                tone: (telemetry?.cpu_temp_c ?? 0) >= CPU_WARM_C ? "danger" : "muted",
                 mono: true,
               },
               { label: "Server", value: now ? serverLabel() : NOT_AVAILABLE, mono: true },

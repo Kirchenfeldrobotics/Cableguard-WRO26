@@ -27,7 +27,7 @@ from app.ropesocket import RopeSocket
 from app.runtime import Runtime
 from app.update import Updater, software_version
 from camera.camera import CameraPair, encode
-from display.screen import Status, StatusScreen
+from display.screen import Status, StatusScreen, cpu_temp
 from link.client import RobotLink
 from link.outbox import Outbox
 from link.video import VideoLink
@@ -338,6 +338,7 @@ async def telemetry_sender(rt: Runtime, link: RobotLink, updater: Updater, softw
                     software=software,
                     updating=updater.running,
                     update_error=updater.error,
+                    cpu_temp_c=cpu_temp(),
                     seq=seq,
                 )
                 await link.send_live(msg.model_dump())

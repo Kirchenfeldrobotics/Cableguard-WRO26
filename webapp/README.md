@@ -93,7 +93,7 @@ if that has not happened 5 s after sending.
 
 Everything on screen is backed by the robot or the backend:
 
-- Robot link state, last packet and telemetry age, position on the rope, drive speed, detector rate
+- Robot link state, last packet and telemetry age, position on the rope, drive speed, detector rate, CPU temperature
 - Drive control: start in a direction and stop; rope socket: open, close, arm the distance sensor
 - Camera A and B live streams
 - Ropes list with add (name and length) and remove, rope detail with length correction, run history with remove, finding trend

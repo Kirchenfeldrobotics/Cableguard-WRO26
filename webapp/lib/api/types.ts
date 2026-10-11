@@ -167,6 +167,8 @@ export interface MotionTelemetryEvent {
   updating?: boolean;
   /** Why the last update did not go through, as the script or the robot worded it. */
   update_error?: string | null;
+  /** CPU temperature in °C. Null where the Pi reports none, or from a robot too old to send it. */
+  cpu_temp_c?: number | null;
   seq: number;
 }
 

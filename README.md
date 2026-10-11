@@ -318,7 +318,7 @@ speak the same protocol.
 | Message | Direction | What it carries |
 | --- | --- | --- |
 | `alive` | Robot to server | Heartbeat every 5 seconds |
-| `motion_telemetry` | Robot to server | Speed and position in microsteps and in metres, the scan speed the robot chose, whether it is open, the versions of the settings and of the software it runs on |
+| `motion_telemetry` | Robot to server | Speed and position in microsteps and in metres, the scan speed the robot chose, whether it is open, the versions of the settings and of the software it runs on, and its CPU temperature |
 | `distance_telemetry` | Robot to server | Reading of the distance sensor |
 | `vision_telemetry` | Robot to server | One per photo: boxes, class and confidence, position, and the photo itself if something was found |
 | `defect` | Robot to server | A finding from a second sensor, kept for the magnetic head |

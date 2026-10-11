@@ -34,6 +34,11 @@ export function formatDetectRate(fps: number | null | undefined): string {
   return fps == null ? NOT_AVAILABLE : `${fps.toFixed(1)} /s`;
 }
 
+/** `52 °C`, whole degrees like the robot's own display. */
+export function formatTemperature(value: number | null | undefined): string {
+  return value == null ? NOT_AVAILABLE : `${value.toFixed(0)} °C`;
+}
+
 const pad = (n: number) => String(n).padStart(2, "0");
 
 /** `2026-09-04` */
