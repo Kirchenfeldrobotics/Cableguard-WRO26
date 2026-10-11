@@ -1,0 +1,8 @@
+version: rope-full-26n-v3-2026-10-10-747ac22e
+exported: '2026-10-10'
+imgsz: 640
+ncnn: best_ncnn_model
+names:
+  0: broken_wire
+  1: mechanical_damage
+  2: wear
