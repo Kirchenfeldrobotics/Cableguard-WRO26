@@ -6,9 +6,11 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from pydantic import Field, ValidationError, TypeAdapter
 
 from app.ws.hub import hub 
+from app.ws.video_hub import video_hub
 from app.database import session_scope
 from app.repository.ingest import store
 from app.repository import settings as settings_repo
+from app.repository import state as state_repo
 from app.auth import authenticate_robot, authenticate_ui
 from comm_protocols.messages import (
     Alive,
@@ -21,6 +23,7 @@ from comm_protocols.messages import (
     SocketWatchCmd,
     StartCmd,
     StopCmd,
+    VideoStreamCmd,
     VisionTelemetry,
 )
  
@@ -37,11 +40,12 @@ FromRobot = TypeAdapter(
         Field(discriminator="type"),
     ]
 )
-# The robot picks its own speed, the operator only starts, stops and sets the direction, and
-# opens the robot to let it pass a rope socket
+# The robot picks its own speed, the operator only starts, stops and sets the direction,
+# opens the robot to let it pass a rope socket and switches the live stream. Whether anyone
+# is watching that stream is not a browser's to say, the server counts them itself
 FromUi   = TypeAdapter(
     Annotated[
-        StartCmd | StopCmd | OpenCmd | CloseCmd | SocketWatchCmd,
+        StartCmd | StopCmd | OpenCmd | CloseCmd | SocketWatchCmd | VideoStreamCmd,
         Field(discriminator="type"),
     ]
 )
@@ -55,6 +59,14 @@ async def send_settings():
         cmd = SettingsCmd(version=row.version, settings=settings_repo.settings_of(row))
     await hub.to_robot(cmd.model_dump())
 
+# A robot that starts streams, and its mobile link is metered. So it is also told at once
+# where the operator left the stream switch and whether anyone has the live view open
+async def send_stream():
+    with session_scope() as db:
+        cmd = VideoStreamCmd(enabled=state_repo.get_video_stream(db))
+    await hub.to_robot(cmd.model_dump())
+    await video_hub.tell_robot()
+
 # Route where robot can subscribe to socket ans send messages to, which are broadcasted to ui clients or persisted (or both)
 @router.websocket("/robot")
 async def robot_link(sock: WebSocket): 
@@ -64,6 +76,7 @@ async def robot_link(sock: WebSocket):
     await sock.accept()
     await hub.attach_robot(sock)
     await send_settings()
+    await send_stream()
 
     try: 
         async for raw in sock.iter_text(): 
@@ -111,6 +124,13 @@ async def ui_link(sock: WebSocket):
 
             if not await hub.to_robot(cmd.model_dump()): 
                 await sock.send_json({"type": "error", "detail": "robot offline"})
+                continue
+
+            # kept for the robot's next connect, see send_stream. Only a choice the robot
+            # was really given: one answered with an error has changed nothing
+            if isinstance(cmd, VideoStreamCmd):
+                with session_scope() as db:
+                    state_repo.set_video_stream(db, cmd.enabled)
 
     except WebSocketDisconnect: 
         pass

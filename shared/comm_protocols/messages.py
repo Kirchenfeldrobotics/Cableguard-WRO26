@@ -44,6 +44,9 @@ class MotionTelemetry(RobotMessage):
     updating: bool = False              # its update script is running
     update_error: str | None = None     # why the last update did not go through
     cpu_temp_c: float | None = None     # None where the kernel reports none
+    # the operator's switch for the live stream, see VideoStreamCmd. A robot without the
+    # switch always streams, which is what the default says
+    video_stream: bool = True
     seq: int
 
 # What the robot's distance sensor sees. Live only, a reading is worthless a second later
@@ -112,6 +115,19 @@ class CloseCmd(BaseModel):
 class SocketWatchCmd(BaseModel):
     type: Literal["socket_watch"] = "socket_watch"
     enabled: bool
+
+# The live stream is the robot's largest upload by far and its mobile link is metered, so
+# the operator can switch it off. The server keeps the last choice and sends it again
+# whenever the robot connects, a restart of the robot does not bring the stream back
+class VideoStreamCmd(BaseModel):
+    type: Literal["video_stream"] = "video_stream"
+    enabled: bool
+
+# Whether any browser has the live view open. The server's own: it counts the viewers, no
+# operator sends this. A stream nobody looks at is not sent, whatever the switch above says
+class VideoViewersCmd(BaseModel):
+    type: Literal["video_viewers"] = "video_viewers"
+    watching: bool
 
 # The operator's settings, the whole set of them at once. Sent when the robot connects and
 # again on every change, so the robot never has to piece a configuration together. The

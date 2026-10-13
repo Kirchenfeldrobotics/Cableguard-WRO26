@@ -159,7 +159,7 @@ controls, a chart or a form, and `list` for rows that bring their own vertical p
 | `Notice`, `StatusMessage`, `BackLink` | `components/ui/feedback.tsx` | Alerts, loading, empty and error states |
 | `RopeStrip`, `RopeStripSync`, `findingMarks`, `DefectLegend` | `components/rope/` | Unrolled rope with metre scale and finding marks, drawn to scale and scrolling sideways when the rope is longer than the screen |
 | `RopeLengthInput` | `components/rope/rope-length-input.tsx` | Length in metres with its unit, for adding a rope and correcting its length |
-| `CameraFeed` | `components/camera/camera-feed.tsx` | Live JPEG stream, dimmed with a "Not live" badge when frames stop, or striped placeholder |
+| `CameraFeed` | `components/camera/camera-feed.tsx` | Live JPEG stream, dimmed with a "Not live" badge when frames stop, or striped placeholder. With `off` the placeholder reads `stream off` |
 | `DetectionFrame` | `components/camera/detection-frame.tsx` | The stored JPEG a defect was found in, with its box on top; fetched as a blob because an `<img>` cannot send the token |
 | `RunStatePill` | `components/inspection/run-state-pill.tsx` | Link lost, Live or Idle |
 | `Sidebar` | `components/layout/sidebar.tsx` | Desktop navigation and link status |
@@ -248,6 +248,14 @@ controls, a chart or a form, and `list` for rows that bring their own vertical p
   nothing to measure against, which is why the robot will not open by itself. Arming the
   sensor is not a setting: it is a command like Start and Stop, and lives only in the live
   view.
+- **Live stream**: the stream is the robot's largest upload and its mobile link is metered,
+  so the operator can switch it off. `Stop stream` / `Start stream` is the small text action
+  in the Cameras heading, and it reads its state from `video_stream` in the motion telemetry,
+  never from what was clicked. While the stream is off the tiles read `stream off` and show
+  neither the last frame nor the "Not live" badge: that badge is for frames that went
+  missing, not for frames that were turned off. The server keeps the choice and tells the
+  robot again whenever it connects. It also tells the robot whether any browser has the live
+  view open, so a stream nobody watches is not sent either, and that needs no control.
 - **Settings** are the robot's own constants (`shared/comm_protocols/settings.py`), kept in
   the backend's database and sent to the robot as a `SettingsCmd`. The page draws itself from
   what `GET /api/settings` returns: the label, the explanation, the unit and the bounds of

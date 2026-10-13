@@ -170,7 +170,7 @@ the live view. The scan cycle is one of nine tasks that run in parallel in one p
 | --- | --- |
 | Control link | Holds the connection for commands and results, sends the journal and a heartbeat every 5 seconds |
 | Video link | Sends the newest picture of each camera |
-| Frame stream | Takes the small picture of both cameras for the live view |
+| Frame stream | Takes the small picture of both cameras for the live view, while somebody watches it |
 | Detection | The scan cycle: photos, quarter turns, network, reports |
 | Guard | Stops the drive when the connection is lost while driving |
 | Telemetry | Reports speed, position and state twice a second |
@@ -311,6 +311,12 @@ connection loss the robot continues at the byte where it stopped. If the connect
 while the robot drives, it stops and sounds the fault signal, because nobody could stop it
 remotely.
 
+The video is by far the largest upload of the robot, and the SIM card has a limited data
+volume. So the robot sends video only while the operator has the stream switched on and
+somebody has the live view open. The server counts the open live views and remembers the
+switch, and it tells the robot both whenever the robot connects. While no video is wanted, the
+robot does not take or compress the small pictures either.
+
 Robot and server read their messages from the same file,
 [`shared/comm_protocols/messages.py`](shared/comm_protocols/messages.py), so both sides always
 speak the same protocol.
@@ -325,6 +331,7 @@ speak the same protocol.
 | `start`, `stop` | Server to robot | Drive in a direction, stop |
 | `reset_origin` | Server to robot | Count the position from here, sent when a run is selected |
 | `open`, `close`, `socket_watch` | Server to robot | Open or close the ring, arm the distance sensor |
+| `video_stream`, `video_viewers` | Server to robot | Switch the live stream on or off, and whether anyone is watching it |
 | `settings` | Server to robot | The whole set of settings with a version number |
 | `update` | Server to robot | Run the update script |
 

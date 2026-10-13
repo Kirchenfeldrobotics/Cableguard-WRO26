@@ -17,6 +17,8 @@ from comm_protocols.messages import (
     StartCmd,
     StopCmd,
     UpdateCmd,
+    VideoStreamCmd,
+    VideoViewersCmd,
 )
 
 log = logging.getLogger(__name__)
@@ -27,7 +29,7 @@ TOKEN = os.environ["CABLEGUARD_ROBOT_TOKEN"]
 FromServer = TypeAdapter(
     Annotated[
         StartCmd | StopCmd | ResetOriginCmd | OpenCmd | CloseCmd | SocketWatchCmd | SettingsCmd
-        | UpdateCmd,
+        | UpdateCmd | VideoStreamCmd | VideoViewersCmd,
         Field(discriminator="type"),
     ]
 )

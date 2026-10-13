@@ -73,7 +73,7 @@ Conventions:
 | REST | `POST /api/defects/review`, `POST /api/defects/remove` | Mark the detections of a finding reviewed, delete a false positive |
 | REST | `GET /api/current`, `POST /api/current` | Rope and run selected on the server |
 | REST | `GET /api/settings`, `PUT /api/settings`, `POST /api/settings/reset` | Robot settings |
-| WebSocket | `/api/ws/ui` | `robot_status`, `alive`, `motion_telemetry`, `distance_telemetry`, `vision_telemetry`, `current_changed`, `settings_changed`, `error`; sends `start`, `stop`, `open`, `close` and `socket_watch` |
+| WebSocket | `/api/ws/ui` | `robot_status`, `alive`, `motion_telemetry`, `distance_telemetry`, `vision_telemetry`, `current_changed`, `settings_changed`, `error`; sends `start`, `stop`, `open`, `close`, `socket_watch` and `video_stream` |
 | WebSocket | `/api/ws/video/ui` | JPEG frames of two cameras, first byte is the camera index |
 
 `RobotLinkProvider` (in the root layout) keeps one UI socket open for the whole app and
@@ -85,6 +85,11 @@ server itself only notices a dead robot link when its pings time out. Telemetry 
 The video socket is only opened while the live view is mounted. A camera tile that receives
 no frame for 2 s dims its last image and marks it as not live.
 
+The robot's mobile link is metered, so it only streams while it has to. The server counts
+the open video sockets and tells the robot when the first one opens and the last one closes.
+`Stop stream` in the Cameras heading switches the stream off for everyone, the tiles then read
+`stream off`, and the server tells the robot again after either of them restarts.
+
 Neither the server nor the robot acknowledges commands. The live view therefore treats a
 command as carried out only once telemetry reports the expected motion, and warns the operator
 if that has not happened 5 s after sending.
@@ -95,7 +100,7 @@ Everything on screen is backed by the robot or the backend:
 
 - Robot link state, last packet and telemetry age, position on the rope, drive speed, detector rate, CPU temperature
 - Drive control: start in a direction and stop; rope socket: open, close, arm the distance sensor
-- Camera A and B live streams
+- Camera A and B live streams, and the switch that stops them
 - Ropes list with add (name and length) and remove, rope detail with length correction, run history with remove, finding trend
 - Rope strip drawn to scale: scrolls sideways on a long rope, with an overview of the whole rope
 - Run detail, defect detail with the stored camera frame, the detector's box and the change since the previous run

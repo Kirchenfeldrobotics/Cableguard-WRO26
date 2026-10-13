@@ -13,25 +13,30 @@ const DEFAULT_ASPECT = 4 / 3;
 /**
  * One camera tile, sized to the frame's own aspect ratio so the image fills it edge to edge:
  * live JPEG stream, the last frame dimmed and marked stale once frames stop arriving, or the
- * striped placeholder before the first frame.
+ * striped placeholder before the first frame. With `off`, the operator has switched the
+ * stream off: the tile says so and shows neither the last frame nor the stale badge, since
+ * frames that were turned off are not frames that went missing.
  */
 export function CameraFeed({
   caption,
   feed,
+  off = false,
   className,
 }: {
   caption: string;
   feed: VideoFeed;
+  off?: boolean;
   className?: string;
 }) {
   const [aspect, setAspect] = useState(DEFAULT_ASPECT);
   const now = useNow(500);
-  const stale = feed.lastFrameAt !== null && now !== null && now - feed.lastFrameAt > VIDEO_STALE_MS;
+  const stale =
+    !off && feed.lastFrameAt !== null && now !== null && now - feed.lastFrameAt > VIDEO_STALE_MS;
 
   return (
     <figure className={cn("m-0 flex min-w-[290px] flex-[1_1_380px] flex-col gap-2.5", className)}>
       <div className="relative overflow-hidden rounded-card bg-video-placeholder" style={{ aspectRatio: aspect }}>
-        {feed.src ? (
+        {feed.src && !off ? (
           // Blob URLs from the socket cannot go through next/image.
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -45,7 +50,7 @@ export function CameraFeed({
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center font-mono text-[11px] leading-none text-video-text">
-            no signal
+            {off ? "stream off" : "no signal"}
           </div>
         )}
         {stale && (

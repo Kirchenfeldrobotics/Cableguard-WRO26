@@ -112,3 +112,15 @@ class AppState(Base):
     id: Mapped[int] = mapped_column(primary_key=True, default=1)
     current_rope_id: Mapped[str | None] = mapped_column(ForeignKey("ropes.id", ondelete="SET NULL"), default=None)
     current_run_id: Mapped[str | None]  = mapped_column(ForeignKey("runs.id", ondelete="SET NULL"), default=None)
+
+# What the operator last asked of the robot that has to outlast a restart of it. The robot
+# forgets a switch with its program, so the server tells it again on every connect. One row,
+# because there is one robot. A table of its own and not a column on app_state: a new table
+# is simply created in a database that is already in use, a new column needs the schema
+# version bumped, which drops everything stored
+class RobotState(Base):
+    __tablename__ = "robot_state"
+
+    id: Mapped[int]            = mapped_column(primary_key=True, default=1)
+    # the live stream, see VideoStreamCmd. On until somebody switches it off
+    video_stream: Mapped[bool] = mapped_column(default=True)

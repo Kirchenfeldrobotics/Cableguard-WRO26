@@ -6,7 +6,7 @@ import { CameraFeed } from "@/components/camera/camera-feed";
 import { RunStatePill } from "@/components/inspection/run-state-pill";
 import { findingMarks } from "@/components/rope/defect-marks";
 import { RopeStrip } from "@/components/rope/rope-strip";
-import { Button, ButtonLink, RingIcon } from "@/components/ui/button";
+import { Button, ButtonLink, RingIcon, TextLink } from "@/components/ui/button";
 import { CardGrid, Panel, StatCard } from "@/components/ui/card";
 import { Notice, StatusMessage } from "@/components/ui/feedback";
 import { HeadingMeta, PageHeader, SectionTitle } from "@/components/ui/heading";
@@ -131,6 +131,8 @@ export function LiveView() {
   // Null is an answer of its own: the sensor has nothing to measure against, which is why
   // the robot will not open by itself. Undefined is a robot too old to report it at all.
   const baseline = telemetry?.socket_baseline_m ?? null;
+  // The stream switch is the robot's to report as well. One too old to have it always streams.
+  const stream = telemetry?.video_stream ?? true;
 
   // Reversing a moving robot on one click is not something the operator should be able to do
   // by accident, so the direction is only picked while it stands still.
@@ -151,6 +153,7 @@ export function LiveView() {
 
   const toggleOpen = () => send({ type: open ? "close" : "open" });
   const toggleWatch = () => send({ type: "socket_watch", enabled: !watch });
+  const toggleStream = () => send({ type: "video_stream", enabled: !stream });
 
   // Hiding the sidebar entry does not stop anyone typing the address, so the screen turns
   // itself away too. Stop stays reachable while the robot reports movement: locking the
@@ -218,7 +221,15 @@ export function LiveView() {
       </CardGrid>
 
       <section className="max-lg:order-3">
-        <SectionTitle>Cameras</SectionTitle>
+        <SectionTitle
+          actions={
+            <TextLink disabled={socket !== "open" || telemetry === null} onClick={toggleStream}>
+              {stream ? "Stop stream" : "Start stream"}
+            </TextLink>
+          }
+        >
+          Cameras
+        </SectionTitle>
         {/* Phones swipe between the cameras, the next one peeks in from the edge. */}
         <div className="-mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:gap-3.5 sm:overflow-visible sm:px-0">
           {CAMERAS.map((camera, i) => (
@@ -226,6 +237,7 @@ export function LiveView() {
               key={camera.code}
               caption={camera.caption}
               feed={feeds[i]}
+              off={!stream}
               className="max-sm:w-[86%] max-sm:min-w-0 max-sm:flex-none max-sm:snap-start"
             />
           ))}

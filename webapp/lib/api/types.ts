@@ -169,6 +169,11 @@ export interface MotionTelemetryEvent {
   update_error?: string | null;
   /** CPU temperature in °C. Null where the Pi reports none, or from a robot too old to send it. */
   cpu_temp_c?: number | null;
+  /**
+   * The operator's switch for the live stream, as the robot holds it. Missing from a robot
+   * too old to have the switch, and such a robot always streams.
+   */
+  video_stream?: boolean;
   seq: number;
 }
 
@@ -247,10 +252,13 @@ export type DriveDirection = "forward" | "reverse";
  * Start and stop drive the run. `open` parks the camera ring clear of a rope socket and
  * stops the detector until `close`; `socket_watch` arms or disarms the robot's own trigger
  * for it, which opens on the distance sensor and closes once the socket is behind it.
+ * `video_stream` switches the live stream, which the robot's metered link pays for. The
+ * server remembers the choice, and tells the robot by itself whether anyone is watching.
  */
 export type RobotCommand =
   | { type: "start"; direction: DriveDirection }
   | { type: "stop" }
   | { type: "open" }
   | { type: "close" }
-  | { type: "socket_watch"; enabled: boolean };
+  | { type: "socket_watch"; enabled: boolean }
+  | { type: "video_stream"; enabled: boolean };

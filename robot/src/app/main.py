@@ -18,6 +18,8 @@ from comm_protocols.messages import (
     StartCmd,
     StopCmd,
     UpdateCmd,
+    VideoStreamCmd,
+    VideoViewersCmd,
 )
 from comm_protocols.settings import RobotSettings
 
@@ -76,7 +78,7 @@ STREAM_JPEG_QUALITY = 95
 
 # creates function that turns messages into roboter commands
 def make_command_handler(rt: Runtime, motion: MotionController, buzzer: Buzzer,
-                         updater: Updater):
+                         updater: Updater, video: VideoLink):
     def handle(cmd):
         if isinstance(cmd, StopCmd):
             log.info("stop requested")
@@ -125,6 +127,14 @@ def make_command_handler(rt: Runtime, motion: MotionController, buzzer: Buzzer,
         elif isinstance(cmd, UpdateCmd):
             updater.request()
 
+        # the stream runs while the operator has it switched on and somebody is watching,
+        # the two are told apart so that each can change without the other
+        elif isinstance(cmd, VideoStreamCmd):
+            video.set_enabled(cmd.enabled)
+
+        elif isinstance(cmd, VideoViewersCmd):
+            video.set_watched(cmd.watching)
+
     return handle
 
 # The buttons stand for the two commands the webapp sends most, so they are handed the same
@@ -143,11 +153,15 @@ async def frame_producer(rt: Runtime, video: VideoLink):
 
     while True:
         deadline = loop.time() + 1.0 / rt.settings.stream_fps
-        try:
-            for idx, lores in await asyncio.to_thread(rt.cams.capture_lores):
-                video.submit(idx, encode(lores, STREAM_JPEG_QUALITY))
-        except Exception:
-            log.exception("capture failed")
+        # A stream nobody gets is not produced either: the frame is neither read nor encoded,
+        # which is the whole of what it costs the Pi and its mobile link. The pace is kept,
+        # so the first frame is out within one period of the stream being wanted again
+        if video.streaming:
+            try:
+                for idx, lores in await asyncio.to_thread(rt.cams.capture_lores):
+                    video.submit(idx, encode(lores, STREAM_JPEG_QUALITY))
+            except Exception:
+                log.exception("capture failed")
         await asyncio.sleep(max(0.0, deadline - loop.time()))
 
 # how the detector is keeping up, for the status display
@@ -314,7 +328,8 @@ async def link_guard(rt: Runtime, link: RobotLink, motion: MotionController, buz
         await asyncio.sleep(rt.settings.guard_period)
 
 # send motion telemetry
-async def telemetry_sender(rt: Runtime, link: RobotLink, updater: Updater, software: str | None):
+async def telemetry_sender(rt: Runtime, link: RobotLink, updater: Updater, video: VideoLink,
+                           software: str | None):
     seq = 0
     while True:
         if link.connected:
@@ -339,6 +354,8 @@ async def telemetry_sender(rt: Runtime, link: RobotLink, updater: Updater, softw
                     updating=updater.running,
                     update_error=updater.error,
                     cpu_temp_c=cpu_temp(),
+                    # the switch as the robot holds it, which is what the webapp shows
+                    video_stream=video.enabled,
                     seq=seq,
                 )
                 await link.send_live(msg.model_dump())
@@ -486,7 +503,7 @@ async def main():
     # the operator's way to update the robot, and the commit an update would replace
     updater = Updater(drive)
     software = software_version()
-    handle = make_command_handler(rt, motion, buzzer, updater)
+    handle = make_command_handler(rt, motion, buzzer, updater, video)
     link.on_command(handle)
 
     # a button has no direction of its own, so the red one scans the way StartCmd defaults to
@@ -506,7 +523,7 @@ async def main():
             tg.create_task(frame_producer(rt, video), name="frame-stream")
             tg.create_task(detection_reporter(rt, link, stats, buzzer), name="detection")
             tg.create_task(link_guard(rt, link, motion, buzzer), name="guard")
-            tg.create_task(telemetry_sender(rt, link, updater, software), name="telemetry")
+            tg.create_task(telemetry_sender(rt, link, updater, video, software), name="telemetry")
             tg.create_task(distance_sender(rt, link, TOF_I2C_BUS), name="distance")
             tg.create_task(display_updater(rt, screen, link, outbox, stats), name="display")
             tg.create_task(updater.run(), name="update")
