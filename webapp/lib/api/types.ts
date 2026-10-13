@@ -95,10 +95,15 @@ export interface SettingGroup {
 }
 
 /**
- * Every setting by name. The three the rest of the app reads directly are spelled out;
+ * Every setting by name. The four the rest of the app reads directly are spelled out;
  * the settings page draws the others from `SettingsDocument.fields`.
  */
 export interface RobotSettings {
+  /**
+   * Metres within which detections of one kind are shown as one finding, see
+   * `clusterDefects`. The one setting the web app applies itself.
+   */
+  finding_gap_m: number;
   /** Angle the camera ring parks at while the robot is open for a rope socket. */
   turret_open_angle: number;
   /** How far below its calibrated reading the sensor opens the robot by itself, in metres. */

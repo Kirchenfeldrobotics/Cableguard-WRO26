@@ -10,6 +10,7 @@ import {
   formatConfidence,
   formatDateTime,
   formatMetres,
+  formatPosition,
   formatRunDuration,
   formatSpan,
   shortId,
@@ -241,7 +242,7 @@ export function buildRunReport({
       }
 
       write(
-        `${number} · ${formatMetres(best.pos_to_start)} · ${defectClassLabel(best.label)} · ${formatConfidence(best.confidence)}`,
+        `${number} · ${formatPosition(best.pos_to_start)} · ${defectClassLabel(best.label)} · ${formatConfidence(best.confidence)}`,
         x,
         y + tall + 4.5,
         STRONG,

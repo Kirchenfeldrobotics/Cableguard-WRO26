@@ -11,14 +11,14 @@ import { HeadingMeta, PageHeader, SectionTitle, SubTitle } from "@/components/ui
 import { InfoRow } from "@/components/ui/log-row";
 import { Table, Td, Th } from "@/components/ui/table";
 import { api } from "@/lib/api/client";
-import { findMatch, findingOf, kindTone } from "@/lib/defects";
+import { findingOf, kindTone, matchFindings } from "@/lib/defects";
 import {
   defectClassLabel,
   defectTypeLabel,
   formatCamera,
   formatConfidence,
   formatDateTime,
-  formatMetres,
+  formatPosition,
   shortId,
 } from "@/lib/format";
 import { useRopeHistory } from "@/lib/hooks/use-inspection";
@@ -84,14 +84,16 @@ export function DefectView({
   // Runs are sorted newest first, so the previous run is the next entry.
   const previousRun = data.runs[runIndex + 1];
   const previous =
-    previousRun && finding && findMatch(data.findingsByRun[previousRun.id] ?? [], finding);
+    previousRun &&
+    finding &&
+    matchFindings(data.findingsByRun[previousRun.id] ?? [], data.findingsByRun[run.id] ?? []).get(finding);
 
   return (
     <>
       <BackLink href={runHref}>{shortId(run.id)}</BackLink>
       <PageHeader title={defectClassLabel(defect.label)}>
         <HeadingMeta>
-          {defectTypeLabel(defect.kind)} · {formatMetres(defect.pos_to_start)}
+          {defectTypeLabel(defect.kind)} · {formatPosition(defect.pos_to_start)}
         </HeadingMeta>
       </PageHeader>
 
@@ -103,7 +105,7 @@ export function DefectView({
         <div className="flex min-w-[280px] flex-[1_1_320px] flex-col gap-stack">
           <FactList
             facts={[
-              { label: "Position", value: formatMetres(defect.pos_to_start), tone: "ink", mono: true },
+              { label: "Position", value: formatPosition(defect.pos_to_start), tone: "ink", mono: true },
               { label: "Flaw", value: defectClassLabel(defect.label), tone: "ink" },
               { label: "Type", value: `${defectTypeLabel(defect.kind)} (${defect.kind.toUpperCase()})` },
               { label: "Detection confidence", value: formatConfidence(defect.confidence), tone: "ink", mono: true },
@@ -122,7 +124,7 @@ export function DefectView({
               <InfoRow
                 tone={kindTone(previous.kind)}
                 label="Position"
-                value={`${previous.pos.toFixed(1)} → ${(finding?.pos ?? defect.pos_to_start).toFixed(1)} m`}
+                value={`${formatPosition(previous.pos)} → ${formatPosition(finding?.pos ?? defect.pos_to_start)}`}
               />
             ) : (
               <InfoRow tone="neutral" label="Not detected before" />
@@ -173,7 +175,7 @@ export function DefectView({
               className={d.id === defect.id ? "bg-surface-hover" : undefined}
             >
               <Td mono strong phone="primary">
-                {formatMetres(d.pos_to_start)}
+                {formatPosition(d.pos_to_start)}
               </Td>
               <Td label="Flaw">{defectClassLabel(d.label)}</Td>
               <Td mono align="right" label="Confidence">

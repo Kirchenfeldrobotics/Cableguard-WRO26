@@ -17,9 +17,10 @@ export interface StripMark {
 }
 
 /**
- * Pixels one metre of rope gets, at least: about 100 m across a desktop panel. Findings of
- * one type are never closer than CLUSTER_GAP_M (lib/defects.ts), and at this scale that gap
- * is wider than a mark, so two of them cannot land on each other on any screen.
+ * Pixels one metre of rope gets, at least: about 100 m across a desktop panel. Two findings
+ * of one type can lie closer than a mark is wide at this scale, down to the grouping distance
+ * (CLUSTER_GAP_M in lib/defects.ts) and under half a metre on a rope that scrolls. Their
+ * marks then overlap, the one further along on top, and the findings table lists both.
  */
 export const PX_PER_M = 10;
 
@@ -94,8 +95,8 @@ function clash(a: Box, b: Box): boolean {
 /**
  * Decides how the marks share the bar, sorted along the rope. `scale` is pixels per metre.
  *
- * Marks of one type never meet (see PX_PER_M), so two that do are a local fault and a loss
- * of metallic area on the same spot. They split the bar height, the fault on top.
+ * A local fault and a loss of metallic area on the same spot split the bar height, the fault
+ * on top. Two marks of one type that meet (see PX_PER_M) keep the full height and overlap.
  */
 export function layoutMarks(marks: StripMark[], length: number, scale: number): MarkBox[] {
   const px = (m: number) => Math.max(0, Math.min(length, m)) * scale;

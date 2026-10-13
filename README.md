@@ -349,10 +349,15 @@ robot to count its position from zero.
 
 The web app shows both camera streams, position and speed live, keeps every inspection of a
 rope and compares two of them. One damage is usually photographed several times, so the web app
-groups detections of the same type that are less than 0.5 m apart into one finding. In a
-comparison, findings less than 1.5 m apart count as the same damage, so the operator sees what
-is new and what has disappeared. Every run can be exported as a PDF. Operators log in with a
-password or by holding their phone to an NFC tag on the robot.
+groups detections of the same type that are less than 8 cm apart into one finding. That is a
+little more than the 6 cm of rope in one photo. The operator can change this distance in the
+settings, because it decides how close two damages may sit and still be shown as two. Our
+first value was 0.5 m, and two damages less than 20 cm apart on the test rope appeared as one
+finding. In a comparison the web app pairs the findings of two runs in their order along the
+rope. Two findings count as the same damage when their positions differ by less than 0.25 m
+at the start of the rope and by 1 cm more for every metre driven, up to 1.5 m, so the operator
+sees what is new and what has disappeared. Every run can be exported as a PDF. Operators log
+in with a password or by holding their phone to an NFC tag on the robot.
 
 ![The web app](documents/img/webapp.jpg)
 

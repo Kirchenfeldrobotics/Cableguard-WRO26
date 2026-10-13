@@ -184,13 +184,22 @@ controls, a chart or a form, and `list` for rows that bring their own vertical p
   box. jsPDF is loaded on the click, it is far heavier than the page. A PDF cannot read the
   stylesheet, so the report module carries its own copy of the few colour tokens it uses,
   and the PDF's built-in Helvetica stands in for Poppins.
-- **Findings, not detections**: the robot stores one row per detection and runs the
-  detector every two seconds on both cameras, so one flaw arrives as several rows a few
-  centimetres apart. `clusterDefects` groups rows of the same kind that are closer than
-  `CLUSTER_GAP_M` into a **finding**, and every screen counts and draws findings.
-  Detections stay reachable: the run page shows how many back each finding, and the defect
-  page lists them. Comparing runs also works on findings, otherwise repeat sightings would
-  be counted as new defects.
+- **Findings, not detections**: the robot stores one row per detection and photographs
+  every stretch of rope from four sides, so one flaw arrives as several rows a few
+  centimetres apart. `clusterDefects` groups rows of the same kind that are closer than the
+  operator's `Finding distance` into a **finding**, and every screen counts and draws
+  findings. The distance is a setting (`finding_gap_m`, 8 cm by default, `CLUSTER_GAP_M`
+  for a server without it) that `useRopeHistory` reads, so a change regroups every run at
+  once, the stored ones included. Detections stay reachable: the run page shows how many
+  back each finding, and the defect page lists them.
+- **Comparing runs** works on findings, otherwise repeat sightings would be counted as new
+  defects. `matchFindings` pairs the findings of two runs in their order along the rope,
+  each at most once: a new flaw next to an old one has no partner and shows as new. Two
+  findings can be partners within `matchTolerance`, 0.25 m at the start of the rope and
+  1 cm more per metre driven, up to 1.5 m.
+- **Positions** of findings and detections are written to the centimetre
+  (`formatPosition`), two findings can lie less than 10 cm apart. Rope length, robot
+  position and the scale keep one decimal.
 - **Tables**: columns are 24px apart, so a right-aligned number never touches the column
   after it. A status in a table is plain text: what is still to do in the strong weight,
   what is done muted.
@@ -208,10 +217,11 @@ controls, a chart or a form, and `list` for rows that bring their own vertical p
   A rope that fits is stretched to the full width. A longer one scrolls sideways and gets an
   overview bar underneath: the whole rope in one line, a tick per mark and a frame around the
   part on screen. The overview is the strip's scrollbar (drag, click, arrow keys, Page
-  Up/Down, Home, End), the browser's own is hidden. The scale is what keeps marks apart:
-  findings of one type are never closer than `CLUSTER_GAP_M`, which is wider than a mark at
-  10 px per metre. A local fault and a loss of metallic area on the same spot share the bar
-  height, the fault on top. A mark's click margin stops halfway to its neighbour. The scale
+  Up/Down, Home, End), the browser's own is hidden. Two findings of one type that lie
+  closer than a mark is wide, under half a metre at 10 px per metre, overlap with the one
+  further along on top, and the findings table lists both. A local fault and a loss of
+  metallic area on the same spot share the bar height, the fault on top. A mark's click
+  margin stops halfway to its neighbour. The scale
   labels step by 1, 2, 5, 10, ... metres, whatever keeps them about 64 px apart.
 - **Rope strip position**: a strip opens at the start of the rope. On the live screen it
   follows the robot and moves on when the robot nears the edge. While the operator has hold

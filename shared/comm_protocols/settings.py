@@ -118,6 +118,16 @@ class RobotSettings(BaseModel):
         85, group="detection", label="Evidence quality", unit="%", ge=10, le=100, step=5,
         note="JPEG quality the frame a defect was found in is stored at. It is the evidence for "
              "the finding, so it has to stay sharp enough to show a single wire.")
+    # The one number in here the robot never reads: it reports every detection on its own and
+    # the web app groups them into findings when it draws a run. It lives here because this
+    # is where the operator's numbers are stored, bounded and explained
+    finding_gap_m: float = setting(
+        0.08, group="detection", label="Finding distance", unit="m", ge=0.01, le=5.0, step=0.01,
+        note="Detections of one type nearer to each other along the rope than this are shown "
+             "as one finding. One damage is photographed more than once, so this stays a "
+             "little above the rope per frame. Lower tells apart damage that sits closer "
+             "together, and cuts one long damage into several findings. The web app does the "
+             "grouping, for the runs already stored as well; the robot does not use it.")
 
     # -- rope socket -------------------------------------------------------------------
     socket_trigger_diff_m: float = setting(

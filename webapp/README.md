@@ -106,7 +106,7 @@ Everything on screen is backed by the robot or the backend:
 - Run detail, defect detail with the stored camera frame, the detector's box and the change since the previous run
 - Review: a finding is marked reviewed or unreviewed, a false positive is deleted for good
 - Run report as a PDF, built in the browser (`features/run/run-report.ts`, jsPDF loaded on the click)
-- Run comparison (findings within 1.5 m count as the same finding)
-- Robot settings, read from and written to the backend
+- Run comparison (findings are paired in their order along the rope, within 0.25 m at the start of the rope and up to 1.5 m further along)
+- Robot settings, read from and written to the backend. One of them is the web app's own: the distance within which detections are grouped into a finding
 
 Defects have no severity: findings are coloured by their type instead, see DESIGN.md.

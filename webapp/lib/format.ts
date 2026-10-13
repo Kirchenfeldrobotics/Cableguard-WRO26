@@ -104,9 +104,23 @@ export function formatCamera(cam: number | null | undefined): string {
   return `Camera ${String.fromCharCode(65 + cam)}`;
 }
 
-/** `12.4 m` for one detection, `12.1 - 12.7 m` for a group that spreads. */
+const centimetres = new Intl.NumberFormat("en-US", {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
+/**
+ * `12.43 m`, where a detection or a finding sits on the rope. To the centimetre: two findings
+ * can lie less than 10 cm apart, and `formatMetres` would write the same position for both.
+ */
+export function formatPosition(value: number): string {
+  return `${centimetres.format(value)} m`;
+}
+
+/** `12.43 m` for one detection, `12.40 - 12.46 m` for a group that spreads. */
 export function formatSpan(from: number, to: number): string {
-  return to - from < 0.05 ? formatMetres(from) : `${metres.format(from)} - ${formatMetres(to)}`;
+  const start = centimetres.format(from);
+  return start === centimetres.format(to) ? `${start} m` : `${start} - ${formatPosition(to)}`;
 }
 
 /** Short, readable form of a UUID for headings and tables. */
