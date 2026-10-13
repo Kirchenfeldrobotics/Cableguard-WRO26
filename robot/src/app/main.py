@@ -50,8 +50,8 @@ DRIVE_PUL_PIN = 18
 DRIVE_DIR_PIN = 23
 
 # the stepper that swings both cameras around the rope
-TURRET_PUL_PIN = 16  # SWITCHED !!
-TURRET_DIR_PIN = 12
+TURRET_PUL_PIN = 12  
+TURRET_DIR_PIN = 16
 
 # the two buttons on the robot, each wired from its pin to ground. Both pins are pulled up
 # by the pi at boot, so a button held before the software claims it cannot start anything
