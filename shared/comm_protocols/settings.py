@@ -114,6 +114,21 @@ class RobotSettings(BaseModel):
     detect_iou: float = setting(
         0.5, group="detection", label="Overlap threshold", unit="", ge=0.01, le=0.99, step=0.01,
         note="Two boxes that overlap more than this are counted as one detection.")
+    # The ring turns the cameras around the rope, so the rope crosses every frame side to side
+    # at the same height whatever the angle, and what lies above and below it is the robot
+    detect_ignore_top: float = setting(
+        28.0, group="detection", label="Ignored above the rope", unit="%", ge=0.0, le=45.0,
+        step=1.0,
+        note="Top strip of every frame, as a share of its height, in which nothing is reported. "
+             "The rope crosses each frame at the same height, and above it the cameras see the "
+             "robot itself, which the model takes for damage as readily as the rope. A box "
+             "counts by its centre. End the strip a little short of the rope's edge, so that a "
+             "wire standing out of the rope is still reported.")
+    detect_ignore_bottom: float = setting(
+        16.0, group="detection", label="Ignored below the rope", unit="%", ge=0.0, le=45.0,
+        step=1.0,
+        note="The same strip at the bottom of every frame, where the cameras see the belt and "
+             "the pulleys below the rope. End it a little short of the rope's edge as well.")
     defect_jpeg_quality: int = setting(
         85, group="detection", label="Evidence quality", unit="%", ge=10, le=100, step=5,
         note="JPEG quality the frame a defect was found in is stored at. It is the evidence for "
@@ -184,6 +199,13 @@ class RobotSettings(BaseModel):
         0.25, group="timing", label="Open check period", unit="s", ge=0.05, le=5.0, step=0.05,
         note="How often an open robot looks at whether the socket is behind it and it may close "
              "again.")
+
+    # Whether a box lies on the rope, from its top and bottom edge as shares of the frame
+    # height. It does when its centre falls between the two strips above. The robot drops
+    # every box this refuses, backend/scripts/drop_beside_rope.py the ones stored before it did
+    def on_rope(self, y1: float, y2: float) -> bool:
+        centre = (y1 + y2) / 2.0
+        return self.detect_ignore_top / 100.0 <= centre <= 1.0 - self.detect_ignore_bottom / 100.0
 
 
 # One setting as the settings page needs it, all of it read off the field above

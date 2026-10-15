@@ -16,6 +16,16 @@ LABEL_TO_KIND = {
     "unknown_defect":    "lf",
 }
 
+# What the detector found, split into the boxes on the rope and the ones beside it. Above and
+# below the rope the cameras see the robot itself, and the model finds damage in its belt and
+# pulleys as readily as in the rope. Where the rope runs is the operator's setting
+def on_rope(found, frame_h, settings):
+    inside, beside = [], []
+    for det in found:
+        _, y1, _, y2 = det.box
+        (inside if settings.on_rope(y1 / frame_h, y2 / frame_h) else beside).append(det)
+    return inside, beside
+
 # one detector result per frame, boxes normalised because the detection stream (main, 640x640)
 # and the stream the webapp shows (lores, 640x480) do not share a resolution
 def vision_telemetry(seq, cam, frame, found, captured_at, microsteps, distance_from_origin, inference_ms, jpeg=None):

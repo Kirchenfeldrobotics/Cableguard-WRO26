@@ -39,7 +39,7 @@ from motion.turret import Turret
 from tof.vl53l0x import VL53L0X
 from vision.detector import DetectorProcess
 from vision.pacing import measure_cycle
-from vision.report import vision_telemetry
+from vision.report import on_rope, vision_telemetry
 
 log = logging.getLogger("cableguard")
 
@@ -197,6 +197,13 @@ async def capture_round(rt: Runtime) -> Round:
     return Round(frames, time.time(), rt.drive.microsteps_done, rt.drive.metres_done)
 
 
+# every box of a frame for the log, with the pixel it is centred on
+def describe(found):
+    return ", ".join(
+        f"{det.label} {det.confidence:.2f} at ({det.center[0]:.0f}, {det.center[1]:.0f})"
+        for det in found
+    )
+
 # The detector on what a round saw, and a report for every frame, empty ones included. It
 # runs while the ring is already turning: the shutter needs the cameras still, the net does not
 async def report_round(rt: Runtime, link: RobotLink, look: Round, seq):
@@ -206,18 +213,20 @@ async def report_round(rt: Runtime, link: RobotLink, look: Round, seq):
     for idx, frame in look.frames:
         started = loop.time()
         found = await asyncio.to_thread(rt.detector.detect, frame)
+        # a box beside the rope is the robot itself, it is neither reported nor stored
+        found, beside = on_rope(found, frame.shape[0], rt.settings)
         # only a frame with something in it is worth storing
         jpeg = await asyncio.to_thread(encode, frame, quality) if found else None
         millis = (loop.time() - started) * 1000.0
 
         if found:
-            summary = ", ".join(
-                f"{det.label} {det.confidence:.2f} at ({det.center[0]:.0f}, {det.center[1]:.0f})"
-                for det in found
-            )
-            log.info("cam%d: %d detection(s) in %.0f ms: %s", idx, len(found), millis, summary)
+            log.info("cam%d: %d detection(s) in %.0f ms: %s", idx, len(found), millis, describe(found))
         else:
             log.info("cam%d: nothing detected (%.0f ms)", idx, millis)
+        # said every time, it is what the operator moves the two ignored strips by
+        if beside:
+            log.info("cam%d: %d detection(s) beside the rope dropped: %s", idx, len(beside),
+                     describe(beside))
 
         msg = vision_telemetry(
             seq=next(seq),

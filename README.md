@@ -287,6 +287,14 @@ milliseconds, including the thread that feeds the motor
 These numbers come from photos of other people's ropes. On our own test rope the detection
 works well in our runs, but we have not yet counted hits and misses on prepared damage.
 
+Above and below the rope the cameras also see parts of the robot, such as the belt and its
+pulleys, and the network sometimes marks them as damage. The ring turns the cameras around the
+rope, so the rope always crosses the photo at the same height. The robot therefore ignores a
+strip at the top and one at the bottom of every photo, by default 28 % and 16 % of its height,
+and reports a box only if its centre lies between them. Both strips end a little before the
+edge of the rope, so a broken wire that stands out of the rope is still reported. The operator
+sets the two strips in the settings ([`robot/src/vision/report.py`](robot/src/vision/report.py)).
+
 ### Passing a rope socket
 
 A rope ends in a thick metal fitting, the rope socket, and the camera ring cannot turn past it.
@@ -364,7 +372,7 @@ in with a password or by holding their phone to an NFC tag on the robot.
 **Figure 6.** The web app: the dashboard on a laptop and the findings of one run with position,
 flaw and confidence.
 
-**Settings.** The robot has 31 settings in seven groups, from the microstepping of the drive to
+**Settings.** The robot has 33 settings in seven groups, from the microstepping of the drive to
 the exposure of the cameras. They are defined once, in
 [`shared/comm_protocols/settings.py`](shared/comm_protocols/settings.py), with their limits and
 their explanation. The server stores the values of the operator, and the settings page draws
